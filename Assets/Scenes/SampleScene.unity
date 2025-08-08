@@ -1093,7 +1093,7 @@ ParticleSystem:
     donutRadius: 0.2
     m_Position: {x: 0, y: 0, z: 0}
     m_Rotation: {x: 0, y: 0, z: 0}
-    m_Scale: {x: 13.41, y: 35, z: 10}
+    m_Scale: {x: 20.24, y: 10.2, z: 10}
     placementMode: 0
     m_MeshMaterialIndex: 0
     m_MeshNormalOffset: 0
@@ -5312,7 +5312,7 @@ GameObject:
   - component: {fileID: 712210477}
   - component: {fileID: 712210478}
   m_Layer: 0
-  m_Name: RainZone_1
+  m_Name: Rain_Zone_Forest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5327,7 +5327,7 @@ Transform:
   m_GameObject: {fileID: 712210475}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 20, y: -4.93, z: -29.35}
+  m_LocalPosition: {x: 1.4, y: -4.93, z: -6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -5348,12 +5348,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rainIntensity: 0
   rainParticles: {fileID: 582069739}
-  minRainRate: 100
+  rainEvent:
+    Guid:
+      Data1: -614891168
+      Data2: 1323739177
+      Data3: -1972418148
+      Data4: 1792823485
+    Path: event:/AMB/AMB_Rain
+  globalParameterName: RainIntensity
+  masterVolume: 1
+  minRainRate: 10
   maxRainRate: 800
-  particleSize: 0.951
-  sizeVariation: 0.187
+  particleSize: 0.1
+  sizeVariation: 0
   currentZoneSize: {x: 1.7, y: 0, z: 0}
   status: Configure zone in ParticleSystem Shape module
+  audioStatus: 'Event selected: event:/AMB/AMB_Rain | Global param: RainIntensity'
 --- !u!1 &721571289
 GameObject:
   m_ObjectHideFlags: 0
