@@ -5354,7 +5354,7 @@ MonoBehaviour:
       Data2: 1323739177
       Data3: -1972418148
       Data4: 1792823485
-    Path: event:/AMB/AMB_Rain
+    Path: event:/AMB/AMB_Rain_Forest
   globalParameterName: RainIntensity
   masterVolume: 1
   minRainRate: 10
