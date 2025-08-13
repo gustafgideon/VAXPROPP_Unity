@@ -1,4 +1,4 @@
-   using UnityEngine;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
 
@@ -12,12 +12,27 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform thirdPersonPosition;
     [SerializeField] private Transform cameraHolder;
     [SerializeField] private float cameraTransitionSpeed = 10f;
+
+    [Header("Third Person Camera Settings")]
+    [SerializeField] private float thirdPersonDistance = 5f;
+    [SerializeField] private float minVerticalAngle = -30f;
+    [SerializeField] private float maxVerticalAngle = 60f;
+    [SerializeField] private float cameraCollisionOffset = 0.2f;
+    [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 1.5f, 0f);
     
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float runSpeed = 8f;
     [SerializeField] private float jumpForce = 5f;
     [SerializeField] private float gravityMultiplier = 2.5f;
+    [SerializeField] private float airControl = 0.8f;
+    [SerializeField] private float crouchSpeed = 3f;
+    [SerializeField] private float crouchHeight = 1f;
+    [SerializeField] private float standingHeight = 2f;
+    
+    [Header("Head Bob Settings")]
+    [SerializeField] private float bobFrequency = 2f;
+    [SerializeField] private float bobAmount = 0.05f;
     
     [Header("Interaction Settings")]
     [SerializeField] private float interactionRange = 3f;
@@ -46,9 +61,12 @@ public class PlayerController : MonoBehaviour
     private bool isGrounded;
     private bool isRunning;
     private bool isZooming;
-    private bool isFirstPerson = true;
+    private bool isFirstPerson = false;
     private float targetFOV;
     private float currentAttackCooldown;
+    private bool isCrouching;
+    private Vector3 originalCameraPosition;
+    private float bobTimer;
 
     // Input action references
     private InputAction moveAction;
@@ -59,6 +77,7 @@ public class PlayerController : MonoBehaviour
     private InputAction attackAction;
     private InputAction switchViewAction;
     private InputAction interactAction;
+    private InputAction crouchAction;
 
     private void Awake()
     {
@@ -75,9 +94,11 @@ public class PlayerController : MonoBehaviour
             playerCamera = Camera.main;
             
         cameraTransform = playerCamera.transform;
+        originalCameraPosition = cameraHolder.localPosition;
         targetFOV = normalFOV;
         
-        // Lock cursor
+        characterController.height = standingHeight;
+        
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -93,8 +114,8 @@ public class PlayerController : MonoBehaviour
         attackAction = actions["Attack"];
         switchViewAction = actions["SwitchView"];
         interactAction = actions["Interact"];
+        crouchAction = actions["Crouch"];
 
-        // Subscribe to input events
         moveAction.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         moveAction.canceled += ctx => moveInput = Vector2.zero;
         
@@ -111,6 +132,7 @@ public class PlayerController : MonoBehaviour
         attackAction.performed += _ => TryAttack();
         interactAction.performed += _ => TryInteract();
         switchViewAction.performed += _ => ToggleView();
+        crouchAction.performed += _ => ToggleCrouch();
     }
 
     private void OnEnable()
@@ -126,7 +148,7 @@ public class PlayerController : MonoBehaviour
     private void EnableAllInputs(bool enable)
     {
         var actions = new[] { moveAction, lookAction, jumpAction, runAction, 
-                            zoomAction, attackAction, switchViewAction, interactAction };
+                            zoomAction, attackAction, switchViewAction, interactAction, crouchAction };
         foreach (var action in actions)
         {
             if (action != null)
@@ -143,8 +165,8 @@ public class PlayerController : MonoBehaviour
         UpdateCameraRotation();
         UpdateCameraPosition();
         UpdateCameraEffects();
+        if (isFirstPerson) UpdateHeadBob();
         
-        // Update cooldowns
         if (currentAttackCooldown > 0)
             currentAttackCooldown -= Time.deltaTime;
     }
@@ -153,15 +175,19 @@ public class PlayerController : MonoBehaviour
     {
         isGrounded = characterController.isGrounded;
         
-        // Calculate movement direction
-        var moveDir = transform.right * moveInput.x + transform.forward * moveInput.y;
-        float currentSpeed = isRunning ? runSpeed : walkSpeed;
+        Vector3 moveDir = transform.right * moveInput.x + transform.forward * moveInput.y;
+        float currentSpeed = isCrouching ? crouchSpeed : (isRunning ? runSpeed : walkSpeed);
         
-        // Apply movement and gravity
-        if (isGrounded && currentVelocity.y < 0)
-            currentVelocity.y = -2f;
-            
-        currentVelocity.y += Physics.gravity.y * gravityMultiplier * Time.deltaTime;
+        if (!isGrounded)
+        {
+            moveDir *= airControl;
+            currentVelocity.y += Physics.gravity.y * gravityMultiplier * Time.deltaTime;
+        }
+        else
+        {
+            if (currentVelocity.y < 0)
+                currentVelocity.y = -2f;
+        }
         
         Vector3 movement = moveDir * currentSpeed * Time.deltaTime;
         movement.y = currentVelocity.y * Time.deltaTime;
@@ -171,31 +197,43 @@ public class PlayerController : MonoBehaviour
 
     private void UpdateCameraRotation()
     {
-        // Horizontal rotation
         transform.Rotate(Vector3.up * lookInput.x * mouseSensitivity);
         
-        // Vertical rotation
         verticalRotation -= lookInput.y * mouseSensitivity;
-        verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
-        cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
+        
+        if (isFirstPerson)
+        {
+            verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
+            cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
+        }
+        else
+        {
+            verticalRotation = Mathf.Clamp(verticalRotation, minVerticalAngle, maxVerticalAngle);
+        }
     }
 
     private void UpdateCameraPosition()
     {
         if (!isFirstPerson)
         {
-            // Check for obstacles between camera and player in third person
-            Vector3 targetPos = thirdPersonPosition.position;
-            if (Physics.Raycast(transform.position, (targetPos - transform.position).normalized, 
-                out RaycastHit hit, Vector3.Distance(transform.position, targetPos)))
+            Vector3 targetPosition = transform.position + thirdPersonOffset;
+            Vector3 directionToCamera = Quaternion.Euler(verticalRotation, transform.eulerAngles.y, 0f) 
+                * -Vector3.forward;
+            Vector3 desiredCameraPos = targetPosition + directionToCamera * thirdPersonDistance;
+
+            if (Physics.Raycast(targetPosition, directionToCamera, out RaycastHit hit, 
+                thirdPersonDistance))
             {
-                cameraTransform.position = hit.point;
+                desiredCameraPos = hit.point + directionToCamera * cameraCollisionOffset;
             }
-            else
-            {
-                cameraTransform.position = Vector3.Lerp(cameraTransform.position, 
-                    targetPos, Time.deltaTime * cameraTransitionSpeed);
-            }
+
+            cameraTransform.position = Vector3.Lerp(cameraTransform.position, 
+                desiredCameraPos, Time.deltaTime * cameraTransitionSpeed);
+
+            Vector3 lookAtPosition = transform.position + thirdPersonOffset;
+            Vector3 smoothedLookAt = Vector3.Lerp(cameraTransform.position + 
+                cameraTransform.forward, lookAtPosition, Time.deltaTime * cameraTransitionSpeed);
+            cameraTransform.LookAt(smoothedLookAt);
         }
         else
         {
@@ -209,6 +247,32 @@ public class PlayerController : MonoBehaviour
         targetFOV = isZooming ? zoomFOV : normalFOV;
         playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFOV, 
             Time.deltaTime * zoomSpeed);
+    }
+
+    private void UpdateHeadBob()
+    {
+        if (isGrounded && moveInput.magnitude > 0.1f)
+        {
+            float speed = isRunning ? runSpeed : walkSpeed;
+            bobTimer += Time.deltaTime * bobFrequency * (speed / walkSpeed);
+            
+            Vector3 bobOffset = new Vector3(
+                Mathf.Cos(bobTimer) * bobAmount,
+                Mathf.Sin(bobTimer * 2) * bobAmount,
+                0
+            );
+            
+            cameraHolder.localPosition = originalCameraPosition + bobOffset;
+        }
+        else
+        {
+            bobTimer = 0;
+            cameraHolder.localPosition = Vector3.Lerp(
+                cameraHolder.localPosition,
+                originalCameraPosition,
+                Time.deltaTime * 5f
+            );
+        }
     }
 
     private void TryJump()
@@ -250,11 +314,37 @@ public class PlayerController : MonoBehaviour
     private void ToggleView()
     {
         isFirstPerson = !isFirstPerson;
+        
+        if (isFirstPerson)
+        {
+            verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
+        }
+        else
+        {
+            verticalRotation = 0f;
+        }
+    }
+
+    private void ToggleCrouch()
+    {
+        isCrouching = !isCrouching;
+        characterController.height = isCrouching ? crouchHeight : standingHeight;
+        
+        if (isFirstPerson)
+        {
+            float heightDifference = standingHeight - crouchHeight;
+            Vector3 newCameraPosition = originalCameraPosition;
+            newCameraPosition.y -= isCrouching ? heightDifference * 0.5f : -heightDifference * 0.5f;
+            cameraHolder.localPosition = Vector3.Lerp(
+                cameraHolder.localPosition,
+                newCameraPosition,
+                Time.deltaTime * 10f
+            );
+        }
     }
 
     private void OnDrawGizmosSelected()
     {
-        // Visualize interaction and attack ranges in editor
         if (playerCamera != null)
         {
             Gizmos.color = Color.yellow;
@@ -265,7 +355,6 @@ public class PlayerController : MonoBehaviour
     }
 }
 
-// Required interfaces
 public interface IInteractable
 {
     void Interact();

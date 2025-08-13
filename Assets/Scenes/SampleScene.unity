@@ -93,8 +93,8 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 20201, guid: 0000000000000000f000000000000000, type: 0}
-  m_LightingSettings: {fileID: 0}
+  m_LightingDataAsset: {fileID: 112000000, guid: d57457253c2ff463fa3de4735e4f6dc0, type: 2}
+  m_LightingSettings: {fileID: 4890085278179872738, guid: 25b4029f06ff6a94b890ee090706c666, type: 2}
 --- !u!196 &4
 NavMeshSettings:
   serializedVersion: 2
@@ -288,10 +288,21 @@ MonoBehaviour:
   thirdPersonPosition: {fileID: 1599765919}
   cameraHolder: {fileID: 1615136473}
   cameraTransitionSpeed: 10
+  thirdPersonDistance: 5
+  minVerticalAngle: -30
+  maxVerticalAngle: 60
+  cameraCollisionOffset: 0.2
+  thirdPersonOffset: {x: 0, y: 1.5, z: 0}
   walkSpeed: 5
   runSpeed: 8
-  jumpForce: 5
+  jumpForce: 8
   gravityMultiplier: 2.5
+  airControl: 0.8
+  crouchSpeed: 3
+  crouchHeight: 1
+  standingHeight: 2
+  bobFrequency: 10
+  bobAmount: 0.05
   interactionRange: 3
   interactionMask:
     serializedVersion: 2
@@ -5371,7 +5382,7 @@ MonoBehaviour:
   fadeOutTime: 3.06
   currentZoneSize: {x: 0, y: 0, z: 0}
   status: Configure zone in ParticleSystem Shape module
-  audioStatus: 'Event selected: event:/AMB/AMB_Rain | Global param: RainIntensity'
+  audioStatus: 'Event selected: event:/AMB/AMB_Rain_Forest | Global param: RainIntensity'
   playerInZone: 0
 --- !u!1 &721571289
 GameObject:
@@ -5905,7 +5916,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 8f296a12a43c44072832463651b59673, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
