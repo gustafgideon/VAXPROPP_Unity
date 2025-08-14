@@ -10534,7 +10534,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   avoidanceArcHeight: 0.3
   eyeCloseColor: {r: 0, g: 0, b: 0, a: 1}
-  thirdPersonDistance: 10
+  thirdPersonDistance: 5
   minVerticalAngle: -30
   maxVerticalAngle: 60
   cameraCollisionOffset: 0.2
@@ -10545,10 +10545,9 @@ MonoBehaviour:
   zoomSensitivity: 2
   zoomSpeed: 1.5
   invertScrollDirection: 1
-  playerRotationSpeed: 95
+  playerRotationSpeed: 80
   instantPivot: 0
   pivotThreshold: 0.02
-  pivotSmoothing: 0.1
   walkSpeed: 6.5
   runSpeed: 10
   jumpForce: 9
