@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerInput))]
@@ -13,12 +14,32 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform cameraHolder;
     [SerializeField] private float cameraTransitionSpeed = 10f;
 
+    [Header("View Transition Settings")]
+    [SerializeField] private float eyeCloseTransitionDuration = 0.6f;
+    [SerializeField] private float smoothTransitionDuration = 0.8f;
+    [SerializeField] private AnimationCurve smoothTransitionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField] private float avoidanceArcHeight = 0.3f;
+    [SerializeField] private Color eyeCloseColor = Color.black;
+
     [Header("Third Person Camera Settings")]
     [SerializeField] private float thirdPersonDistance = 5f;
     [SerializeField] private float minVerticalAngle = -30f;
     [SerializeField] private float maxVerticalAngle = 60f;
     [SerializeField] private float cameraCollisionOffset = 0.2f;
     [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 1.5f, 0f);
+    
+    [Header("Third Person Zoom Settings")]
+    [SerializeField] private float minCameraDistance = 1f;
+    [SerializeField] private float maxCameraDistance = 10f;
+    [SerializeField] private float defaultCameraDistance = 5f;
+    [SerializeField] private float zoomSensitivity = 1f;
+    [SerializeField] private float zoomSpeed = 8f;
+    [SerializeField] private bool invertScrollDirection = false;
+    
+    [Header("Player Pivot Settings")]
+    [SerializeField] private float playerRotationSpeed = 10f;
+    [SerializeField] private bool instantPivot = false;
+    [SerializeField] private float pivotThreshold = 0.1f;
     
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
@@ -29,10 +50,16 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float crouchSpeed = 3f;
     [SerializeField] private float crouchHeight = 1f;
     [SerializeField] private float standingHeight = 2f;
+    [SerializeField] private float crouchTransitionSpeed = 8f;
     
     [Header("Head Bob Settings")]
     [SerializeField] private float bobFrequency = 2f;
     [SerializeField] private float bobAmount = 0.05f;
+    
+    [Header("Crouch Head Bob Settings")]
+    [SerializeField] private float crouchBobFrequency = 1.5f;
+    [SerializeField] private float crouchBobAmount = 0.03f;
+    [SerializeField] private bool enableCrouchHeadBob = true;
     
     [Header("Interaction Settings")]
     [SerializeField] private float interactionRange = 3f;
@@ -44,45 +71,59 @@ public class PlayerController : MonoBehaviour
     [Header("View Settings")]
     [SerializeField] private float mouseSensitivity = 2f;
     [SerializeField] private float maxLookAngle = 80f;
-    [SerializeField] private float normalFOV = 60f;
-    [SerializeField] private float zoomFOV = 30f;
-    [SerializeField] private float zoomSpeed = 20f;
+    [SerializeField] private float defaultFOV = 60f;
 
     // Private references
     private CharacterController characterController;
     private PlayerInput playerInput;
     private Transform cameraTransform;
     
+    // UI overlay for eye close effect
+    private GameObject eyeCloseOverlay;
+    private UnityEngine.UI.Image eyeCloseImage;
+    private Canvas overlayCanvas;
+    
     // Movement state
     private Vector2 moveInput;
     private Vector2 lookInput;
     private Vector3 currentVelocity;
     private float verticalRotation;
+    private float horizontalRotation;
     private bool isGrounded;
     private bool isRunning;
-    private bool isZooming;
     private bool isFirstPerson = false;
-    private float targetFOV;
     private float currentAttackCooldown;
     private bool isCrouching;
+    private bool crouchInputHeld;
     private Vector3 originalCameraPosition;
     private float bobTimer;
+    private float targetHeight;
+    private float currentCameraYOffset;
+    private float targetCameraYOffset;
+    
+    // Zoom state
+    private float currentCameraDistance;
+    private float targetCameraDistance;
+    
+    // View transition state
+    private bool isTransitioning = false;
 
     // Input action references
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;
     private InputAction runAction;
-    private InputAction zoomAction;
     private InputAction attackAction;
     private InputAction switchViewAction;
     private InputAction interactAction;
     private InputAction crouchAction;
+    private InputAction zoomAction;
 
     private void Awake()
     {
         InitializeComponents();
         SetupInputActions();
+        CreateEyeCloseOverlay();
     }
 
     private void InitializeComponents()
@@ -95,12 +136,76 @@ public class PlayerController : MonoBehaviour
             
         cameraTransform = playerCamera.transform;
         originalCameraPosition = cameraHolder.localPosition;
-        targetFOV = normalFOV;
         
         characterController.height = standingHeight;
+        targetHeight = standingHeight;
+        currentCameraYOffset = 0f;
+        targetCameraYOffset = 0f;
+        
+        // Initialize camera rotation and distance
+        horizontalRotation = transform.eulerAngles.y;
+        verticalRotation = 0f;
+        currentCameraDistance = defaultCameraDistance;
+        targetCameraDistance = defaultCameraDistance;
+        thirdPersonDistance = defaultCameraDistance;
+        
+        // Initialize FOV
+        playerCamera.fieldOfView = defaultFOV;
+        
+        // Auto-detect platform and set scroll direction
+        AutoDetectScrollDirection();
         
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+    }
+
+    private void CreateEyeCloseOverlay()
+    {
+        // Create a canvas for the eye close effect
+        GameObject canvasGO = new GameObject("EyeCloseCanvas");
+        overlayCanvas = canvasGO.AddComponent<Canvas>();
+        overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        overlayCanvas.sortingOrder = 1000; // Make sure it's on top
+        
+        // Add CanvasScaler for responsive UI
+        var scaler = canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>();
+        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        
+        // Add GraphicRaycaster
+        canvasGO.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+        
+        // Create the overlay image
+        eyeCloseOverlay = new GameObject("EyeCloseOverlay");
+        eyeCloseOverlay.transform.SetParent(canvasGO.transform, false);
+        
+        eyeCloseImage = eyeCloseOverlay.AddComponent<UnityEngine.UI.Image>();
+        eyeCloseImage.color = eyeCloseColor;
+        
+        // Make it cover the entire screen
+        var rectTransform = eyeCloseOverlay.GetComponent<RectTransform>();
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.sizeDelta = Vector2.zero;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        
+        // Start invisible
+        eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
+        
+        // Make canvas persistent
+        DontDestroyOnLoad(canvasGO);
+    }
+
+    private void AutoDetectScrollDirection()
+    {
+        #if UNITY_STANDALONE_OSX
+            invertScrollDirection = true;
+        #elif UNITY_STANDALONE_WIN
+            invertScrollDirection = false;
+        #elif UNITY_STANDALONE_LINUX
+            invertScrollDirection = false;
+        #endif
     }
 
     private void SetupInputActions()
@@ -110,29 +215,38 @@ public class PlayerController : MonoBehaviour
         lookAction = actions["Look"];
         jumpAction = actions["Jump"];
         runAction = actions["Run"];
-        zoomAction = actions["Zoom"];
         attackAction = actions["Attack"];
         switchViewAction = actions["SwitchView"];
         interactAction = actions["Interact"];
         crouchAction = actions["Crouch"];
+        zoomAction = actions["Zoom"];
 
         moveAction.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         moveAction.canceled += ctx => moveInput = Vector2.zero;
         
-        lookAction.performed += ctx => lookInput = ctx.ReadValue<Vector2>();
+        lookAction.performed += ctx => 
+        {
+            if (!isTransitioning) // Disable look input during transition
+                lookInput = ctx.ReadValue<Vector2>();
+        };
         lookAction.canceled += ctx => lookInput = Vector2.zero;
         
         runAction.performed += ctx => isRunning = true;
         runAction.canceled += ctx => isRunning = false;
         
-        zoomAction.performed += ctx => isZooming = true;
-        zoomAction.canceled += ctx => isZooming = false;
+        crouchAction.performed += ctx => { crouchInputHeld = true; StartCrouch(); };
+        crouchAction.canceled += ctx => { crouchInputHeld = false; StopCrouch(); };
+        
+        zoomAction.performed += ctx => HandleZoom(ctx.ReadValue<float>());
         
         jumpAction.performed += _ => TryJump();
         attackAction.performed += _ => TryAttack();
         interactAction.performed += _ => TryInteract();
-        switchViewAction.performed += _ => ToggleView();
-        crouchAction.performed += _ => ToggleCrouch();
+        switchViewAction.performed += _ => 
+        {
+            if (!isTransitioning) // Prevent view switching during transition
+                ToggleView();
+        };
     }
 
     private void OnEnable()
@@ -148,7 +262,7 @@ public class PlayerController : MonoBehaviour
     private void EnableAllInputs(bool enable)
     {
         var actions = new[] { moveAction, lookAction, jumpAction, runAction, 
-                            zoomAction, attackAction, switchViewAction, interactAction, crouchAction };
+                            attackAction, switchViewAction, interactAction, crouchAction, zoomAction };
         foreach (var action in actions)
         {
             if (action != null)
@@ -161,21 +275,76 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        UpdateCrouchState();
+        
+        if (!isTransitioning)
+        {
+            UpdateCameraRotation();
+            UpdateZoom();
+            UpdateCameraPosition();
+        }
+        
         UpdateMovement();
-        UpdateCameraRotation();
-        UpdateCameraPosition();
-        UpdateCameraEffects();
-        if (isFirstPerson) UpdateHeadBob();
+        UpdateCrouchTransition();
+        
+        if (isFirstPerson && !isTransitioning) 
+            UpdateHeadBob();
         
         if (currentAttackCooldown > 0)
             currentAttackCooldown -= Time.deltaTime;
+    }
+
+    private void UpdateCrouchState()
+    {
+        if (crouchInputHeld && !isCrouching)
+        {
+            StartCrouch();
+        }
+        else if (!crouchInputHeld && isCrouching)
+        {
+            StopCrouch();
+        }
     }
 
     private void UpdateMovement()
     {
         isGrounded = characterController.isGrounded;
         
-        Vector3 moveDir = transform.right * moveInput.x + transform.forward * moveInput.y;
+        Vector3 moveDir = Vector3.zero;
+        
+        if (moveInput.magnitude > pivotThreshold)
+        {
+            if (isFirstPerson)
+            {
+                moveDir = transform.right * moveInput.x + transform.forward * moveInput.y;
+            }
+            else
+            {
+                float cameraYRotation = horizontalRotation;
+                Vector3 forward = new Vector3(Mathf.Sin(cameraYRotation * Mathf.Deg2Rad), 0, Mathf.Cos(cameraYRotation * Mathf.Deg2Rad));
+                Vector3 right = new Vector3(forward.z, 0, -forward.x);
+                
+                moveDir = right * moveInput.x + forward * moveInput.y;
+                moveDir.Normalize();
+                
+                if (moveDir.magnitude > pivotThreshold)
+                {
+                    float targetAngle = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+                    
+                    if (instantPivot)
+                    {
+                        transform.rotation = Quaternion.Euler(0, targetAngle, 0);
+                    }
+                    else
+                    {
+                        transform.rotation = Quaternion.Slerp(transform.rotation, 
+                            Quaternion.Euler(0, targetAngle, 0), 
+                            Time.deltaTime * playerRotationSpeed);
+                    }
+                }
+            }
+        }
+        
         float currentSpeed = isCrouching ? crouchSpeed : (isRunning ? runSpeed : walkSpeed);
         
         if (!isGrounded)
@@ -197,18 +366,28 @@ public class PlayerController : MonoBehaviour
 
     private void UpdateCameraRotation()
     {
-        transform.Rotate(Vector3.up * lookInput.x * mouseSensitivity);
-        
-        verticalRotation -= lookInput.y * mouseSensitivity;
-        
         if (isFirstPerson)
         {
+            transform.Rotate(Vector3.up * lookInput.x * mouseSensitivity);
+            
+            verticalRotation -= lookInput.y * mouseSensitivity;
             verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
             cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
         }
         else
         {
+            horizontalRotation += lookInput.x * mouseSensitivity;
+            verticalRotation -= lookInput.y * mouseSensitivity;
             verticalRotation = Mathf.Clamp(verticalRotation, minVerticalAngle, maxVerticalAngle);
+        }
+    }
+
+    private void UpdateZoom()
+    {
+        if (!isFirstPerson)
+        {
+            currentCameraDistance = Mathf.Lerp(currentCameraDistance, targetCameraDistance, Time.deltaTime * zoomSpeed);
+            thirdPersonDistance = currentCameraDistance;
         }
     }
 
@@ -216,24 +395,17 @@ public class PlayerController : MonoBehaviour
     {
         if (!isFirstPerson)
         {
-            Vector3 targetPosition = transform.position + thirdPersonOffset;
-            Vector3 directionToCamera = Quaternion.Euler(verticalRotation, transform.eulerAngles.y, 0f) 
-                * -Vector3.forward;
-            Vector3 desiredCameraPos = targetPosition + directionToCamera * thirdPersonDistance;
+            Vector3 playerTargetPosition = transform.position + thirdPersonOffset;
+            Vector3 directionToCamera = Quaternion.Euler(verticalRotation, horizontalRotation, 0f) * -Vector3.forward;
+            Vector3 desiredCameraPos = playerTargetPosition + directionToCamera * thirdPersonDistance;
 
-            if (Physics.Raycast(targetPosition, directionToCamera, out RaycastHit hit, 
-                thirdPersonDistance))
+            if (Physics.Raycast(playerTargetPosition, directionToCamera, out RaycastHit hit, thirdPersonDistance))
             {
                 desiredCameraPos = hit.point + directionToCamera * cameraCollisionOffset;
             }
 
-            cameraTransform.position = Vector3.Lerp(cameraTransform.position, 
-                desiredCameraPos, Time.deltaTime * cameraTransitionSpeed);
-
-            Vector3 lookAtPosition = transform.position + thirdPersonOffset;
-            Vector3 smoothedLookAt = Vector3.Lerp(cameraTransform.position + 
-                cameraTransform.forward, lookAtPosition, Time.deltaTime * cameraTransitionSpeed);
-            cameraTransform.LookAt(smoothedLookAt);
+            cameraTransform.position = desiredCameraPos;
+            cameraTransform.LookAt(playerTargetPosition);
         }
         else
         {
@@ -242,34 +414,208 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void UpdateCameraEffects()
+    private void HandleZoom(float scrollValue)
     {
-        targetFOV = isZooming ? zoomFOV : normalFOV;
-        playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFOV, 
-            Time.deltaTime * zoomSpeed);
+        if (!isFirstPerson && !isTransitioning && Mathf.Abs(scrollValue) > 0.1f)
+        {
+            float adjustedScrollValue = invertScrollDirection ? -scrollValue : scrollValue;
+            targetCameraDistance -= adjustedScrollValue * zoomSensitivity;
+            targetCameraDistance = Mathf.Clamp(targetCameraDistance, minCameraDistance, maxCameraDistance);
+        }
+    }
+
+    private void ToggleView()
+    {
+        if (isFirstPerson)
+        {
+            StartCoroutine(EyeCloseTransition());
+        }
+        else
+        {
+            StartCoroutine(SmoothTransition());
+        }
+    }
+
+    private IEnumerator EyeCloseTransition()
+    {
+        isTransitioning = true;
+        
+        // Phase 1: Eyes closing (fade to black)
+        float fadeInDuration = eyeCloseTransitionDuration * 0.3f;
+        float elapsedTime = 0f;
+        
+        while (elapsedTime < fadeInDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float alpha = Mathf.Clamp01(elapsedTime / fadeInDuration);
+            eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
+            yield return null;
+        }
+        
+        // Phase 2: Switch to third person while screen is black
+        // Align player rotation with camera direction
+        transform.rotation = Quaternion.Euler(0, horizontalRotation, 0);
+        
+        // Set up third person camera position
+        horizontalRotation = transform.eulerAngles.y;
+        verticalRotation = 0f;
+        
+        Vector3 playerTargetPosition = transform.position + thirdPersonOffset;
+        Vector3 directionToCamera = Quaternion.Euler(verticalRotation, horizontalRotation, 0f) * -Vector3.forward;
+        Vector3 desiredCameraPos = playerTargetPosition + directionToCamera * currentCameraDistance;
+        
+        cameraTransform.position = desiredCameraPos;
+        cameraTransform.LookAt(playerTargetPosition);
+        
+        // Switch view state
+        isFirstPerson = false;
+        cameraHolder.localPosition = originalCameraPosition;
+        cameraHolder.localRotation = Quaternion.identity;
+        currentCameraDistance = targetCameraDistance;
+        thirdPersonDistance = currentCameraDistance;
+        
+        // Brief pause while eyes are closed
+        yield return new WaitForSeconds(eyeCloseTransitionDuration * 0.4f);
+        
+        // Phase 3: Eyes opening (fade from black)
+        float fadeOutDuration = eyeCloseTransitionDuration * 0.3f;
+        elapsedTime = 0f;
+        
+        while (elapsedTime < fadeOutDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float alpha = 1f - Mathf.Clamp01(elapsedTime / fadeOutDuration);
+            eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
+            yield return null;
+        }
+        
+        // Ensure completely transparent
+        eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
+        
+        isTransitioning = false;
+    }
+
+    private IEnumerator SmoothTransition()
+    {
+        isTransitioning = true;
+        
+        // Store starting position and rotation
+        Vector3 startPosition = cameraTransform.position;
+        Quaternion startRotation = cameraTransform.rotation;
+        
+        // IMPORTANT: Use the current third person camera's horizontal rotation as the target
+        // This ensures continuity between camera direction and player direction
+        float targetPlayerRotation = horizontalRotation;
+        
+        // Target position and rotation
+        Vector3 targetPosition = firstPersonPosition.position;
+        Quaternion targetRotation = Quaternion.Euler(0f, targetPlayerRotation, 0f);
+        
+        float elapsedTime = 0f;
+        
+        while (elapsedTime < smoothTransitionDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float progress = smoothTransitionCurve.Evaluate(elapsedTime / smoothTransitionDuration);
+            
+            // Create a straight line with a slight upward arc to avoid the head
+            Vector3 straightPath = Vector3.Lerp(startPosition, targetPosition, progress);
+            
+            // Add a subtle upward arc that peaks at 50% progress to avoid clipping through head
+            float arcOffset = Mathf.Sin(progress * Mathf.PI) * avoidanceArcHeight;
+            Vector3 currentPos = straightPath + Vector3.up * arcOffset;
+            
+            cameraTransform.position = currentPos;
+            
+            // Smoothly rotate to match the target direction
+            cameraTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, progress);
+            
+            yield return null;
+        }
+        
+        // Finalize first person setup
+        isFirstPerson = true;
+        
+        // CRITICAL: Set the player's rotation to match the third person camera direction
+        // This ensures that when we enter first person, the player is facing the same direction
+        // as the camera was looking in third person
+        transform.rotation = Quaternion.Euler(0f, targetPlayerRotation, 0f);
+        
+        // Reset camera rotation relative to player
+        verticalRotation = 0f;
+        cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
+        currentCameraYOffset = targetCameraYOffset;
+        
+        // Ensure camera is exactly at first person position with proper local rotation
+        cameraTransform.position = firstPersonPosition.position;
+        cameraTransform.rotation = transform.rotation; // Match player's rotation exactly
+        
+        isTransitioning = false;
+    }
+
+    private void UpdateCrouchTransition()
+    {
+        characterController.height = Mathf.Lerp(characterController.height, targetHeight, 
+            Time.deltaTime * crouchTransitionSpeed);
+        
+        if (isFirstPerson)
+        {
+            currentCameraYOffset = Mathf.Lerp(currentCameraYOffset, targetCameraYOffset, 
+                Time.deltaTime * crouchTransitionSpeed);
+        }
     }
 
     private void UpdateHeadBob()
     {
-        if (isGrounded && moveInput.magnitude > 0.1f)
+        Vector3 baseCameraPosition = originalCameraPosition;
+        baseCameraPosition.y += currentCameraYOffset;
+
+        if (isGrounded && moveInput.magnitude > pivotThreshold)
         {
-            float speed = isRunning ? runSpeed : walkSpeed;
-            bobTimer += Time.deltaTime * bobFrequency * (speed / walkSpeed);
+            float currentBobFrequency;
+            float currentBobAmount;
+            float speedMultiplier;
+
+            if (isCrouching && enableCrouchHeadBob)
+            {
+                currentBobFrequency = crouchBobFrequency;
+                currentBobAmount = crouchBobAmount;
+                speedMultiplier = crouchSpeed / walkSpeed;
+            }
+            else if (!isCrouching)
+            {
+                currentBobFrequency = bobFrequency;
+                currentBobAmount = bobAmount;
+                float currentSpeed = isRunning ? runSpeed : walkSpeed;
+                speedMultiplier = currentSpeed / walkSpeed;
+            }
+            else
+            {
+                bobTimer = 0;
+                cameraHolder.localPosition = Vector3.Lerp(
+                    cameraHolder.localPosition,
+                    baseCameraPosition,
+                    Time.deltaTime * 5f
+                );
+                return;
+            }
+
+            bobTimer += Time.deltaTime * currentBobFrequency * speedMultiplier;
             
             Vector3 bobOffset = new Vector3(
-                Mathf.Cos(bobTimer) * bobAmount,
-                Mathf.Sin(bobTimer * 2) * bobAmount,
+                Mathf.Cos(bobTimer) * currentBobAmount,
+                Mathf.Sin(bobTimer * 2) * currentBobAmount,
                 0
             );
             
-            cameraHolder.localPosition = originalCameraPosition + bobOffset;
+            cameraHolder.localPosition = baseCameraPosition + bobOffset;
         }
         else
         {
             bobTimer = 0;
             cameraHolder.localPosition = Vector3.Lerp(
                 cameraHolder.localPosition,
-                originalCameraPosition,
+                baseCameraPosition,
                 Time.deltaTime * 5f
             );
         }
@@ -277,7 +623,7 @@ public class PlayerController : MonoBehaviour
 
     private void TryJump()
     {
-        if (isGrounded)
+        if (isGrounded && !isCrouching)
         {
             currentVelocity.y = jumpForce;
         }
@@ -311,35 +657,41 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void ToggleView()
+    private void StartCrouch()
     {
-        isFirstPerson = !isFirstPerson;
-        
-        if (isFirstPerson)
+        if (!isCrouching)
         {
-            verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
-        }
-        else
-        {
-            verticalRotation = 0f;
+            isCrouching = true;
+            targetHeight = crouchHeight;
+            
+            if (isFirstPerson)
+            {
+                float heightDifference = standingHeight - crouchHeight;
+                targetCameraYOffset = -heightDifference * 0.5f;
+            }
         }
     }
 
-    private void ToggleCrouch()
+    private void StopCrouch()
     {
-        isCrouching = !isCrouching;
-        characterController.height = isCrouching ? crouchHeight : standingHeight;
-        
-        if (isFirstPerson)
+        if (isCrouching)
         {
-            float heightDifference = standingHeight - crouchHeight;
-            Vector3 newCameraPosition = originalCameraPosition;
-            newCameraPosition.y -= isCrouching ? heightDifference * 0.5f : -heightDifference * 0.5f;
-            cameraHolder.localPosition = Vector3.Lerp(
-                cameraHolder.localPosition,
-                newCameraPosition,
-                Time.deltaTime * 10f
-            );
+            isCrouching = false;
+            targetHeight = standingHeight;
+            
+            if (isFirstPerson)
+            {
+                targetCameraYOffset = 0f;
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Clean up the overlay canvas
+        if (overlayCanvas != null)
+        {
+            Destroy(overlayCanvas.gameObject);
         }
     }
 
