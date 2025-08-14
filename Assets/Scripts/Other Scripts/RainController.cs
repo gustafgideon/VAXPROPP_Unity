@@ -420,12 +420,6 @@ public class RainController : MonoBehaviour
         }
     }
     
-    // This is now handled by the fade system
-    void UpdateRainAudio()
-    {
-        // No longer needed - replaced by fade system
-    }
-    
     void UpdateRainVolume()
     {
         if (!isEventValid) return;
