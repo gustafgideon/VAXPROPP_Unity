@@ -40,6 +40,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float playerRotationSpeed = 10f;
     [SerializeField] private bool instantPivot = false;
     [SerializeField] private float pivotThreshold = 0.1f;
+    [SerializeField] private float pivotSmoothing = 0.15f; // Add smoothing to reduce jitter
     
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
@@ -107,6 +108,10 @@ public class PlayerController : MonoBehaviour
     
     // View transition state
     private bool isTransitioning = false;
+    
+    // Pivot smoothing
+    private float targetPlayerRotation;
+    private float pivotVelocity;
 
     // Input action references
     private InputAction moveAction;
@@ -145,6 +150,7 @@ public class PlayerController : MonoBehaviour
         // Initialize camera rotation and distance
         horizontalRotation = transform.eulerAngles.y;
         verticalRotation = 0f;
+        targetPlayerRotation = horizontalRotation;
         currentCameraDistance = defaultCameraDistance;
         targetCameraDistance = defaultCameraDistance;
         thirdPersonDistance = defaultCameraDistance;
@@ -329,17 +335,19 @@ public class PlayerController : MonoBehaviour
                 
                 if (moveDir.magnitude > pivotThreshold)
                 {
-                    float targetAngle = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+                    targetPlayerRotation = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
                     
                     if (instantPivot)
                     {
-                        transform.rotation = Quaternion.Euler(0, targetAngle, 0);
+                        transform.rotation = Quaternion.Euler(0, targetPlayerRotation, 0);
                     }
                     else
                     {
-                        transform.rotation = Quaternion.Slerp(transform.rotation, 
-                            Quaternion.Euler(0, targetAngle, 0), 
-                            Time.deltaTime * playerRotationSpeed);
+                        // Use SmoothDampAngle for smoother rotation without jitter
+                        float currentYRotation = transform.eulerAngles.y;
+                        float smoothedRotation = Mathf.SmoothDampAngle(currentYRotation, targetPlayerRotation, 
+                            ref pivotVelocity, pivotSmoothing);
+                        transform.rotation = Quaternion.Euler(0, smoothedRotation, 0);
                     }
                 }
             }
@@ -462,6 +470,12 @@ public class PlayerController : MonoBehaviour
         
         Vector3 playerTargetPosition = transform.position + thirdPersonOffset;
         Vector3 directionToCamera = Quaternion.Euler(verticalRotation, horizontalRotation, 0f) * -Vector3.forward;
+        
+        // RESET ZOOM TO DEFAULT DISTANCE
+        currentCameraDistance = defaultCameraDistance;
+        targetCameraDistance = defaultCameraDistance;
+        thirdPersonDistance = defaultCameraDistance;
+        
         Vector3 desiredCameraPos = playerTargetPosition + directionToCamera * currentCameraDistance;
         
         cameraTransform.position = desiredCameraPos;
@@ -471,8 +485,6 @@ public class PlayerController : MonoBehaviour
         isFirstPerson = false;
         cameraHolder.localPosition = originalCameraPosition;
         cameraHolder.localRotation = Quaternion.identity;
-        currentCameraDistance = targetCameraDistance;
-        thirdPersonDistance = currentCameraDistance;
         
         // Brief pause while eyes are closed
         yield return new WaitForSeconds(eyeCloseTransitionDuration * 0.4f);
@@ -505,11 +517,11 @@ public class PlayerController : MonoBehaviour
         
         // IMPORTANT: Use the current third person camera's horizontal rotation as the target
         // This ensures continuity between camera direction and player direction
-        float targetPlayerRotation = horizontalRotation;
+        float targetPlayerRotationValue = horizontalRotation;
         
         // Target position and rotation
         Vector3 targetPosition = firstPersonPosition.position;
-        Quaternion targetRotation = Quaternion.Euler(0f, targetPlayerRotation, 0f);
+        Quaternion targetRotation = Quaternion.Euler(0f, targetPlayerRotationValue, 0f);
         
         float elapsedTime = 0f;
         
@@ -539,7 +551,7 @@ public class PlayerController : MonoBehaviour
         // CRITICAL: Set the player's rotation to match the third person camera direction
         // This ensures that when we enter first person, the player is facing the same direction
         // as the camera was looking in third person
-        transform.rotation = Quaternion.Euler(0f, targetPlayerRotation, 0f);
+        transform.rotation = Quaternion.Euler(0f, targetPlayerRotationValue, 0f);
         
         // Reset camera rotation relative to player
         verticalRotation = 0f;
