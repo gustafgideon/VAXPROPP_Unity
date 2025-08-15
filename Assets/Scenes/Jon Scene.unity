@@ -18431,7 +18431,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 2042840001}
+  m_Mesh: {fileID: 597061682}
 --- !u!33 &463322426
 MeshFilter:
   m_ObjectHideFlags: 10
@@ -36392,7 +36392,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 2145327756}
+  m_Mesh: {fileID: 1040711329}
 --- !u!33 &1067638881
 MeshFilter:
   m_ObjectHideFlags: 10
@@ -37128,7 +37128,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 1778688964}
+  m_Mesh: {fileID: 625654771}
 --- !u!33 &1115952233
 MeshFilter:
   m_ObjectHideFlags: 10
@@ -43673,7 +43673,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 1464063854}
+  m_Mesh: {fileID: 1371320894}
 --- !u!33 &1355787378
 MeshFilter:
   m_ObjectHideFlags: 10
@@ -47657,6 +47657,7 @@ GameObject:
   - component: {fileID: 1622282122}
   - component: {fileID: 1622282121}
   - component: {fileID: 1622282120}
+  - component: {fileID: 1622282124}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -47822,6 +47823,70 @@ Transform:
   - {fileID: 1172867742}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1622282124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1622282119}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47b6a802a8bcb6c43a946298f52c7d87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  raycastSettings:
+    horizontalRays: 16
+    verticalLayers: 3
+    maxRayDistance: 50
+    wallLayerMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    updateFrequency: 2
+    raysPerFrame: 4
+  volumeSettings:
+    smoothingFactor: 0.5
+    minRoomVolume: 8
+    maxRoomVolume: 50000
+    defaultRoomSize: 100
+    openAreaMultiplier: 2
+  fmodSettings:
+    roomSizeParameterName: RoomSize
+    minParameterValue: 0
+    maxParameterValue: 1
+    volumeToParameterCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+  debugSettings:
+    showRays: 1
+    showHitPoints: 1
+    showBoundingBox: 1
+    showVolumeInfo: 1
+    rayColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+    hitColor: {r: 1, g: 0, b: 0, a: 1}
+    missColor: {r: 0, g: 1, b: 0, a: 1}
+    boundingBoxColor: {r: 0, g: 1, b: 1, a: 1}
 --- !u!43 &1631132966
 Mesh:
   m_ObjectHideFlags: 0
@@ -59940,7 +60005,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 105446684}
+  m_Mesh: {fileID: 374278663}
 --- !u!33 &1702262586
 MeshFilter:
   m_ObjectHideFlags: 10
@@ -62173,7 +62238,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 573167029}
+  m_Mesh: {fileID: 1389127456}
 --- !u!33 &1836859743
 MeshFilter:
   m_ObjectHideFlags: 10
@@ -64210,7 +64275,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 823338868}
+  m_Mesh: {fileID: 1600261219}
 --- !u!33 &1894945901
 MeshFilter:
   m_ObjectHideFlags: 10
@@ -95314,7 +95379,7 @@ MeshCollider:
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
-  m_Mesh: {fileID: 1464063854}
+  m_Mesh: {fileID: 2145327756}
 --- !u!33 &2144035026
 MeshFilter:
   m_ObjectHideFlags: 10
