@@ -109,7 +109,6 @@ namespace AudioSystems
         [System.Serializable]
         private struct RaycastData
         {
-            public Vector3 origin;
             public Vector3 direction;
             public float distance;
         }
@@ -155,7 +154,6 @@ namespace AudioSystems
         private void GenerateRaycastDirections()
         {
             raycastQueue.Clear();
-            Vector3 origin = transform.position;
             
             // Generate horizontal rays
             for (int layer = 0; layer < raycastSettings.verticalLayers; layer++)
@@ -174,7 +172,6 @@ namespace AudioSystems
                     
                     raycastQueue.Add(new RaycastData
                     {
-                        origin = origin,
                         direction = direction,
                         distance = raycastSettings.maxRayDistance
                     });
@@ -209,7 +206,6 @@ namespace AudioSystems
             hitPoints.Clear();
             
             int raysProcessed = 0;
-            int startIndex = currentRayIndex;
             
             while (raysProcessed < raycastSettings.raysPerFrame && currentRayIndex < raycastQueue.Count)
             {
@@ -237,26 +233,30 @@ namespace AudioSystems
         private void ProcessSingleRaycast(RaycastData rayData)
         {
             RaycastHit hit;
-            Vector3 worldOrigin = transform.position + rayData.origin;
+            Vector3 rayOrigin = transform.position; // FIXED: Use transform position directly
             
-            if (Physics.Raycast(worldOrigin, rayData.direction, out hit, rayData.distance, raycastSettings.wallLayerMask))
+            if (Physics.Raycast(rayOrigin, rayData.direction, out hit, rayData.distance, raycastSettings.wallLayerMask))
             {
+                // Skip if we hit ourselves
+                if (hit.transform == transform)
+                    return;
+                    
                 hitPoints.Add(hit.point);
                 
                 if (debugSettings.showRays)
                 {
-                    Debug.DrawRay(worldOrigin, rayData.direction * hit.distance, debugSettings.hitColor, 1f / raycastSettings.updateFrequency);
+                    Debug.DrawRay(rayOrigin, rayData.direction * hit.distance, debugSettings.hitColor, 1f / raycastSettings.updateFrequency);
                 }
             }
             else
             {
                 // No hit - assume open area, add point at max distance
-                Vector3 openPoint = worldOrigin + rayData.direction * rayData.distance;
+                Vector3 openPoint = rayOrigin + rayData.direction * rayData.distance;
                 hitPoints.Add(openPoint);
                 
                 if (debugSettings.showRays)
                 {
-                    Debug.DrawRay(worldOrigin, rayData.direction * rayData.distance, debugSettings.missColor, 1f / raycastSettings.updateFrequency);
+                    Debug.DrawRay(rayOrigin, rayData.direction * rayData.distance, debugSettings.missColor, 1f / raycastSettings.updateFrequency);
                 }
             }
         }
@@ -327,9 +327,11 @@ namespace AudioSystems
         private void Update()
         {
             // Update position-based calculations if transform has moved significantly
-            if (Vector3.Distance(transform.position, raycastQueue.Count > 0 ? raycastQueue[0].origin : transform.position) > 1f)
+            if (!isProcessingRays && raycastQueue.Count > 0)
             {
-                if (!isProcessingRays)
+                // Regenerate rays if we've moved significantly
+                Vector3 lastPosition = transform.position;
+                if (Vector3.Distance(transform.position, lastPosition) > 1f)
                 {
                     GenerateRaycastDirections();
                 }

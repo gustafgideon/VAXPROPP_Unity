@@ -47838,7 +47838,7 @@ MonoBehaviour:
   raycastSettings:
     horizontalRays: 16
     verticalLayers: 3
-    maxRayDistance: 50
+    maxRayDistance: 8.4
     wallLayerMask:
       serializedVersion: 2
       m_Bits: 4294967295
