@@ -100645,9 +100645,33 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 584321166618205712, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: -4746425084474043165, guid: 614cb132aa3644c1b928519f428fd6a3, type: 3}
     - target: {fileID: 2174048572482013488, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
       propertyPath: m_Name
       value: GlitchTest
+      objectReference: {fileID: 0}
+    - target: {fileID: 2686006699907801422, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
+      propertyPath: wobbleRotAngle
+      value: 16.06
+      objectReference: {fileID: 0}
+    - target: {fileID: 2686006699907801422, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
+      propertyPath: wobbleApplyMode
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2686006699907801422, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
+      propertyPath: wobbleFrequency
+      value: 50.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 2686006699907801422, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
+      propertyPath: maxRotationAngle
+      value: 109.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2686006699907801422, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
+      propertyPath: wobblePosAmplitude
+      value: 0.0382
       objectReference: {fileID: 0}
     - target: {fileID: 4875617308615783016, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
       propertyPath: frameColor.b
@@ -100705,6 +100729,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7652028497627040974, guid: 0b7e4b22650274f518a1be1f4e8663d2, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
