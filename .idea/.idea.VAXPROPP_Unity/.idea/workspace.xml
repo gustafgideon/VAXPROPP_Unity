@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene.unity" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ProjectSettings/Packages/com.unity.probuilder/Settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/Packages/com.unity.probuilder/Settings.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
