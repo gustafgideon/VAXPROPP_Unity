@@ -150,10 +150,46 @@ public class HumanoidCharacterDemo : MonoBehaviour
         // Create animator controller asset
         CreateAnimatorController(characterInstance.GetComponent<Animator>());
         
+        // Position character properly for camera views
+        SetupCharacterForCameras();
+        
         // Clean up generator
         DestroyImmediate(generatorObj);
         
         Debug.Log("Humanoid character created and attached to PlayerController");
+    }
+    
+    /// <summary>
+    /// Positions the character correctly for first and third person views
+    /// </summary>
+    private void SetupCharacterForCameras()
+    {
+        if (characterInstance == null || playerInstance == null) return;
+        
+        // Make character slightly transparent in first person to avoid blocking view
+        MeshRenderer[] renderers = characterInstance.GetComponentsInChildren<MeshRenderer>();
+        foreach (MeshRenderer renderer in renderers)
+        {
+            if (renderer.material != null)
+            {
+                // Create material copy to avoid modifying shared material
+                Material characterMat = new Material(renderer.material);
+                
+                // Make material support transparency for first person
+                characterMat.SetFloat("_Mode", 2); // Fade mode
+                characterMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                characterMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                characterMat.SetInt("_ZWrite", 0);
+                characterMat.DisableKeyword("_ALPHATEST_ON");
+                characterMat.EnableKeyword("_ALPHABLEND_ON");
+                characterMat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                characterMat.renderQueue = 3000;
+                
+                renderer.material = characterMat;
+            }
+        }
+        
+        Debug.Log("Character positioned and configured for camera compatibility");
     }
     
     /// <summary>
@@ -163,14 +199,21 @@ public class HumanoidCharacterDemo : MonoBehaviour
     {
         if (animator == null) return;
         
-        // Create runtime animator controller
-        RuntimeAnimatorController runtimeController = HumanoidAnimatorControllerBuilder.CreateHumanoidAnimatorController();
-        animator.runtimeAnimatorController = runtimeController;
+        // Try to load the premade controller
+        RuntimeAnimatorController controller = Resources.Load<RuntimeAnimatorController>("HumanoidAnimatorController");
         
-        // Log setup instructions for completing the animation system
-        HumanoidAnimatorControllerBuilder.LogAnimationSetupInstructions();
+        if (controller == null)
+        {
+            // Create runtime animator controller if resource not found
+            controller = HumanoidAnimatorControllerBuilder.CreateHumanoidAnimatorController();
+            
+            // Log setup instructions for completing the animation system
+            HumanoidAnimatorControllerBuilder.LogAnimationSetupInstructions();
+        }
         
-        Debug.Log("Basic Animator Controller created - See console for complete setup instructions");
+        animator.runtimeAnimatorController = controller;
+        
+        Debug.Log("Animator Controller assigned to character");
     }
     
     /// <summary>
