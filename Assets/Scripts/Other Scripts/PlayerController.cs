@@ -688,7 +688,7 @@ public class PlayerController : MonoBehaviour
     private void TryPickup()
     {
         Debug.Log("TryPickup() called - F key pressed!");
-    
+        
         if (isHoldingObject)
         {
             Debug.Log("Already holding object, dropping it");
@@ -696,52 +696,84 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Use different raycast origin based on camera mode
-            Vector3 rayOrigin;
-            Vector3 rayDirection;
-        
+            GameObject targetObject = null;
+            
             if (isFirstPerson)
             {
-                // First person: raycast from camera
-                rayOrigin = cameraTransform.position;
-                rayDirection = cameraTransform.forward;
-            }
-            else
-            {
-                // Third person: raycast from player center in camera's forward direction
-                rayOrigin = transform.position + Vector3.up * 1.5f; // Player eye level
-                rayDirection = cameraTransform.forward;
-            }
-        
-            Debug.Log($"Trying to pickup. Origin: {rayOrigin}, Direction: {rayDirection}");
-            Debug.Log($"First person mode: {isFirstPerson}");
-        
-            if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, pickupRange, pickupMask))
-            {
-                Debug.Log($"Raycast hit: {hit.collider.name} at distance {hit.distance}");
-            
-                if (hit.collider.TryGetComponent(out SimplePickup pickup))
-                {
-                    Debug.Log("Found SimplePickup component!");
+                // First person: raycast from camera (must look at object)
+                Debug.Log("First person mode - using raycast detection");
                 
-                    if (pickup.CanBePickedUp())
+                if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, pickupRange, pickupMask))
+                {
+                    Debug.Log($"Raycast hit: {hit.collider.name} at distance {hit.distance}");
+                    
+                    if (hit.collider.TryGetComponent(out SimplePickup pickup))
                     {
-                        Debug.Log("Object can be picked up, calling PickupObject()");
-                        PickupObject(pickup.gameObject);
+                        if (pickup.CanBePickedUp())
+                        {
+                            targetObject = pickup.gameObject;
+                            Debug.Log($"Found pickup object via raycast: {targetObject.name}");
+                        }
                     }
                     else
                     {
-                        Debug.Log("Object cannot be picked up (CanBePickedUp = false)");
+                        Debug.Log($"Hit object {hit.collider.name} but it doesn't have SimplePickup component");
                     }
                 }
                 else
                 {
-                    Debug.Log($"Hit object {hit.collider.name} but it doesn't have SimplePickup component");
+                    Debug.Log("Raycast missed - no object in sight");
                 }
             }
             else
             {
-                Debug.Log($"Raycast missed. Range: {pickupRange}, Mask: {pickupMask}");
+                // Third person: sphere detection around player (proximity-based)
+                Debug.Log("Third person mode - using proximity detection");
+                
+                Vector3 playerCenter = transform.position + Vector3.up * 1.0f;
+                Collider[] nearbyObjects = Physics.OverlapSphere(playerCenter, pickupRange, pickupMask);
+                
+                Debug.Log($"Found {nearbyObjects.Length} objects in proximity");
+                
+                float closestDistance = float.MaxValue;
+                
+                foreach (Collider col in nearbyObjects)
+                {
+                    if (col.TryGetComponent(out SimplePickup pickup))
+                    {
+                        if (pickup.CanBePickedUp())
+                        {
+                            float distance = Vector3.Distance(playerCenter, col.transform.position);
+                            Debug.Log($"Pickup object {col.name} at distance {distance}");
+                            
+                            if (distance < closestDistance)
+                            {
+                                closestDistance = distance;
+                                targetObject = pickup.gameObject;
+                            }
+                        }
+                    }
+                }
+                
+                if (targetObject != null)
+                {
+                    Debug.Log($"Found closest pickup object via proximity: {targetObject.name} at distance {closestDistance}");
+                }
+                else
+                {
+                    Debug.Log("No pickup objects found in proximity");
+                }
+            }
+            
+            // Pick up the target object if found
+            if (targetObject != null)
+            {
+                Debug.Log($"Picking up object: {targetObject.name}");
+                PickupObject(targetObject);
+            }
+            else
+            {
+                Debug.Log("No valid pickup object found");
             }
         }
     }
@@ -889,16 +921,34 @@ public class PlayerController : MonoBehaviour
     {
         if (playerCamera != null)
         {
+            // Existing gizmos
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(playerCamera.transform.position, interactionRange);
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(playerCamera.transform.position, attackRange);
-            Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(playerCamera.transform.position, pickupRange);
+        
+            // Pickup gizmos - different for each mode
+            if (isFirstPerson)
+            {
+                // First person: show raycast line
+                Gizmos.color = Color.green;
+                Vector3 rayStart = cameraTransform.position;
+                Vector3 rayEnd = rayStart + cameraTransform.forward * pickupRange;
+                Gizmos.DrawLine(rayStart, rayEnd);
+                Gizmos.DrawWireSphere(rayEnd, 0.1f);
+            }
+            else
+            {
+                // Third person: show proximity sphere around player
+                Gizmos.color = Color.green;
+                Vector3 playerCenter = transform.position + Vector3.up * 1.0f;
+                Gizmos.DrawWireSphere(playerCenter, pickupRange);
+            }
         }
     }
 }
 
+// Interfaces go OUTSIDE the PlayerController class
 public interface IInteractable
 {
     void Interact();
