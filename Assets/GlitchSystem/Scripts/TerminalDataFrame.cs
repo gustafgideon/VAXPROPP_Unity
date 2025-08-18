@@ -66,6 +66,22 @@ public class TerminalDataFrame : MonoBehaviour
     public float textOffsetY = 0.4f;
     [Range(0.05f, 1f)]
     public float textUpdateSpeed = 0.15f;
+    
+    [Header("Text Length")]
+    [Tooltip("Minimum number of characters in the random text.")]
+    [Range(1, 20)]
+    public int minTextLength = 4;
+    [Tooltip("Maximum number of characters in the random text.")]
+    [Range(1, 30)]
+    public int maxTextLength = 12;
+    
+    [Header("Special Text")]
+    [Tooltip("Chance (0-1) that 'VAXPROPP' appears in the text instead of random data.")]
+    [Range(0f, 1f)]
+    public float vaxproppChance = 0.3f;
+    [Tooltip("Chance (0-1) that 'VAXPROPP' appears mirrored when it does appear.")]
+    [Range(0f, 1f)]
+    public float mirrorChance = 0.5f;
 
     [Header("Activation by Distance")]
     public bool useDistanceCheck = false;
@@ -100,8 +116,18 @@ public class TerminalDataFrame : MonoBehaviour
     private Transform frameRoot;
     private bool initialized;
 
-    // Data generation
-    private readonly string[] dataCharacters = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F" };
+    // Enhanced data generation with more characters and symbols
+    private readonly string[] dataCharacters = { 
+        "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", 
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", 
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+        "!", "@", "#", "$", "%", "&", "*", "+", "-", "=", "?", "/", "\\",
+        "[", "]", "{", "}", "(", ")", "<", ">", "^", "~", "|", "_", ":",
+        ";", ".", ",", "'", "\"", "`"
+    };
+
+    // Special text constant
+    private const string SPECIAL_TEXT = "VAXPROPP";
 
     // SRP/Built-in render callbacks (so we can update right before render if desired)
     private bool usingSRP => GraphicsSettings.currentRenderPipeline != null;
@@ -413,7 +439,7 @@ public class TerminalDataFrame : MonoBehaviour
         textObj.transform.SetParent(frameRoot, false);
 
         textMesh = textObj.AddComponent<TextMesh>();
-        textMesh.text = GenerateRandomData(6);
+        textMesh.text = GenerateTextContent();
         textMesh.fontSize = textSize;
         textMesh.color = textColor;
         textMesh.anchor = TextAnchor.MiddleLeft;
@@ -550,7 +576,7 @@ public class TerminalDataFrame : MonoBehaviour
         {
             if (textMesh != null)
             {
-                textMesh.text = GenerateRandomData(Random.Range(4, 10));
+                textMesh.text = GenerateTextContent();
             }
 
             if (frameLines != null && frameLines.Length > 0 && Random.value < 0.15f)
@@ -570,6 +596,57 @@ public class TerminalDataFrame : MonoBehaviour
 
             yield return new WaitForSeconds(textUpdateSpeed);
         }
+    }
+
+    // Enhanced text content generation
+    string GenerateTextContent()
+    {
+        // Check if we should show VAXPROPP instead of random data
+        if (Random.value < vaxproppChance)
+        {
+            return GenerateVaxproppText();
+        }
+        else
+        {
+            // Generate random data with adjustable length
+            int length = Random.Range(minTextLength, maxTextLength + 1);
+            return GenerateRandomData(length);
+        }
+    }
+
+    string GenerateVaxproppText()
+    {
+        string text = SPECIAL_TEXT;
+        
+        // Check if we should mirror it
+        if (Random.value < mirrorChance)
+        {
+            text = MirrorText(text);
+        }
+        
+        // Sometimes add random characters before/after
+        if (Random.value < 0.4f)
+        {
+            int prefixLength = Random.Range(1, 4);
+            string prefix = GenerateRandomData(prefixLength);
+            text = prefix + text;
+        }
+        
+        if (Random.value < 0.4f)
+        {
+            int suffixLength = Random.Range(1, 4);
+            string suffix = GenerateRandomData(suffixLength);
+            text = text + suffix;
+        }
+        
+        return text;
+    }
+
+    string MirrorText(string input)
+    {
+        char[] chars = input.ToCharArray();
+        System.Array.Reverse(chars);
+        return new string(chars);
     }
 
     string GenerateRandomData(int length)
@@ -706,7 +783,7 @@ public class TerminalDataFrame : MonoBehaviour
         style.normal.textColor = textColor;
         style.fontSize = Mathf.Clamp(textSize / 2, 8, 20);
         style.fontStyle = FontStyle.Bold;
-        UnityEditor.Handles.Label(textPos, "A1B2C3", style);
+        UnityEditor.Handles.Label(textPos, "VAXPROPP", style);
 
         Gizmos.color = Color.yellow;
         Gizmos.DrawLine(targetPosition, framePos);
@@ -754,6 +831,14 @@ public class TerminalDataFrame : MonoBehaviour
         frontMargin = Mathf.Max(0f, frontMargin);
         if (showMaxDistance < showMinDistance)
             showMaxDistance = showMinDistance;
+
+        // Ensure min <= max for text length
+        if (minTextLength > maxTextLength)
+            maxTextLength = minTextLength;
+
+        // Clamp the VAXPROPP parameters
+        vaxproppChance = Mathf.Clamp01(vaxproppChance);
+        mirrorChance = Mathf.Clamp01(mirrorChance);
 
         // Re-subscribe if timing changed in inspector
         if (enabled)
