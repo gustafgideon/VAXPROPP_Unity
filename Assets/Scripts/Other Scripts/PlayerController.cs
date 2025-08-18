@@ -654,12 +654,10 @@ public class PlayerController : MonoBehaviour
         if (isGrounded && !isCrouching)
         {
             currentVelocity.y = jumpForce;
-<<<<<<< HEAD
+
             
             // Notify animation controller if available (optional integration)
             TriggerAnimationSafely("TriggerJump");
-=======
->>>>>>> parent of 51c6b06 (Merge pull request #1 from gustafgideon/copilot/fix-4130678b-853a-4fa8-88a9-1d1ba1e8408c)
         }
     }
 
@@ -675,8 +673,7 @@ public class PlayerController : MonoBehaviour
                     target.TakeDamage(attackDamage);
                 }
             }
-            currentAttackCooldown = attackCooldown;
-<<<<<<< HEAD
+
             
             // Notify animation controller if available (optional integration)
             // Alternate between kick and punch animations
@@ -688,8 +685,7 @@ public class PlayerController : MonoBehaviour
             {
                 TriggerAnimationSafely("TriggerKick");
             }
-=======
->>>>>>> parent of 51c6b06 (Merge pull request #1 from gustafgideon/copilot/fix-4130678b-853a-4fa8-88a9-1d1ba1e8408c)
+
         }
     }
 
