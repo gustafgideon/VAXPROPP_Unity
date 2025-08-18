@@ -654,6 +654,13 @@ public class PlayerController : MonoBehaviour
         if (isGrounded && !isCrouching)
         {
             currentVelocity.y = jumpForce;
+            
+            // Notify animation controller if available
+            HumanoidAnimationController animController = GetComponentInChildren<HumanoidAnimationController>();
+            if (animController != null)
+            {
+                animController.TriggerJump();
+            }
         }
     }
 
@@ -670,6 +677,21 @@ public class PlayerController : MonoBehaviour
                 }
             }
             currentAttackCooldown = attackCooldown;
+            
+            // Notify animation controller if available - alternate between kick and punch
+            HumanoidAnimationController animController = GetComponentInChildren<HumanoidAnimationController>();
+            if (animController != null)
+            {
+                // Simple alternating attack system
+                if (UnityEngine.Random.value > 0.5f)
+                {
+                    animController.TriggerPunch();
+                }
+                else
+                {
+                    animController.TriggerKick();
+                }
+            }
         }
     }
 
