@@ -655,15 +655,8 @@ public class PlayerController : MonoBehaviour
         {
             currentVelocity.y = jumpForce;
             
-            // TODO: Restore animation controller integration after meta file fix
-            // Temporarily removed to get Unity out of safe mode
-            /*
-            HumanoidAnimationController animController = GetComponentInChildren<HumanoidAnimationController>();
-            if (animController != null)
-            {
-                animController.TriggerJump();
-            }
-            */
+            // Notify animation controller if available (optional integration)
+            TriggerAnimationSafely("TriggerJump");
         }
     }
 
@@ -681,23 +674,16 @@ public class PlayerController : MonoBehaviour
             }
             currentAttackCooldown = attackCooldown;
             
-            // TODO: Restore animation controller integration after meta file fix
-            // Temporarily removed to get Unity out of safe mode
-            /*
-            HumanoidAnimationController animController = GetComponentInChildren<HumanoidAnimationController>();
-            if (animController != null)
+            // Notify animation controller if available (optional integration)
+            // Alternate between kick and punch animations
+            if (UnityEngine.Random.value > 0.5f)
             {
-                // Simple alternating attack system
-                if (UnityEngine.Random.value > 0.5f)
-                {
-                    animController.TriggerPunch();
-                }
-                else
-                {
-                    animController.TriggerKick();
-                }
+                TriggerAnimationSafely("TriggerPunch");
             }
-            */
+            else
+            {
+                TriggerAnimationSafely("TriggerKick");
+            }
         }
     }
 
@@ -933,6 +919,33 @@ public class PlayerController : MonoBehaviour
             {
                 targetCameraYOffset = 0f;
             }
+        }
+    }
+
+    /// <summary>
+    /// Safely triggers animation methods on HumanoidAnimationController if present
+    /// Uses reflection to avoid compile-time dependencies
+    /// </summary>
+    private void TriggerAnimationSafely(string methodName)
+    {
+        try
+        {
+            // Find HumanoidAnimationController component
+            var animController = GetComponentInChildren(System.Type.GetType("HumanoidAnimationController"));
+            if (animController != null)
+            {
+                // Use reflection to call the method
+                var method = animController.GetType().GetMethod(methodName);
+                if (method != null)
+                {
+                    method.Invoke(animController, null);
+                }
+            }
+        }
+        catch (System.Exception)
+        {
+            // Silently ignore errors - animation controller is optional
+            // This ensures PlayerController works with or without the humanoid system
         }
     }
 
