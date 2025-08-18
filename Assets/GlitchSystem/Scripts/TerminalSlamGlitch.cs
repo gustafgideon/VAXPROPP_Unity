@@ -26,19 +26,25 @@ public class TerminalSlamGlitch : MonoBehaviour
     public bool useMultipleAssets = true;
     public bool randomizeScale = true;
     [Range(0f, 0.5f)] public float scaleVariationAmount = 0.2f;
-    [Range(0f, 1f)] public float intensityBasedOnDistance = 0.5f; // Closer = more intense glitching
+    [Range(0f, 1f)] public float intensityBasedOnDistance = 0.5f;
 
     [Header("Rotation Glitch")]
     public bool enableRotationGlitch = true;
     [Tooltip("Maximum random rotation offset per axis in degrees, scaled by intensity.")]
     [Range(0f, 180f)] public float maxRotationAngle = 25f;
 
+    [Header("Material Glitch Integration")]
+    [Tooltip("Automatically control MaterialGlitch component when player is in range")]
+    public bool enableMaterialGlitch = true;
+    [Tooltip("MaterialGlitch component reference (auto-found if null)")]
+    public MaterialGlitch materialGlitchComponent;
+
     public enum WobbleApplyMode
     {
         Always,
         OnlyDuringRest,
-        OnlyWhenOriginalMeshVisible, // uses MeshFilter match with originalMesh
-        OnlyWhenInRange              // NEW: wobble only when inside min/max distance (glitching active)
+        OnlyWhenOriginalMeshVisible,
+        OnlyWhenInRange
     }
 
     [Header("Lightweight Object Wobble (applies to WHOLE visuals)")]
@@ -54,6 +60,8 @@ public class TerminalSlamGlitch : MonoBehaviour
     private Mesh originalMesh;
     private Material originalMaterial;
     private Vector3 originalScale;
+    private Vector3 originalPosition; // NEW: Store original position
+    private Quaternion originalRotation; // NEW: Store original rotation
     private MeshFilter meshFilter;
     private Renderer meshRenderer;
     private GameObject playerObject;
@@ -89,7 +97,11 @@ public class TerminalSlamGlitch : MonoBehaviour
         
         if (meshFilter != null) originalMesh = meshFilter.sharedMesh;
         if (meshRenderer != null) originalMaterial = meshRenderer.sharedMaterial;
+        
+        // NEW: Store original transform state
         originalScale = glitchTarget.localScale;
+        originalPosition = glitchTarget.localPosition;
+        originalRotation = glitchTarget.localRotation;
         
         if (useDistanceCheck)
         {
@@ -98,6 +110,17 @@ public class TerminalSlamGlitch : MonoBehaviour
             {
                 Debug.LogWarning($"TerminalSlamGlitch on {gameObject.name}: No object found with tag '{playerTag}'. Distance checking disabled.");
                 useDistanceCheck = false;
+            }
+        }
+
+        // Auto-find MaterialGlitch component if not assigned
+        if (enableMaterialGlitch && materialGlitchComponent == null)
+        {
+            materialGlitchComponent = GetComponent<MaterialGlitch>();
+            if (materialGlitchComponent == null)
+            {
+                Debug.LogWarning($"TerminalSlamGlitch on {gameObject.name}: MaterialGlitch component not found. Material glitch effects disabled.");
+                enableMaterialGlitch = false;
             }
         }
 
@@ -117,14 +140,46 @@ public class TerminalSlamGlitch : MonoBehaviour
         {
             isPlayerNear = true;
             StartContinuousGlitching();
+            
+            // Start material glitch effects
+            if (enableMaterialGlitch && materialGlitchComponent != null)
+            {
+                materialGlitchComponent.ForceStartAnimation();
+            }
         }
         else if (!playerNearNow && isPlayerNear)
         {
             isPlayerNear = false;
             StopContinuousGlitching();
+            
+            // Stop material glitch effects
+            if (enableMaterialGlitch && materialGlitchComponent != null)
+            {
+                materialGlitchComponent.ForceStopAnimation();
+            }
+            
+            // NEW: Reset to original transform state
+            ResetToOriginalTransform();
         }
 
         HandleWholeObjectWobble();
+    }
+    
+    // NEW: Reset transform to original state
+    void ResetToOriginalTransform()
+    {
+        if (glitchTarget != null)
+        {
+            // Remove any applied wobble first
+            RemoveLastWobbleIfApplied();
+            
+            // Reset to original transform state
+            glitchTarget.localPosition = originalPosition;
+            glitchTarget.localRotation = originalRotation;
+            glitchTarget.localScale = originalScale;
+            
+            Debug.Log($"[TerminalSlamGlitch] Reset {glitchTarget.name} to original transform state");
+        }
     }
     
     bool IsPlayerInRange()
@@ -317,12 +372,27 @@ public class TerminalSlamGlitch : MonoBehaviour
     {
         isPlayerNear = true;
         StartContinuousGlitching();
+        
+        // Start material glitch effects
+        if (enableMaterialGlitch && materialGlitchComponent != null)
+        {
+            materialGlitchComponent.ForceStartAnimation();
+        }
     }
     
     public void ForceStopGlitching()
     {
         isPlayerNear = false;
         StopContinuousGlitching();
+        
+        // Stop material glitch effects
+        if (enableMaterialGlitch && materialGlitchComponent != null)
+        {
+            materialGlitchComponent.ForceStopAnimation();
+        }
+        
+        // NEW: Reset to original transform state
+        ResetToOriginalTransform();
     }
     
     public bool IsCurrentlyGlitching()
@@ -357,6 +427,12 @@ public class TerminalSlamGlitch : MonoBehaviour
     {
         if (continuousGlitchCoroutine != null) StopCoroutine(continuousGlitchCoroutine);
         RemoveLastWobbleIfApplied();
+        
+        // Stop material glitch effects
+        if (enableMaterialGlitch && materialGlitchComponent != null)
+        {
+            materialGlitchComponent.ForceStopAnimation();
+        }
     }
 
 #if UNITY_EDITOR
@@ -443,7 +519,11 @@ public class TerminalSlamGlitch : MonoBehaviour
         meshRenderer = glitchTarget.GetComponentInChildren<Renderer>();
         if (meshFilter != null) originalMesh = meshFilter.sharedMesh;
         if (meshRenderer != null) originalMaterial = meshRenderer.sharedMaterial;
+        
+        // NEW: Update original transform state
         originalScale = glitchTarget.localScale;
+        originalPosition = glitchTarget.localPosition;
+        originalRotation = glitchTarget.localRotation;
 
         Debug.Log($"TerminalSlamGlitch on {name}: Moved {moved} renderer object(s) under 'Visuals' and migrated {migrated} root renderer(s). Glitch Target set to '{glitchTarget.name}'.");
     }
