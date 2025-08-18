@@ -40,7 +40,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float playerRotationSpeed = 10f;
     [SerializeField] private bool instantPivot = false;
     [SerializeField] private float pivotThreshold = 0.1f;
-    [SerializeField] private float pivotSmoothing = 0.15f; // Add smoothing to reduce jitter
+    [SerializeField] private float pivotSmoothing = 0.15f;
     
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
@@ -68,6 +68,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float attackRange = 2f;
     [SerializeField] private float attackCooldown = 0.5f;
     [SerializeField] private int attackDamage = 10;
+
+    [Header("Pickup Settings")]
+    [SerializeField] private float pickupRange = 3f;
+    [SerializeField] private float throwForce = 600f;
+    [SerializeField] private LayerMask pickupMask = -1; // All layers by default
+    [SerializeField] private float holdDistance = 1.5f;
+    [SerializeField] private float holdPositionSpeed = 10f;
 
     [Header("View Settings")]
     [SerializeField] private float mouseSensitivity = 2f;
@@ -113,6 +120,11 @@ public class PlayerController : MonoBehaviour
     private float targetPlayerRotation;
     private float pivotVelocity;
 
+    // Pickup state
+    private GameObject heldObject;
+    private Rigidbody heldObjectRb;
+    private bool isHoldingObject = false;
+
     // Input action references
     private InputAction moveAction;
     private InputAction lookAction;
@@ -123,6 +135,7 @@ public class PlayerController : MonoBehaviour
     private InputAction interactAction;
     private InputAction crouchAction;
     private InputAction zoomAction;
+    private InputAction pickupAction;
 
     private void Awake()
     {
@@ -226,6 +239,7 @@ public class PlayerController : MonoBehaviour
         interactAction = actions["Interact"];
         crouchAction = actions["Crouch"];
         zoomAction = actions["Zoom"];
+        pickupAction = actions["Pickup"];
 
         moveAction.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         moveAction.canceled += ctx => moveInput = Vector2.zero;
@@ -248,6 +262,7 @@ public class PlayerController : MonoBehaviour
         jumpAction.performed += _ => TryJump();
         attackAction.performed += _ => TryAttack();
         interactAction.performed += _ => TryInteract();
+        pickupAction.performed += _ => TryPickup();
         switchViewAction.performed += _ => 
         {
             if (!isTransitioning) // Prevent view switching during transition
@@ -268,7 +283,7 @@ public class PlayerController : MonoBehaviour
     private void EnableAllInputs(bool enable)
     {
         var actions = new[] { moveAction, lookAction, jumpAction, runAction, 
-                            attackAction, switchViewAction, interactAction, crouchAction, zoomAction };
+                            attackAction, switchViewAction, interactAction, crouchAction, zoomAction, pickupAction };
         foreach (var action in actions)
         {
             if (action != null)
@@ -292,6 +307,7 @@ public class PlayerController : MonoBehaviour
         
         UpdateMovement();
         UpdateCrouchTransition();
+        UpdateHeldObject();
         
         if (isFirstPerson && !isTransitioning) 
             UpdateHeadBob();
@@ -669,6 +685,168 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void TryPickup()
+    {
+        Debug.Log("TryPickup() called - F key pressed!");
+    
+        if (isHoldingObject)
+        {
+            Debug.Log("Already holding object, dropping it");
+            DropObject();
+        }
+        else
+        {
+            // Use different raycast origin based on camera mode
+            Vector3 rayOrigin;
+            Vector3 rayDirection;
+        
+            if (isFirstPerson)
+            {
+                // First person: raycast from camera
+                rayOrigin = cameraTransform.position;
+                rayDirection = cameraTransform.forward;
+            }
+            else
+            {
+                // Third person: raycast from player center in camera's forward direction
+                rayOrigin = transform.position + Vector3.up * 1.5f; // Player eye level
+                rayDirection = cameraTransform.forward;
+            }
+        
+            Debug.Log($"Trying to pickup. Origin: {rayOrigin}, Direction: {rayDirection}");
+            Debug.Log($"First person mode: {isFirstPerson}");
+        
+            if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, pickupRange, pickupMask))
+            {
+                Debug.Log($"Raycast hit: {hit.collider.name} at distance {hit.distance}");
+            
+                if (hit.collider.TryGetComponent(out SimplePickup pickup))
+                {
+                    Debug.Log("Found SimplePickup component!");
+                
+                    if (pickup.CanBePickedUp())
+                    {
+                        Debug.Log("Object can be picked up, calling PickupObject()");
+                        PickupObject(pickup.gameObject);
+                    }
+                    else
+                    {
+                        Debug.Log("Object cannot be picked up (CanBePickedUp = false)");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"Hit object {hit.collider.name} but it doesn't have SimplePickup component");
+                }
+            }
+            else
+            {
+                Debug.Log($"Raycast missed. Range: {pickupRange}, Mask: {pickupMask}");
+            }
+        }
+    }
+
+    private void PickupObject(GameObject obj)
+    {
+        Debug.Log($"Picking up: {obj.name}");
+    
+        heldObject = obj;
+        heldObjectRb = obj.GetComponent<Rigidbody>();
+        isHoldingObject = true;
+    
+        if (heldObjectRb != null)
+        {
+            heldObjectRb.useGravity = false;
+            heldObjectRb.linearVelocity = Vector3.zero;
+            heldObjectRb.angularVelocity = Vector3.zero;
+            heldObjectRb.isKinematic = false; // Keep physics but controlled
+        }
+    
+        // Parent to TempParent if available, otherwise to camera
+        Transform parentTransform = TempParent.Instance != null ? TempParent.Instance.transform : cameraTransform;
+        obj.transform.SetParent(parentTransform);
+    
+        // Position the object based on camera mode
+        if (isFirstPerson)
+        {
+            // First person: position in front of camera
+            obj.transform.localPosition = Vector3.forward * holdDistance;
+        }
+        else
+        {
+            // Third person: position in front of player, not camera
+            Vector3 playerForward = cameraTransform.forward;
+            Vector3 holdPosition = transform.position + Vector3.up * 1.5f + playerForward * holdDistance;
+            obj.transform.position = holdPosition;
+        }
+    
+        obj.transform.localRotation = Quaternion.identity;
+    }
+
+    private void DropObject()
+    {
+        if (heldObject != null)
+        {
+            Debug.Log($"Dropping: {heldObject.name}");
+            
+            heldObject.transform.SetParent(null);
+            
+            if (heldObjectRb != null)
+            {
+                heldObjectRb.useGravity = true;
+                
+                // Add a small forward velocity when dropping
+                Vector3 dropDirection = cameraTransform.forward + Vector3.up * 0.2f;
+                heldObjectRb.linearVelocity = dropDirection * 2f;
+            }
+            
+            heldObject = null;
+            heldObjectRb = null;
+            isHoldingObject = false;
+        }
+    }
+
+    // Update the held object position each frame
+    private void UpdateHeldObject()
+    {
+        if (isHoldingObject && heldObject != null)
+        {
+            if (isFirstPerson)
+            {
+                // First person: use parenting system
+                Transform parentTransform = TempParent.Instance != null ? TempParent.Instance.transform : cameraTransform;
+            
+                if (heldObject.transform.parent != parentTransform)
+                {
+                    heldObject.transform.SetParent(parentTransform);
+                }
+            
+                Vector3 targetPosition = parentTransform.position + parentTransform.forward * holdDistance;
+                heldObject.transform.position = Vector3.Lerp(heldObject.transform.position, targetPosition, Time.deltaTime * holdPositionSpeed);
+                heldObject.transform.rotation = Quaternion.Lerp(heldObject.transform.rotation, parentTransform.rotation, Time.deltaTime * holdPositionSpeed);
+            }
+            else
+            {
+                // Third person: position in front of player
+                heldObject.transform.SetParent(null); // Don't parent in third person
+            
+                Vector3 playerForward = cameraTransform.forward;
+                Vector3 targetPosition = transform.position + Vector3.up * 1.5f + playerForward * holdDistance;
+                heldObject.transform.position = Vector3.Lerp(heldObject.transform.position, targetPosition, Time.deltaTime * holdPositionSpeed);
+            
+                // Keep object facing same direction as camera
+                heldObject.transform.rotation = Quaternion.Lerp(heldObject.transform.rotation, cameraTransform.rotation, Time.deltaTime * holdPositionSpeed);
+            }
+        
+            // Reset physics to prevent unwanted movement
+            if (heldObjectRb != null)
+            {
+                heldObjectRb.linearVelocity = Vector3.zero;
+                heldObjectRb.angularVelocity = Vector3.zero;
+            }
+        }
+    }
+
     private void StartCrouch()
     {
         if (!isCrouching)
@@ -715,6 +893,8 @@ public class PlayerController : MonoBehaviour
             Gizmos.DrawWireSphere(playerCamera.transform.position, interactionRange);
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(playerCamera.transform.position, attackRange);
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(playerCamera.transform.position, pickupRange);
         }
     }
 }
