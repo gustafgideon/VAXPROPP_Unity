@@ -655,12 +655,15 @@ public class PlayerController : MonoBehaviour
         {
             currentVelocity.y = jumpForce;
             
-            // Notify animation controller if available
+            // TODO: Restore animation controller integration after meta file fix
+            // Temporarily removed to get Unity out of safe mode
+            /*
             HumanoidAnimationController animController = GetComponentInChildren<HumanoidAnimationController>();
             if (animController != null)
             {
                 animController.TriggerJump();
             }
+            */
         }
     }
 
@@ -678,7 +681,9 @@ public class PlayerController : MonoBehaviour
             }
             currentAttackCooldown = attackCooldown;
             
-            // Notify animation controller if available - alternate between kick and punch
+            // TODO: Restore animation controller integration after meta file fix
+            // Temporarily removed to get Unity out of safe mode
+            /*
             HumanoidAnimationController animController = GetComponentInChildren<HumanoidAnimationController>();
             if (animController != null)
             {
@@ -692,6 +697,7 @@ public class PlayerController : MonoBehaviour
                     animController.TriggerKick();
                 }
             }
+            */
         }
     }
 
