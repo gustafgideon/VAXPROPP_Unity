@@ -27150,6 +27150,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   canBePickedUp: 1
+--- !u!114 &661915915
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 661915911}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9c12c46a264be94da3790e728d5b207, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  impactEvent:
+    Guid:
+      Data1: -1175368864
+      Data2: 1211793396
+      Data3: -1158100311
+      Data4: 1480113391
+    Path: event:/MetalSodaCanImpact
+  rollEvent:
+    Guid:
+      Data1: 2128339264
+      Data2: 1209520391
+      Data3: -2129187427
+      Data4: 961616652
+    Path: event:/MetalSodaCanRoll
+  minImpactSpeed: 0.2
+  maxImpactSpeed: 10
+  minRollSpeed: 0.1
+  maxRollSpeed: 10
 --- !u!1 &663404958
 GameObject:
   m_ObjectHideFlags: 0
@@ -47918,6 +47948,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3241196014341189734, guid: 327860819d06a964d98cea7acb224d6e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 661915912}
+    - targetCorrespondingSourceObject: {fileID: 3241196014341189734, guid: 327860819d06a964d98cea7acb224d6e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 661915915}
   m_SourcePrefab: {fileID: 100100000, guid: 327860819d06a964d98cea7acb224d6e, type: 3}
 --- !u!43 &1631132966
 Mesh:
