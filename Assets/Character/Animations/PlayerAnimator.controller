@@ -500,7 +500,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Drop
-  m_Speed: 1
+  m_Speed: 6.69
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -734988944778581641}
@@ -564,7 +564,7 @@ AnimatorStateMachine:
     m_Position: {x: 90, y: -540, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 5572672392876113066}
-    m_Position: {x: 110, y: 400, z: 0}
+    m_Position: {x: 120, y: 400, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -8126300527972441324}
     m_Position: {x: 330, y: 400, z: 0}
@@ -676,7 +676,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Pickup
-  m_Speed: 1
+  m_Speed: 6.19
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 5034251061166255181}
