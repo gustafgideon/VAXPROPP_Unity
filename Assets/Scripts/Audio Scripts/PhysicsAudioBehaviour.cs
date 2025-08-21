@@ -6,13 +6,14 @@ using FMOD.Studio;
 public class PhysicsImpactAudio : MonoBehaviour
 {
     [Header("FMOD Events")]
-    [SerializeField] private EventReference impactEvent; // One-shot collision sound
+    [SerializeField] private EventReference impactEvent;
 
     [Header("Settings")]
-    public float minImpactSpeed = 0.1f;      // Minimum speed to trigger sound
-    public float maxImpactSpeed = 10f;       // Speed for max impact intensity
-    public float impactCooldown = 0.1f;      // Minimum time between impact sounds
+    public float minImpactSpeed = 0.1f;      // Minimum speed to trigger sound for light objects
+    public float maxImpactSpeed = 10f;       // Speed for maximum impact intensity
+    public float impactCooldown = 0.05f;     // Minimum time between impacts
     public float smoothing = 0.8f;           // Low-pass smoothing factor (0-1)
+    public float massMultiplier = 0.5f;      // Multiplier to scale heavy objects
 
     private Rigidbody rb;
     private float lastImpactTime;
@@ -26,7 +27,7 @@ public class PhysicsImpactAudio : MonoBehaviour
 
     void Update()
     {
-        // Smooth the velocity to avoid tiny ticks
+        // Smooth velocity to avoid tiny ticks from rolling
         float currentSpeed = rb.linearVelocity.magnitude;
         smoothedVelocity = Mathf.Lerp(smoothedVelocity, currentSpeed, 1 - smoothing);
     }
@@ -38,17 +39,17 @@ public class PhysicsImpactAudio : MonoBehaviour
 
     void OnCollisionStay(Collision collision)
     {
-        // Also check for ongoing collisions with sudden velocity spikes
+        // Detect sudden spikes even during rolling
         TryPlayImpact(collision.relativeVelocity.magnitude);
     }
 
     private void TryPlayImpact(float collisionSpeed)
     {
-        // Time cooldown to avoid spamming
+        // Avoid spamming impacts
         if (Time.time - lastImpactTime < impactCooldown) return;
 
-        // Use smoothed velocity to avoid tiny ticks
-        float impactStrength = Mathf.Max(collisionSpeed, smoothedVelocity);
+        // Scale impact by mass (heavier objects feel stronger)
+        float impactStrength = Mathf.Max(collisionSpeed, smoothedVelocity) * (1f + rb.mass * massMultiplier);
 
         if (impactStrength >= minImpactSpeed)
         {
@@ -57,7 +58,7 @@ public class PhysicsImpactAudio : MonoBehaviour
             var impactInstance = RuntimeManager.CreateInstance(impactEvent);
             RuntimeManager.AttachInstanceToGameObject(impactInstance, transform, rb);
 
-            // Map speed to FMOD parameter
+            // Map speed to FMOD parameter (0–1)
             float normalized = Mathf.Clamp01((impactStrength - minImpactSpeed) / (maxImpactSpeed - minImpactSpeed));
             impactInstance.setParameterByName("Impact", normalized);
 
