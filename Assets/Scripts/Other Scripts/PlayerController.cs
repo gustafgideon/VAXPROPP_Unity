@@ -1025,6 +1025,11 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        throwPowerBar.gameObject.SetActive(false);
+    }
+
     private void ShowThrowBar(bool show)
     {
         if (throwPowerBar != null)
