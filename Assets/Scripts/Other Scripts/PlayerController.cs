@@ -13,6 +13,21 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform thirdPersonPosition;
     [SerializeField] private Transform cameraHolder;
     [SerializeField] private float cameraTransitionSpeed = 10f;
+    
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    
+    private readonly int animParamSpeed = Animator.StringToHash("Speed");
+    private readonly int animParamIsGrounded = Animator.StringToHash("IsGrounded");
+    private readonly int animParamIsRunning = Animator.StringToHash("IsRunning");
+    private readonly int animParamIsCrouching = Animator.StringToHash("IsCrouching");
+    private readonly int animParamJump = Animator.StringToHash("Jump");
+    private readonly int animParamPunch = Animator.StringToHash("Punch");
+    private readonly int animParamKick = Animator.StringToHash("Kick");
+    private readonly int animParamPickup = Animator.StringToHash("Pickup");
+    private readonly int animParamDrop = Animator.StringToHash("Drop");
+    private readonly int animParamThrow = Animator.StringToHash("Throw");
+    private readonly int animParamInteract = Animator.StringToHash("Interact");
 
     [Header("View Transition Settings")]
     [SerializeField] private float eyeCloseTransitionDuration = 0.6f;
@@ -142,6 +157,10 @@ public class PlayerController : MonoBehaviour
         InitializeComponents();
         SetupInputActions();
         CreateEyeCloseOverlay();
+        if (animator == null)
+        {
+            animator = GetComponentInChildren<Animator>();
+        }
     }
 
     private void InitializeComponents()
@@ -297,21 +316,22 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         UpdateCrouchState();
-        
+
         if (!isTransitioning)
         {
             UpdateCameraRotation();
             UpdateZoom();
             UpdateCameraPosition();
         }
-        
+
         UpdateMovement();
         UpdateCrouchTransition();
         UpdateHeldObject();
-        
-        if (isFirstPerson && !isTransitioning) 
+        UpdateAnimator();
+
+        if (isFirstPerson && !isTransitioning)
             UpdateHeadBob();
-        
+
         if (currentAttackCooldown > 0)
             currentAttackCooldown -= Time.deltaTime;
     }
@@ -328,12 +348,26 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void UpdateAnimator()
+    {
+        if (animator == null) return;
+
+        float moveAmount = moveInput.magnitude;
+        float currentSpeed = isCrouching ? crouchSpeed : (isRunning ? runSpeed : walkSpeed);
+        float normalizedSpeed = moveAmount * (isRunning ? 1f : 0.5f);
+
+        animator.SetFloat(animParamSpeed, normalizedSpeed);
+        animator.SetBool(animParamIsGrounded, isGrounded);
+        animator.SetBool(animParamIsRunning, isRunning);
+        animator.SetBool(animParamIsCrouching, isCrouching);
+    }
+
     private void UpdateMovement()
     {
         isGrounded = characterController.isGrounded;
-        
+
         Vector3 moveDir = Vector3.zero;
-        
+
         if (moveInput.magnitude > pivotThreshold)
         {
             if (isFirstPerson)
@@ -345,32 +379,31 @@ public class PlayerController : MonoBehaviour
                 float cameraYRotation = horizontalRotation;
                 Vector3 forward = new Vector3(Mathf.Sin(cameraYRotation * Mathf.Deg2Rad), 0, Mathf.Cos(cameraYRotation * Mathf.Deg2Rad));
                 Vector3 right = new Vector3(forward.z, 0, -forward.x);
-                
+
                 moveDir = right * moveInput.x + forward * moveInput.y;
                 moveDir.Normalize();
-                
+
                 if (moveDir.magnitude > pivotThreshold)
                 {
                     targetPlayerRotation = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
-                    
+
                     if (instantPivot)
                     {
                         transform.rotation = Quaternion.Euler(0, targetPlayerRotation, 0);
                     }
                     else
                     {
-                        // Use SmoothDampAngle for smoother rotation without jitter
                         float currentYRotation = transform.eulerAngles.y;
-                        float smoothedRotation = Mathf.SmoothDampAngle(currentYRotation, targetPlayerRotation, 
+                        float smoothedRotation = Mathf.SmoothDampAngle(currentYRotation, targetPlayerRotation,
                             ref pivotVelocity, pivotSmoothing);
                         transform.rotation = Quaternion.Euler(0, smoothedRotation, 0);
                     }
                 }
             }
         }
-        
+
         float currentSpeed = isCrouching ? crouchSpeed : (isRunning ? runSpeed : walkSpeed);
-        
+
         if (!isGrounded)
         {
             moveDir *= airControl;
@@ -381,11 +414,13 @@ public class PlayerController : MonoBehaviour
             if (currentVelocity.y < 0)
                 currentVelocity.y = -2f;
         }
-        
+
         Vector3 movement = moveDir * currentSpeed * Time.deltaTime;
         movement.y = currentVelocity.y * Time.deltaTime;
-        
+
         characterController.Move(movement);
+
+        // Animation update handled in UpdateAnimator
     }
 
     private void UpdateCameraRotation()
@@ -655,9 +690,11 @@ public class PlayerController : MonoBehaviour
         {
             currentVelocity.y = jumpForce;
 
-            
-            // Notify animation controller if available (optional integration)
-            TriggerAnimationSafely("TriggerJump");
+            // ANIMATION: Trigger jump
+            if (animator != null)
+            {
+                animator.SetTrigger(animParamJump);
+            }
         }
     }
 
@@ -665,7 +702,7 @@ public class PlayerController : MonoBehaviour
     {
         if (currentAttackCooldown <= 0)
         {
-            if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, 
+            if (Physics.Raycast(cameraTransform.position, cameraTransform.forward,
                 out RaycastHit hit, attackRange))
             {
                 if (hit.collider.TryGetComponent(out IDamageable target))
@@ -674,24 +711,24 @@ public class PlayerController : MonoBehaviour
                 }
             }
 
-            
-            // Notify animation controller if available (optional integration)
-            // Alternate between kick and punch animations
-            if (UnityEngine.Random.value > 0.5f)
+            // ANIMATION: Alternate between punch and kick
+            if (animator != null)
             {
-                TriggerAnimationSafely("TriggerPunch");
+                if (UnityEngine.Random.value > 0.5f)
+                {
+                    animator.SetTrigger(animParamPunch);
+                }
+                else
+                {
+                    animator.SetTrigger(animParamKick);
+                }
             }
-            else
-            {
-                TriggerAnimationSafely("TriggerKick");
-            }
-
         }
     }
 
     private void TryInteract()
     {
-        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, 
+        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward,
             out RaycastHit hit, interactionRange, interactionMask))
         {
             if (hit.collider.TryGetComponent(out IInteractable interactable))
@@ -699,60 +736,44 @@ public class PlayerController : MonoBehaviour
                 interactable.Interact();
             }
         }
+
+        // ANIMATION: Trigger interact animation
+        if (animator != null)
+        {
+            animator.SetTrigger(animParamInteract);
+        }
     }
 
     private void TryPickup()
     {
-        Debug.Log("TryPickup() called - F key pressed!");
-        
         if (isHoldingObject)
         {
-            Debug.Log("Already holding object, dropping it");
+            // If you want a separate throw button, you can call ThrowObject() here instead
             DropObject();
         }
         else
         {
             GameObject targetObject = null;
-            
+
             if (isFirstPerson)
             {
-                // First person: raycast from camera (must look at object)
-                Debug.Log("First person mode - using raycast detection");
-                
                 if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, pickupRange, pickupMask))
                 {
-                    Debug.Log($"Raycast hit: {hit.collider.name} at distance {hit.distance}");
-                    
                     if (hit.collider.TryGetComponent(out SimplePickup pickup))
                     {
                         if (pickup.CanBePickedUp())
                         {
                             targetObject = pickup.gameObject;
-                            Debug.Log($"Found pickup object via raycast: {targetObject.name}");
                         }
                     }
-                    else
-                    {
-                        Debug.Log($"Hit object {hit.collider.name} but it doesn't have SimplePickup component");
-                    }
-                }
-                else
-                {
-                    Debug.Log("Raycast missed - no object in sight");
                 }
             }
             else
             {
-                // Third person: sphere detection around player (proximity-based)
-                Debug.Log("Third person mode - using proximity detection");
-                
                 Vector3 playerCenter = transform.position + Vector3.up * 1.0f;
                 Collider[] nearbyObjects = Physics.OverlapSphere(playerCenter, pickupRange, pickupMask);
-                
-                Debug.Log($"Found {nearbyObjects.Length} objects in proximity");
-                
+
                 float closestDistance = float.MaxValue;
-                
                 foreach (Collider col in nearbyObjects)
                 {
                     if (col.TryGetComponent(out SimplePickup pickup))
@@ -760,8 +781,6 @@ public class PlayerController : MonoBehaviour
                         if (pickup.CanBePickedUp())
                         {
                             float distance = Vector3.Distance(playerCenter, col.transform.position);
-                            Debug.Log($"Pickup object {col.name} at distance {distance}");
-                            
                             if (distance < closestDistance)
                             {
                                 closestDistance = distance;
@@ -770,87 +789,75 @@ public class PlayerController : MonoBehaviour
                         }
                     }
                 }
-                
-                if (targetObject != null)
-                {
-                    Debug.Log($"Found closest pickup object via proximity: {targetObject.name} at distance {closestDistance}");
-                }
-                else
-                {
-                    Debug.Log("No pickup objects found in proximity");
-                }
             }
-            
-            // Pick up the target object if found
+
             if (targetObject != null)
             {
-                Debug.Log($"Picking up object: {targetObject.name}");
                 PickupObject(targetObject);
-            }
-            else
-            {
-                Debug.Log("No valid pickup object found");
             }
         }
     }
 
+    // --- PICKUP ANIMATIONS ---
     private void PickupObject(GameObject obj)
     {
-        Debug.Log($"Picking up: {obj.name}");
-    
         heldObject = obj;
         heldObjectRb = obj.GetComponent<Rigidbody>();
         isHoldingObject = true;
-    
+
         if (heldObjectRb != null)
         {
             heldObjectRb.useGravity = false;
             heldObjectRb.linearVelocity = Vector3.zero;
             heldObjectRb.angularVelocity = Vector3.zero;
-            heldObjectRb.isKinematic = false; // Keep physics but controlled
+            heldObjectRb.isKinematic = false;
         }
-    
-        // Parent to TempParent if available, otherwise to camera
-        Transform parentTransform = TempParent.Instance != null ? TempParent.Instance.transform : cameraTransform;
+
+        Transform parentTransform = cameraTransform;
         obj.transform.SetParent(parentTransform);
-    
-        // Position the object based on camera mode
+
         if (isFirstPerson)
         {
-            // First person: position in front of camera
             obj.transform.localPosition = Vector3.forward * holdDistance;
         }
         else
         {
-            // Third person: position in front of player, not camera
             Vector3 playerForward = cameraTransform.forward;
             Vector3 holdPosition = transform.position + Vector3.up * 1.5f + playerForward * holdDistance;
             obj.transform.position = holdPosition;
         }
-    
+
         obj.transform.localRotation = Quaternion.identity;
+
+        // ANIMATION: Trigger pickup
+        if (animator != null)
+        {
+            animator.SetTrigger(animParamPickup);
+        }
     }
 
     private void DropObject()
     {
         if (heldObject != null)
         {
-            Debug.Log($"Dropping: {heldObject.name}");
-            
             heldObject.transform.SetParent(null);
-            
+
             if (heldObjectRb != null)
             {
                 heldObjectRb.useGravity = true;
-                
-                // Add a small forward velocity when dropping
                 Vector3 dropDirection = cameraTransform.forward + Vector3.up * 0.2f;
                 heldObjectRb.linearVelocity = dropDirection * 2f;
             }
-            
+
             heldObject = null;
             heldObjectRb = null;
             isHoldingObject = false;
+
+            // ANIMATION: Trigger drop
+            if (animator != null)
+            {
+                animator.SetTrigger(animParamDrop);
+            }
         }
     }
 

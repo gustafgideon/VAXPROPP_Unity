@@ -12,11 +12,9 @@ public class SimplePickup : MonoBehaviour
 
     private void Awake()
     {
-        // Cache references instead of adding duplicates
         rb = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
 
-        // Optional: tweak Rigidbody for pickup objects
         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
     }
