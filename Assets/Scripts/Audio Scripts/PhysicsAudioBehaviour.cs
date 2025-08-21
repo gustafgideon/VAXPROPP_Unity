@@ -3,7 +3,7 @@ using FMODUnity;
 using FMOD.Studio;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PhysicsImpactAudio : MonoBehaviour
+public class PhysicsAudioBehaviour : MonoBehaviour
 {
     [Header("FMOD Events")]
     [SerializeField] private EventReference impactEvent;
