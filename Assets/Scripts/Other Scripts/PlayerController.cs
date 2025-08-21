@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using System;
 using System.Collections;
 
@@ -13,10 +14,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform thirdPersonPosition;
     [SerializeField] private Transform cameraHolder;
     [SerializeField] private float cameraTransitionSpeed = 10f;
-    
+
     [Header("Animation")]
     [SerializeField] private Animator animator;
-    
+
     private readonly int animParamSpeed = Animator.StringToHash("Speed");
     private readonly int animParamIsGrounded = Animator.StringToHash("IsGrounded");
     private readonly int animParamIsRunning = Animator.StringToHash("IsRunning");
@@ -42,7 +43,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float maxVerticalAngle = 60f;
     [SerializeField] private float cameraCollisionOffset = 0.2f;
     [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 1.5f, 0f);
-    
+
     [Header("Third Person Zoom Settings")]
     [SerializeField] private float minCameraDistance = 1f;
     [SerializeField] private float maxCameraDistance = 10f;
@@ -50,13 +51,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float zoomSensitivity = 1f;
     [SerializeField] private float zoomSpeed = 8f;
     [SerializeField] private bool invertScrollDirection = false;
-    
+
     [Header("Player Pivot Settings")]
     [SerializeField] private float playerRotationSpeed = 10f;
     [SerializeField] private bool instantPivot = false;
     [SerializeField] private float pivotThreshold = 0.1f;
     [SerializeField] private float pivotSmoothing = 0.15f;
-    
+
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float runSpeed = 8f;
@@ -67,16 +68,16 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float crouchHeight = 1f;
     [SerializeField] private float standingHeight = 2f;
     [SerializeField] private float crouchTransitionSpeed = 8f;
-    
+
     [Header("Head Bob Settings")]
     [SerializeField] private float bobFrequency = 2f;
     [SerializeField] private float bobAmount = 0.05f;
-    
+
     [Header("Crouch Head Bob Settings")]
     [SerializeField] private float crouchBobFrequency = 1.5f;
     [SerializeField] private float crouchBobAmount = 0.03f;
     [SerializeField] private bool enableCrouchHeadBob = true;
-    
+
     [Header("Interaction Settings")]
     [SerializeField] private float interactionRange = 3f;
     [SerializeField] private LayerMask interactionMask;
@@ -86,7 +87,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Pickup Settings")]
     [SerializeField] private float pickupRange = 3f;
-    [SerializeField] private float throwForce = 600f;
+    [SerializeField] private float throwForce = 600f; // Deprecated, replaced by throw settings below
     [SerializeField] private LayerMask pickupMask = -1; // All layers by default
     [SerializeField] private float holdDistance = 1.5f;
     [SerializeField] private float holdPositionSpeed = 10f;
@@ -96,16 +97,25 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float maxLookAngle = 80f;
     [SerializeField] private float defaultFOV = 60f;
 
+    // ---- THROW SYSTEM ----
+    [Header("Throw Settings")]
+    [SerializeField] private float minThrowForce = 200f;
+    [SerializeField] private float maxThrowForce = 1200f;
+    [SerializeField] private float maxHoldTime = 1.5f;
+
+    [Header("Throw UI")]
+    [SerializeField] private Image throwPowerBar; // assign in inspector!
+
     // Private references
     private CharacterController characterController;
     private PlayerInput playerInput;
     private Transform cameraTransform;
-    
+
     // UI overlay for eye close effect
     private GameObject eyeCloseOverlay;
     private UnityEngine.UI.Image eyeCloseImage;
     private Canvas overlayCanvas;
-    
+
     // Movement state
     private Vector2 moveInput;
     private Vector2 lookInput;
@@ -123,14 +133,14 @@ public class PlayerController : MonoBehaviour
     private float targetHeight;
     private float currentCameraYOffset;
     private float targetCameraYOffset;
-    
+
     // Zoom state
     private float currentCameraDistance;
     private float targetCameraDistance;
-    
+
     // View transition state
     private bool isTransitioning = false;
-    
+
     // Pivot smoothing
     private float targetPlayerRotation;
     private float pivotVelocity;
@@ -139,6 +149,10 @@ public class PlayerController : MonoBehaviour
     private GameObject heldObject;
     private Rigidbody heldObjectRb;
     private bool isHoldingObject = false;
+
+    // Throw charge state
+    private bool isChargingThrow = false;
+    private float throwChargeTimer = 0f;
 
     // Input action references
     private InputAction moveAction;
@@ -151,6 +165,7 @@ public class PlayerController : MonoBehaviour
     private InputAction crouchAction;
     private InputAction zoomAction;
     private InputAction pickupAction;
+    private InputAction throwAction;
 
     private void Awake()
     {
@@ -167,18 +182,18 @@ public class PlayerController : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
-        
+
         if (playerCamera == null)
             playerCamera = Camera.main;
-            
+
         cameraTransform = playerCamera.transform;
         originalCameraPosition = cameraHolder.localPosition;
-        
+
         characterController.height = standingHeight;
         targetHeight = standingHeight;
         currentCameraYOffset = 0f;
         targetCameraYOffset = 0f;
-        
+
         // Initialize camera rotation and distance
         horizontalRotation = transform.eulerAngles.y;
         verticalRotation = 0f;
@@ -186,52 +201,45 @@ public class PlayerController : MonoBehaviour
         currentCameraDistance = defaultCameraDistance;
         targetCameraDistance = defaultCameraDistance;
         thirdPersonDistance = defaultCameraDistance;
-        
+
         // Initialize FOV
         playerCamera.fieldOfView = defaultFOV;
-        
+
         // Auto-detect platform and set scroll direction
         AutoDetectScrollDirection();
-        
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
     private void CreateEyeCloseOverlay()
     {
-        // Create a canvas for the eye close effect
         GameObject canvasGO = new GameObject("EyeCloseCanvas");
         overlayCanvas = canvasGO.AddComponent<Canvas>();
         overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        overlayCanvas.sortingOrder = 1000; // Make sure it's on top
-        
-        // Add CanvasScaler for responsive UI
+        overlayCanvas.sortingOrder = 1000;
+
         var scaler = canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>();
         scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
-        
-        // Add GraphicRaycaster
+
         canvasGO.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-        
-        // Create the overlay image
+
         eyeCloseOverlay = new GameObject("EyeCloseOverlay");
         eyeCloseOverlay.transform.SetParent(canvasGO.transform, false);
-        
+
         eyeCloseImage = eyeCloseOverlay.AddComponent<UnityEngine.UI.Image>();
         eyeCloseImage.color = eyeCloseColor;
-        
-        // Make it cover the entire screen
+
         var rectTransform = eyeCloseOverlay.GetComponent<RectTransform>();
         rectTransform.anchorMin = Vector2.zero;
         rectTransform.anchorMax = Vector2.one;
         rectTransform.sizeDelta = Vector2.zero;
         rectTransform.offsetMin = Vector2.zero;
         rectTransform.offsetMax = Vector2.zero;
-        
-        // Start invisible
+
         eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
-        
-        // Make canvas persistent
+
         DontDestroyOnLoad(canvasGO);
     }
 
@@ -259,50 +267,56 @@ public class PlayerController : MonoBehaviour
         crouchAction = actions["Crouch"];
         zoomAction = actions["Zoom"];
         pickupAction = actions["Pickup"];
+        throwAction = actions["Throw"]; // Map to left mouse button in Input Actions
 
         moveAction.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         moveAction.canceled += ctx => moveInput = Vector2.zero;
-        
-        lookAction.performed += ctx => 
+
+        lookAction.performed += ctx =>
         {
-            if (!isTransitioning) // Disable look input during transition
+            if (!isTransitioning)
                 lookInput = ctx.ReadValue<Vector2>();
         };
         lookAction.canceled += ctx => lookInput = Vector2.zero;
-        
+
         runAction.performed += ctx => isRunning = true;
         runAction.canceled += ctx => isRunning = false;
-        
+
         crouchAction.performed += ctx => { crouchInputHeld = true; StartCrouch(); };
         crouchAction.canceled += ctx => { crouchInputHeld = false; StopCrouch(); };
-        
+
         zoomAction.performed += ctx => HandleZoom(ctx.ReadValue<float>());
-        
+
         jumpAction.performed += _ => TryJump();
         attackAction.performed += _ => TryAttack();
         interactAction.performed += _ => TryInteract();
         pickupAction.performed += _ => TryPickup();
-        switchViewAction.performed += _ => 
+        switchViewAction.performed += _ =>
         {
-            if (!isTransitioning) // Prevent view switching during transition
+            if (!isTransitioning)
                 ToggleView();
         };
+
+        throwAction.started += ctx => StartChargingThrow();
+        throwAction.canceled += ctx => ReleaseThrow();
     }
 
     private void OnEnable()
     {
         EnableAllInputs(true);
+        throwAction?.Enable();
     }
 
     private void OnDisable()
     {
         EnableAllInputs(false);
+        throwAction?.Disable();
     }
 
     private void EnableAllInputs(bool enable)
     {
-        var actions = new[] { moveAction, lookAction, jumpAction, runAction, 
-                            attackAction, switchViewAction, interactAction, crouchAction, zoomAction, pickupAction };
+        var actions = new[] { moveAction, lookAction, jumpAction, runAction,
+                            attackAction, switchViewAction, interactAction, crouchAction, zoomAction, pickupAction, throwAction };
         foreach (var action in actions)
         {
             if (action != null)
@@ -334,6 +348,8 @@ public class PlayerController : MonoBehaviour
 
         if (currentAttackCooldown > 0)
             currentAttackCooldown -= Time.deltaTime;
+
+        UpdateThrowCharge();
     }
 
     private void UpdateCrouchState()
@@ -419,8 +435,6 @@ public class PlayerController : MonoBehaviour
         movement.y = currentVelocity.y * Time.deltaTime;
 
         characterController.Move(movement);
-
-        // Animation update handled in UpdateAnimator
     }
 
     private void UpdateCameraRotation()
@@ -428,7 +442,7 @@ public class PlayerController : MonoBehaviour
         if (isFirstPerson)
         {
             transform.Rotate(Vector3.up * lookInput.x * mouseSensitivity);
-            
+
             verticalRotation -= lookInput.y * mouseSensitivity;
             verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
             cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
@@ -468,7 +482,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            cameraTransform.position = Vector3.Lerp(cameraTransform.position, 
+            cameraTransform.position = Vector3.Lerp(cameraTransform.position,
                 firstPersonPosition.position, Time.deltaTime * cameraTransitionSpeed);
         }
     }
@@ -498,11 +512,11 @@ public class PlayerController : MonoBehaviour
     private IEnumerator EyeCloseTransition()
     {
         isTransitioning = true;
-        
+
         // Phase 1: Eyes closing (fade to black)
         float fadeInDuration = eyeCloseTransitionDuration * 0.3f;
         float elapsedTime = 0f;
-        
+
         while (elapsedTime < fadeInDuration)
         {
             elapsedTime += Time.deltaTime;
@@ -510,40 +524,35 @@ public class PlayerController : MonoBehaviour
             eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
             yield return null;
         }
-        
+
         // Phase 2: Switch to third person while screen is black
-        // Align player rotation with camera direction
         transform.rotation = Quaternion.Euler(0, horizontalRotation, 0);
-        
-        // Set up third person camera position
+
         horizontalRotation = transform.eulerAngles.y;
         verticalRotation = 0f;
-        
+
         Vector3 playerTargetPosition = transform.position + thirdPersonOffset;
         Vector3 directionToCamera = Quaternion.Euler(verticalRotation, horizontalRotation, 0f) * -Vector3.forward;
-        
-        // RESET ZOOM TO DEFAULT DISTANCE
+
         currentCameraDistance = defaultCameraDistance;
         targetCameraDistance = defaultCameraDistance;
         thirdPersonDistance = defaultCameraDistance;
-        
+
         Vector3 desiredCameraPos = playerTargetPosition + directionToCamera * currentCameraDistance;
-        
+
         cameraTransform.position = desiredCameraPos;
         cameraTransform.LookAt(playerTargetPosition);
-        
-        // Switch view state
+
         isFirstPerson = false;
         cameraHolder.localPosition = originalCameraPosition;
         cameraHolder.localRotation = Quaternion.identity;
-        
-        // Brief pause while eyes are closed
+
         yield return new WaitForSeconds(eyeCloseTransitionDuration * 0.4f);
-        
+
         // Phase 3: Eyes opening (fade from black)
         float fadeOutDuration = eyeCloseTransitionDuration * 0.3f;
         elapsedTime = 0f;
-        
+
         while (elapsedTime < fadeOutDuration)
         {
             elapsedTime += Time.deltaTime;
@@ -551,79 +560,62 @@ public class PlayerController : MonoBehaviour
             eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
             yield return null;
         }
-        
-        // Ensure completely transparent
+
         eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
-        
         isTransitioning = false;
     }
 
     private IEnumerator SmoothTransition()
     {
         isTransitioning = true;
-        
-        // Store starting position and rotation
+
         Vector3 startPosition = cameraTransform.position;
         Quaternion startRotation = cameraTransform.rotation;
-        
-        // IMPORTANT: Use the current third person camera's horizontal rotation as the target
-        // This ensures continuity between camera direction and player direction
+
         float targetPlayerRotationValue = horizontalRotation;
-        
-        // Target position and rotation
+
         Vector3 targetPosition = firstPersonPosition.position;
         Quaternion targetRotation = Quaternion.Euler(0f, targetPlayerRotationValue, 0f);
-        
+
         float elapsedTime = 0f;
-        
+
         while (elapsedTime < smoothTransitionDuration)
         {
             elapsedTime += Time.deltaTime;
             float progress = smoothTransitionCurve.Evaluate(elapsedTime / smoothTransitionDuration);
-            
-            // Create a straight line with a slight upward arc to avoid the head
+
             Vector3 straightPath = Vector3.Lerp(startPosition, targetPosition, progress);
-            
-            // Add a subtle upward arc that peaks at 50% progress to avoid clipping through head
+
             float arcOffset = Mathf.Sin(progress * Mathf.PI) * avoidanceArcHeight;
             Vector3 currentPos = straightPath + Vector3.up * arcOffset;
-            
+
             cameraTransform.position = currentPos;
-            
-            // Smoothly rotate to match the target direction
+
             cameraTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, progress);
-            
+
             yield return null;
         }
-        
-        // Finalize first person setup
+
         isFirstPerson = true;
-        
-        // CRITICAL: Set the player's rotation to match the third person camera direction
-        // This ensures that when we enter first person, the player is facing the same direction
-        // as the camera was looking in third person
         transform.rotation = Quaternion.Euler(0f, targetPlayerRotationValue, 0f);
-        
-        // Reset camera rotation relative to player
         verticalRotation = 0f;
         cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
         currentCameraYOffset = targetCameraYOffset;
-        
-        // Ensure camera is exactly at first person position with proper local rotation
+
         cameraTransform.position = firstPersonPosition.position;
-        cameraTransform.rotation = transform.rotation; // Match player's rotation exactly
-        
+        cameraTransform.rotation = transform.rotation;
+
         isTransitioning = false;
     }
 
     private void UpdateCrouchTransition()
     {
-        characterController.height = Mathf.Lerp(characterController.height, targetHeight, 
+        characterController.height = Mathf.Lerp(characterController.height, targetHeight,
             Time.deltaTime * crouchTransitionSpeed);
-        
+
         if (isFirstPerson)
         {
-            currentCameraYOffset = Mathf.Lerp(currentCameraYOffset, targetCameraYOffset, 
+            currentCameraYOffset = Mathf.Lerp(currentCameraYOffset, targetCameraYOffset,
                 Time.deltaTime * crouchTransitionSpeed);
         }
     }
@@ -664,13 +656,13 @@ public class PlayerController : MonoBehaviour
             }
 
             bobTimer += Time.deltaTime * currentBobFrequency * speedMultiplier;
-            
+
             Vector3 bobOffset = new Vector3(
                 Mathf.Cos(bobTimer) * currentBobAmount,
                 Mathf.Sin(bobTimer * 2) * currentBobAmount,
                 0
             );
-            
+
             cameraHolder.localPosition = baseCameraPosition + bobOffset;
         }
         else
@@ -690,7 +682,6 @@ public class PlayerController : MonoBehaviour
         {
             currentVelocity.y = jumpForce;
 
-            // ANIMATION: Trigger jump
             if (animator != null)
             {
                 animator.SetTrigger(animParamJump);
@@ -711,7 +702,6 @@ public class PlayerController : MonoBehaviour
                 }
             }
 
-            // ANIMATION: Alternate between punch and kick
             if (animator != null)
             {
                 if (UnityEngine.Random.value > 0.5f)
@@ -737,7 +727,6 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // ANIMATION: Trigger interact animation
         if (animator != null)
         {
             animator.SetTrigger(animParamInteract);
@@ -748,7 +737,7 @@ public class PlayerController : MonoBehaviour
     {
         if (isHoldingObject)
         {
-            // If you want a separate throw button, you can call ThrowObject() here instead
+            // If holding, drop
             DropObject();
         }
         else
@@ -798,7 +787,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // --- PICKUP ANIMATIONS ---
     private void PickupObject(GameObject obj)
     {
         heldObject = obj;
@@ -829,7 +817,6 @@ public class PlayerController : MonoBehaviour
 
         obj.transform.localRotation = Quaternion.identity;
 
-        // ANIMATION: Trigger pickup
         if (animator != null)
         {
             animator.SetTrigger(animParamPickup);
@@ -853,7 +840,6 @@ public class PlayerController : MonoBehaviour
             heldObjectRb = null;
             isHoldingObject = false;
 
-            // ANIMATION: Trigger drop
             if (animator != null)
             {
                 animator.SetTrigger(animParamDrop);
@@ -861,39 +847,33 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Update the held object position each frame
     private void UpdateHeldObject()
     {
         if (isHoldingObject && heldObject != null)
         {
             if (isFirstPerson)
             {
-                // First person: use parenting system
-                Transform parentTransform = TempParent.Instance != null ? TempParent.Instance.transform : cameraTransform;
-            
+                Transform parentTransform = cameraTransform;
                 if (heldObject.transform.parent != parentTransform)
                 {
                     heldObject.transform.SetParent(parentTransform);
                 }
-            
+
                 Vector3 targetPosition = parentTransform.position + parentTransform.forward * holdDistance;
                 heldObject.transform.position = Vector3.Lerp(heldObject.transform.position, targetPosition, Time.deltaTime * holdPositionSpeed);
                 heldObject.transform.rotation = Quaternion.Lerp(heldObject.transform.rotation, parentTransform.rotation, Time.deltaTime * holdPositionSpeed);
             }
             else
             {
-                // Third person: position in front of player
-                heldObject.transform.SetParent(null); // Don't parent in third person
-            
+                heldObject.transform.SetParent(null);
+
                 Vector3 playerForward = cameraTransform.forward;
                 Vector3 targetPosition = transform.position + Vector3.up * 1.5f + playerForward * holdDistance;
                 heldObject.transform.position = Vector3.Lerp(heldObject.transform.position, targetPosition, Time.deltaTime * holdPositionSpeed);
-            
-                // Keep object facing same direction as camera
+
                 heldObject.transform.rotation = Quaternion.Lerp(heldObject.transform.rotation, cameraTransform.rotation, Time.deltaTime * holdPositionSpeed);
             }
-        
-            // Reset physics to prevent unwanted movement
+
             if (heldObjectRb != null)
             {
                 heldObjectRb.linearVelocity = Vector3.zero;
@@ -908,7 +888,7 @@ public class PlayerController : MonoBehaviour
         {
             isCrouching = true;
             targetHeight = crouchHeight;
-            
+
             if (isFirstPerson)
             {
                 float heightDifference = standingHeight - crouchHeight;
@@ -923,7 +903,7 @@ public class PlayerController : MonoBehaviour
         {
             isCrouching = false;
             targetHeight = standingHeight;
-            
+
             if (isFirstPerson)
             {
                 targetCameraYOffset = 0f;
@@ -931,19 +911,13 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Safely triggers animation methods on HumanoidAnimationController if present
-    /// Uses reflection to avoid compile-time dependencies
-    /// </summary>
     private void TriggerAnimationSafely(string methodName)
     {
         try
         {
-            // Find HumanoidAnimationController component
             var animController = GetComponentInChildren(System.Type.GetType("HumanoidAnimationController"));
             if (animController != null)
             {
-                // Use reflection to call the method
                 var method = animController.GetType().GetMethod(methodName);
                 if (method != null)
                 {
@@ -953,14 +927,11 @@ public class PlayerController : MonoBehaviour
         }
         catch (System.Exception)
         {
-            // Silently ignore errors - animation controller is optional
-            // This ensures PlayerController works with or without the humanoid system
         }
     }
 
     private void OnDestroy()
     {
-        // Clean up the overlay canvas
         if (overlayCanvas != null)
         {
             Destroy(overlayCanvas.gameObject);
@@ -971,16 +942,13 @@ public class PlayerController : MonoBehaviour
     {
         if (playerCamera != null)
         {
-            // Existing gizmos
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(playerCamera.transform.position, interactionRange);
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(playerCamera.transform.position, attackRange);
-        
-            // Pickup gizmos - different for each mode
+
             if (isFirstPerson)
             {
-                // First person: show raycast line
                 Gizmos.color = Color.green;
                 Vector3 rayStart = cameraTransform.position;
                 Vector3 rayEnd = rayStart + cameraTransform.forward * pickupRange;
@@ -989,12 +957,84 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                // Third person: show proximity sphere around player
                 Gizmos.color = Color.green;
                 Vector3 playerCenter = transform.position + Vector3.up * 1.0f;
                 Gizmos.DrawWireSphere(playerCenter, pickupRange);
             }
         }
+    }
+
+    // ---- THROW SYSTEM ----
+
+    private void StartChargingThrow()
+    {
+        if (isHoldingObject && heldObject != null && !isChargingThrow)
+        {
+            isChargingThrow = true;
+            throwChargeTimer = 0f;
+            ShowThrowBar(true);
+        }
+    }
+
+    private void ReleaseThrow()
+    {
+        if (isChargingThrow && isHoldingObject && heldObject != null)
+        {
+            float chargePercent = Mathf.Clamp01(throwChargeTimer / maxHoldTime);
+            float force = Mathf.Lerp(minThrowForce, maxThrowForce, chargePercent);
+            ThrowObject(force);
+            isChargingThrow = false;
+            throwChargeTimer = 0f;
+            ShowThrowBar(false);
+        }
+    }
+
+    private void UpdateThrowCharge()
+    {
+        if (isChargingThrow)
+        {
+            throwChargeTimer += Time.deltaTime;
+            float percent = Mathf.Clamp01(throwChargeTimer / maxHoldTime);
+            UpdateThrowBar(percent);
+        }
+    }
+
+    private void ThrowObject(float force)
+    {
+        heldObject.transform.SetParent(null);
+
+        if (heldObjectRb != null)
+        {
+            heldObjectRb.useGravity = true;
+            heldObjectRb.isKinematic = false;
+            heldObjectRb.linearVelocity = Vector3.zero;
+            heldObjectRb.angularVelocity = Vector3.zero;
+
+            Vector3 throwDirection = cameraTransform.forward;
+            heldObjectRb.AddForce(throwDirection * force);
+            heldObjectRb.AddForce(Vector3.up * 0.2f * force);
+        }
+
+        heldObject = null;
+        heldObjectRb = null;
+        isHoldingObject = false;
+
+        if (animator != null)
+        {
+            animator.SetTrigger(animParamThrow);
+        }
+    }
+
+    private void ShowThrowBar(bool show)
+    {
+        if (throwPowerBar != null)
+            throwPowerBar.gameObject.SetActive(show);
+    }
+
+    private void UpdateThrowBar(float percent)
+    {
+        if (throwPowerBar != null)
+            throwPowerBar.fillAmount = percent;
     }
 }
 
