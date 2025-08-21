@@ -5,64 +5,43 @@ using FMOD.Studio;
 [RequireComponent(typeof(Rigidbody))]
 public class PhysicsAudioBehaviour : MonoBehaviour
 {
-    [Header("FMOD Event")]
-    [SerializeField] private EventReference impactEvent;
+    [Header("FMOD Events")]
+    [SerializeField] private EventReference impactEvent; // One-shot collision sound
 
-    [Header("Impact Settings")]
-    public float minImpactSpeed = 0.1f;    // Minimum collision speed to trigger sound
-    public float maxImpactSpeed = 10f;     // Speed corresponding to max parameter
-    public float minMotionThreshold = 0.05f; // Ignore impacts when object is nearly stationary
-    public float impactCooldown = 0.08f;
-    public AnimationCurve impactCurve = new AnimationCurve(
-        new Keyframe(0f, 0f),
-        new Keyframe(0.3f, 0f),
-        new Keyframe(0.5f, 0.3f),
-        new Keyframe(1f, 1f)
-    );
+    [Header("Settings")]
+    [Tooltip("Minimum relative collision speed to trigger impact sound.")]
+    public float minImpactSpeed = 0.3f; 
+    [Tooltip("Maximum speed mapped to impact parameter.")]
+    public float maxImpactSpeed = 5f;
+    [Tooltip("Minimum time between impact sounds in seconds.")]
+    public float impactCooldown = 0.05f;
 
     private Rigidbody rb;
-    private float lastImpactTime = 0f;
+    private float lastImpactTime = -1f;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        if (rb == null)
-            rb = gameObject.AddComponent<Rigidbody>();
     }
 
     void OnCollisionEnter(Collision collision)
     {
-        TriggerImpact(collision);
-    }
+        float impactSpeed = collision.relativeVelocity.magnitude;
 
-    private void TriggerImpact(Collision collision)
-    {
-        float currentTime = Time.time;
-
-        if (currentTime - lastImpactTime < impactCooldown)
-            return;
-
-        float speed = collision.relativeVelocity.magnitude;
-
-        // Ignore if object is barely moving
-        if (rb.linearVelocity.magnitude < minMotionThreshold)
-            return;
-
-        if (speed >= minImpactSpeed)
+        // Only trigger if above threshold and cooldown has passed
+        if (impactSpeed >= minImpactSpeed && Time.time - lastImpactTime > impactCooldown)
         {
-            float normSpeed = Mathf.Clamp01(speed / maxImpactSpeed);
-            float curveSpeed = impactCurve.Evaluate(normSpeed);
-
-            if (curveSpeed <= 0f)
-                return;
+            lastImpactTime = Time.time;
 
             var impactInstance = RuntimeManager.CreateInstance(impactEvent);
             RuntimeManager.AttachInstanceToGameObject(impactInstance, transform, rb);
-            impactInstance.setParameterByName("Impact", curveSpeed);
+
+            // Normalize impact speed to 0-1 range for FMOD parameter
+            float normImpact = Mathf.Clamp01(impactSpeed / maxImpactSpeed);
+            impactInstance.setParameterByName("Impact", normImpact);
+
             impactInstance.start();
             impactInstance.release();
-
-            lastImpactTime = currentTime;
         }
     }
 }
