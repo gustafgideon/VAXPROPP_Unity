@@ -103334,6 +103334,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 4913109549773630334, guid: fa2dc82b94c8a4bc0b351080c0dce61f, type: 3}
+      propertyPath: runSpeed
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: fa2dc82b94c8a4bc0b351080c0dce61f, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 792336403557f4340b6f851131dacf19, type: 2}
+    - target: {fileID: 5866666021909216657, guid: fa2dc82b94c8a4bc0b351080c0dce61f, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8177479508932134566, guid: fa2dc82b94c8a4bc0b351080c0dce61f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -29,6 +29,21 @@ public class PlayerController : MonoBehaviour
     private readonly int animParamDrop = Animator.StringToHash("Drop");
     private readonly int animParamThrow = Animator.StringToHash("Throw");
     private readonly int animParamInteract = Animator.StringToHash("Interact");
+    private readonly int animParamHorizontal = Animator.StringToHash("Horizontal");
+    private readonly int animParamVertical = Animator.StringToHash("Vertical");
+    private readonly int animParamTurnDirection = Animator.StringToHash("TurnDirection");
+    private readonly int animParamIsStrafing = Animator.StringToHash("IsStrafing");
+    
+    [Header("Animation Smoothing")]
+    [SerializeField] private float animationSmoothTime = 0.1f;
+    
+    // NEW: Animation smoothing variables
+    private float currentHorizontalVelocity;
+    private float currentVerticalVelocity;
+    private float currentSpeedVelocity;
+    private float smoothedHorizontal;
+    private float smoothedVertical;
+    private float smoothedSpeed;
 
     [Header("View Transition Settings")]
     [SerializeField] private float eyeCloseTransitionDuration = 0.6f;
@@ -133,6 +148,9 @@ public class PlayerController : MonoBehaviour
     private float targetHeight;
     private float currentCameraYOffset;
     private float targetCameraYOffset;
+    private Vector2 lastMoveInput;
+    private bool isStrafing;
+    private float strafeThreshold = 0.8f;
 
     // Zoom state
     private float currentCameraDistance;
@@ -365,18 +383,101 @@ public class PlayerController : MonoBehaviour
     }
 
     private void UpdateAnimator()
+{
+    if (animator == null) return;
+
+    // Calculate movement values
+    float inputHorizontal = moveInput.x;
+    float inputVertical = moveInput.y;
+    float moveAmount = moveInput.magnitude;
+    
+    // FIXED: Better strafe detection and animation parameter calculation
+    float animHorizontal = 0f;
+    float animVertical = 0f;
+    float animSpeed = 0f;
+
+    if (moveAmount > 0.1f)
     {
-        if (animator == null) return;
+        // Calculate base speed multiplier
+        float baseSpeed = 0.75f; // Walk
+        if (isCrouching)
+        {
+            baseSpeed = 0.5f; // Crouch
+        }
+        else if (isRunning)
+        {
+            baseSpeed = 1f; // Run
+        }
 
-        float moveAmount = moveInput.magnitude;
-        float currentSpeed = isCrouching ? crouchSpeed : (isRunning ? runSpeed : walkSpeed);
-        float normalizedSpeed = moveAmount * (isRunning ? 1f : 0.5f);
-
-        animator.SetFloat(animParamSpeed, normalizedSpeed);
-        animator.SetBool(animParamIsGrounded, isGrounded);
-        animator.SetBool(animParamIsRunning, isRunning);
-        animator.SetBool(animParamIsCrouching, isCrouching);
+        // FIXED: Proper strafe animation triggering
+        if (isFirstPerson)
+        {
+            // First person: Direct input mapping
+            animHorizontal = inputHorizontal;
+            animVertical = inputVertical;
+            animSpeed = moveAmount * baseSpeed;
+        }
+        else
+        {
+            // Third person: Map input to blend tree coordinates
+            // This ensures strafe animations play correctly
+            
+            // Pure sideways movement (strafing)
+            if (Mathf.Abs(inputHorizontal) > 0.7f && Mathf.Abs(inputVertical) < 0.3f)
+            {
+                // Pure strafe - use full horizontal, minimal vertical
+                animHorizontal = Mathf.Sign(inputHorizontal) * 1f;
+                animVertical = 0f;
+                animSpeed = baseSpeed; // Full speed for strafing
+            }
+            // Diagonal movement (strafe + forward/back)
+            else if (Mathf.Abs(inputHorizontal) > 0.3f && Mathf.Abs(inputVertical) > 0.3f)
+            {
+                // Diagonal movement - blend strafe with forward/back
+                animHorizontal = inputHorizontal;
+                animVertical = inputVertical;
+                animSpeed = moveAmount * baseSpeed;
+            }
+            // Mostly forward/backward movement
+            else
+            {
+                // Forward/backward with slight side component
+                animHorizontal = inputHorizontal * 0.5f; // Reduce side component
+                animVertical = inputVertical;
+                animSpeed = moveAmount * baseSpeed;
+            }
+        }
     }
+
+    // Update strafe detection
+    isStrafing = Mathf.Abs(inputHorizontal) > 0.7f && Mathf.Abs(inputVertical) < 0.3f;
+
+    // Smooth the animation parameters with faster smoothing for strafe
+    float strafeSmoothing = isStrafing ? animationSmoothTime * 0.5f : animationSmoothTime;
+    
+    smoothedHorizontal = Mathf.SmoothDamp(smoothedHorizontal, animHorizontal, ref currentHorizontalVelocity, strafeSmoothing);
+    smoothedVertical = Mathf.SmoothDamp(smoothedVertical, animVertical, ref currentVerticalVelocity, animationSmoothTime);
+    smoothedSpeed = Mathf.SmoothDamp(smoothedSpeed, animSpeed, ref currentSpeedVelocity, animationSmoothTime);
+
+    // Set animator parameters
+    animator.SetFloat(animParamSpeed, smoothedSpeed);
+    animator.SetFloat(animParamHorizontal, smoothedHorizontal);
+    animator.SetFloat(animParamVertical, smoothedVertical);
+    animator.SetBool(animParamIsGrounded, isGrounded);
+    animator.SetBool(animParamIsRunning, isRunning && moveAmount > 0.1f);
+    animator.SetBool(animParamIsCrouching, isCrouching);
+    animator.SetBool(animParamIsStrafing, isStrafing);
+
+    // Handle turning
+    float turnDirection = 0f;
+    if (moveAmount < 0.1f && Mathf.Abs(lookInput.x) > 0.5f)
+    {
+        turnDirection = Mathf.Sign(lookInput.x);
+    }
+    animator.SetFloat(animParamTurnDirection, turnDirection);
+
+    lastMoveInput = moveInput;
+}
 
     private void UpdateMovement()
     {
