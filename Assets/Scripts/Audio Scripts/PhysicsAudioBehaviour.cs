@@ -5,81 +5,64 @@ using FMOD.Studio;
 [RequireComponent(typeof(Rigidbody))]
 public class PhysicsAudioBehaviour : MonoBehaviour
 {
-    [Header("FMOD Events")]
-    [SerializeField] private EventReference impactEvent; // One-shot collision sound
-    [SerializeField] private EventReference rollEvent;   // Continuous rolling sound
+    [Header("FMOD Event")]
+    [SerializeField] private EventReference impactEvent;
 
-    [Header("Settings")]
-    public float minImpactSpeed = 1f;
-    public float minRollSpeed = 0.1f;
-    public float maxRollSpeed = 10f;
-    public float rollStopDelay = 0.2f; // Delay before stopping the roll sound
+    [Header("Impact Settings")]
+    public float minImpactSpeed = 0.1f;    // Minimum collision speed to trigger sound
+    public float maxImpactSpeed = 10f;     // Speed corresponding to max parameter
+    public float minMotionThreshold = 0.05f; // Ignore impacts when object is nearly stationary
+    public float impactCooldown = 0.08f;
+    public AnimationCurve impactCurve = new AnimationCurve(
+        new Keyframe(0f, 0f),
+        new Keyframe(0.3f, 0f),
+        new Keyframe(0.5f, 0.3f),
+        new Keyframe(1f, 1f)
+    );
 
     private Rigidbody rb;
-    private EventInstance rollInstance;
-    private bool isRolling = false;
-    private float rollStopTimer = 0f;
-
-    private Vector3 smoothedVelocity;
+    private float lastImpactTime = 0f;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rollInstance = RuntimeManager.CreateInstance(rollEvent);
-        RuntimeManager.AttachInstanceToGameObject(rollInstance, transform, rb);
+        if (rb == null)
+            rb = gameObject.AddComponent<Rigidbody>();
     }
 
     void OnCollisionEnter(Collision collision)
     {
-        float impactSpeed = collision.relativeVelocity.magnitude;
+        TriggerImpact(collision);
+    }
 
-        if (impactSpeed >= minImpactSpeed)
+    private void TriggerImpact(Collision collision)
+    {
+        float currentTime = Time.time;
+
+        if (currentTime - lastImpactTime < impactCooldown)
+            return;
+
+        float speed = collision.relativeVelocity.magnitude;
+
+        // Ignore if object is barely moving
+        if (rb.linearVelocity.magnitude < minMotionThreshold)
+            return;
+
+        if (speed >= minImpactSpeed)
         {
+            float normSpeed = Mathf.Clamp01(speed / maxImpactSpeed);
+            float curveSpeed = impactCurve.Evaluate(normSpeed);
+
+            if (curveSpeed <= 0f)
+                return;
+
             var impactInstance = RuntimeManager.CreateInstance(impactEvent);
             RuntimeManager.AttachInstanceToGameObject(impactInstance, transform, rb);
-
-            // Map impact speed to parameter (normalized if needed)
-            impactInstance.setParameterByName("Impact", impactSpeed);
+            impactInstance.setParameterByName("Impact", curveSpeed);
             impactInstance.start();
             impactInstance.release();
+
+            lastImpactTime = currentTime;
         }
-    }
-
-    void Update()
-    {
-        // Smooth velocity to avoid jitter
-        smoothedVelocity = Vector3.Lerp(smoothedVelocity, rb.linearVelocity, Time.deltaTime * 10f);
-        float speed = smoothedVelocity.magnitude;
-
-        if (speed > minRollSpeed)
-        {
-            float normSpeed = Mathf.Clamp01(speed / maxRollSpeed);
-            rollInstance.setParameterByName("Roll", normSpeed);
-
-            if (!isRolling)
-            {
-                rollInstance.start();
-                isRolling = true;
-            }
-
-            // Reset stop timer if still moving
-            rollStopTimer = 0f;
-        }
-        else if (isRolling)
-        {
-            // Increment stop timer
-            rollStopTimer += Time.deltaTime;
-            if (rollStopTimer >= rollStopDelay)
-            {
-                rollInstance.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-                isRolling = false;
-            }
-        }
-    }
-
-    void OnDestroy()
-    {
-        rollInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
-        rollInstance.release();
     }
 }
