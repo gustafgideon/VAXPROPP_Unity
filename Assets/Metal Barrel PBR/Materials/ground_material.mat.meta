@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 786c1e78f27d0434cba8cd7e605dafa8
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 158031
+  packageName: Metal Barrel PBR
+  packageVersion: 1.0
+  assetPath: Assets/Metal Barrel PBR/Materials/ground_material.mat
+  uploadId: 339987

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 92dd742f07277ee4cb1ffed75d7e8f72
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 112000000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 158031
+  packageName: Metal Barrel PBR
+  packageVersion: 1.0
+  assetPath: Assets/Metal Barrel PBR/Scene/overview_room/LightingData.asset
+  uploadId: 339987

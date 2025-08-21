@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: d141e1d1efe51b942b8b5f7dc3a01cc5
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 158031
+  packageName: Metal Barrel PBR
+  packageVersion: 1.0
+  assetPath: Assets/Metal Barrel PBR/Scene/overview_room_Profiles/PostFX Profile
+    1.asset
+  uploadId: 339987
