@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using System;
 using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
@@ -31,7 +30,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private bool enableLeftMouseCamera = true;
     [SerializeField] private float leftMouseCameraSensitivity = 1.5f;
     #endregion
-    
+
     #region Inspector: Turning Tweaks
     [Header("Turning Tweaks")]
     [SerializeField, Tooltip("Multiplier (<1 slows) applied to rotation when holding forward+strafe (W+A / W+D) to create a wider turning arc.")]
@@ -63,7 +62,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float defaultCameraDistance = 5f;
     [SerializeField] private float zoomSensitivity = 1f;
     [SerializeField] private float zoomSpeed = 8f;
-    [SerializeField] private bool invertScrollDirection = false;
     #endregion
 
     #region Inspector: Movement
@@ -135,7 +133,7 @@ public class PlayerController : MonoBehaviour
     private bool restoreCursorPositionAfterOrbit = true;
     [SerializeField, Tooltip("Hide and lock cursor strictly in first person (prevents any accidental reappearance).")]
     private bool forceLockedCursorInFirstPerson = true;
-    
+
     [Header("Mouse Look Alignment")]
     [SerializeField, Tooltip("If true, when RMB is pressed the character will align to the camera's facing direction if misaligned beyond the threshold.")]
     private bool alignCharacterOnRightMouseDown = true;
@@ -150,24 +148,11 @@ public class PlayerController : MonoBehaviour
     [SerializeField, Tooltip("Ignore (smooth out) the very first look delta frame after entering left-mouse orbit to avoid a perceived hitch.")]
     private bool dampFirstOrbitDeltaFrame = true;
 
-    // NEW: Right mouse look activation gating
     [Header("Right Mouse Look Activation")]
     [SerializeField, Tooltip("Number of initial frames after pressing RMB to forcibly ignore (helps swallow cursor lock warp).")]
     private int suppressRightLookInitialFrames = 1;
     [SerializeField, Tooltip("Minimum raw mouse delta magnitude required (after suppression frames) to actually start rotating while holding RMB.")]
     private float rightLookActivationDeltaThreshold = 0.02f;
-    #endregion
-
-    #region Inspector: Platform Adaptation
-    [Header("Platform Adaptation")]
-    [SerializeField, Tooltip("Automatically detect platform (Mac/Windows) and adjust inversion settings.")]
-    private bool autoDetectPlatform = true;
-    [SerializeField, Tooltip("Invert look Y automatically on Mac (can still be overridden manually).")]
-    private bool invertLookYOnMac = true;
-    [SerializeField, Tooltip("Invert zoom scroll direction automatically on Mac (trackpads use 'natural' scrolling).")]
-    private bool invertScrollOnMac = true;
-    [SerializeField, Tooltip("Manual toggle to invert the vertical look input (independent of scroll zoom inversion).")]
-    private bool invertLookY = false;
     #endregion
 
     #region Inspector: Debug
@@ -177,7 +162,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private bool debugCameraFollow = false;
     #endregion
 
-    #region Animator Parameter Hashes
+    #region Animator Hashes
     private static readonly int AnimParamSpeed = Animator.StringToHash("Speed");
     private static readonly int AnimParamIsGrounded = Animator.StringToHash("IsGrounded");
     private static readonly int AnimParamIsRunning = Animator.StringToHash("IsRunning");
@@ -210,7 +195,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 storedRightCursorPosition;
     private bool pendingLeftOrbitActivation = false;
     private int leftOrbitEnterFrame = -1;
-    private int rightLookEnterFrame = -1; // kept for reference / debugging
+    private int rightLookEnterFrame = -1;
     #endregion
 
     #region Input State
@@ -245,7 +230,6 @@ public class PlayerController : MonoBehaviour
     private float alignStartYaw = 0f;
     private float alignTargetYaw = 0f;
 
-    // NEW: Right mouse look gating state
     private bool rightLookPending = false;
     private int rightLookFramesToSuppress = 0;
     #endregion
@@ -337,7 +321,6 @@ public class PlayerController : MonoBehaviour
         SetupInputActions();
         CreateEyeCloseOverlay();
         InitializeState();
-        ApplyPlatformAdaptation(); // NEW: platform detection call
     }
 
     private void Start()
@@ -464,22 +447,6 @@ public class PlayerController : MonoBehaviour
             if (a == null) continue;
             if (enable) a.Enable(); else a.Disable();
         }
-    }
-    #endregion
-
-    #region Platform Adaptation
-    // Detects if we are on macOS and applies inversion settings if requested.
-    private void ApplyPlatformAdaptation()
-    {
-        if (!autoDetectPlatform) return;
-
-#if UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
-        if (invertLookYOnMac)
-            invertLookY = true;
-        if (invertScrollOnMac)
-            invertScrollDirection = !invertScrollDirection; // flip existing preference
-#endif
-        // (You could extend with other platforms here if needed.)
     }
     #endregion
 
@@ -730,9 +697,7 @@ public class PlayerController : MonoBehaviour
         }
 
         if (endedRightLook)
-        {
             rightLookPending = false;
-        }
 
         if (isMouseLookMode)
         {
@@ -743,9 +708,7 @@ public class PlayerController : MonoBehaviour
         else if (leftMouseCameraActive)
         {
             if (!pendingLeftOrbitActivation)
-            {
                 SafeSetCursor(CursorLockMode.None, false);
-            }
             shouldFollowCamera = false;
             cameraFollowTimer = 0f;
         }
@@ -778,8 +741,10 @@ public class PlayerController : MonoBehaviour
     {
         if (isFirstPerson)
         {
+            // Mouse X rotates character yaw
             transform.Rotate(Vector3.up * smoothedLookInput.x * mouseLookSensitivity);
-            verticalRotation = ClampVertical(verticalRotation - AdjustLookY(smoothedLookInput.y) * mouseLookSensitivity);
+            // Mouse Y: move mouse up => look up (negative pitch)
+            verticalRotation = ClampVertical(verticalRotation - smoothedLookInput.y * mouseLookSensitivity);
             cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
             directionsNeedUpdate = true;
         }
@@ -790,7 +755,7 @@ public class PlayerController : MonoBehaviour
         else
         {
             horizontalRotation += smoothedLookInput.x * mouseLookSensitivity;
-            verticalRotation -= AdjustLookY(smoothedLookInput.y) * mouseLookSensitivity;
+            verticalRotation -= smoothedLookInput.y * mouseLookSensitivity;
             verticalRotation = Mathf.Clamp(verticalRotation, minVerticalAngle, maxVerticalAngle);
         }
     }
@@ -835,7 +800,7 @@ public class PlayerController : MonoBehaviour
             {
                 float sens = mouseLookSensitivity;
                 transform.Rotate(Vector3.up * smoothedLookInput.x * sens);
-                verticalRotation = Mathf.Clamp(verticalRotation - AdjustLookY(smoothedLookInput.y) * sens, minVerticalAngle, maxVerticalAngle);
+                verticalRotation = Mathf.Clamp(verticalRotation - smoothedLookInput.y * sens, minVerticalAngle, maxVerticalAngle);
                 directionsNeedUpdate = true;
             }
 
@@ -850,7 +815,7 @@ public class PlayerController : MonoBehaviour
             if (!suppressThisFrame)
             {
                 freeLookRotation.x += smoothedLookInput.x * sens;
-                freeLookRotation.y = Mathf.Clamp(freeLookRotation.y - AdjustLookY(smoothedLookInput.y) * sens, minVerticalAngle, maxVerticalAngle);
+                freeLookRotation.y = Mathf.Clamp(freeLookRotation.y - smoothedLookInput.y * sens, minVerticalAngle, maxVerticalAngle);
             }
 
             horizontalRotation = freeLookRotation.x;
@@ -972,23 +937,14 @@ public class PlayerController : MonoBehaviour
         float targetHorizontalRotation = transform.eulerAngles.y;
         float followSpeed = currentFollowSpeed;
 
-        if (alwaysFollowBehindPlayer && isMoving)
-        {
-            horizontalRotation = Mathf.LerpAngle(horizontalRotation, targetHorizontalRotation, Time.deltaTime * followSpeed);
-            freeLookRotation.x = horizontalRotation;
-        }
-        else
-        {
-            horizontalRotation = Mathf.LerpAngle(horizontalRotation, targetHorizontalRotation, Time.deltaTime * followSpeed);
-            verticalRotation = freeLookRotation.y;
-            freeLookRotation.x = horizontalRotation;
+        horizontalRotation = Mathf.LerpAngle(horizontalRotation, targetHorizontalRotation, Time.deltaTime * followSpeed);
+        freeLookRotation.x = horizontalRotation;
 
-            float diff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, targetHorizontalRotation));
-            if (diff < 2f)
-            {
-                shouldFollowCamera = false;
-                cameraFollowTimer = 0f;
-            }
+        float diff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, targetHorizontalRotation));
+        if (diff < 2f)
+        {
+            shouldFollowCamera = false;
+            cameraFollowTimer = 0f;
         }
     }
 
@@ -1469,9 +1425,12 @@ public class PlayerController : MonoBehaviour
     #region Zoom / View / Transitions
     private void HandleZoom(float scrollValue)
     {
-        if (isFirstPerson || isTransitioning || Mathf.Abs(scrollValue) <= 0.1f) return;
-        float adj = invertScrollDirection ? -scrollValue : scrollValue;
-        targetCameraDistance = Mathf.Clamp(targetCameraDistance - adj * zoomSensitivity, minCameraDistance, maxCameraDistance);
+        if (isFirstPerson || isTransitioning || Mathf.Abs(scrollValue) <= 0.01f) return;
+        // Assumption: positive scrollValue = wheel forward (away from user) => zoom IN (decrease distance)
+        // If your input system reports the opposite, flip the sign below.
+        targetCameraDistance = Mathf.Clamp(
+            targetCameraDistance - scrollValue * zoomSensitivity,
+            minCameraDistance, maxCameraDistance);
     }
 
     private void ToggleView()
@@ -1628,8 +1587,6 @@ public class PlayerController : MonoBehaviour
             GUILayout.Label($"Move Input: {moveInput}");
             GUILayout.Label($"Current Speed: {currentMovementSpeed:F2}");
             GUILayout.Label($"Is Moving: {isMoving}");
-            GUILayout.Label($"InvertLookY: {invertLookY}");
-            GUILayout.Label($"InvertScrollDirection: {invertScrollDirection}");
         }
 
         if (debugCameraFollow)
@@ -1651,7 +1608,7 @@ public class PlayerController : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (playerCamera == null) return;
+        if (playerCamera == null || cameraTransform == null) return;
 
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(cameraTransform.position, interactionRange);
@@ -1678,9 +1635,6 @@ public class PlayerController : MonoBehaviour
     #region Helper Methods
     private float ClampVertical(float value) => Mathf.Clamp(value, -80f, 80f);
 
-    // Adjust vertical look value based on inversion setting.
-    private float AdjustLookY(float y) => invertLookY ? -y : y;
-
     private void SafeSetCursor(CursorLockMode mode, bool visible)
     {
         if (Cursor.lockState != mode)
@@ -1688,7 +1642,7 @@ public class PlayerController : MonoBehaviour
         if (Cursor.visible != visible)
             Cursor.visible = visible;
     }
-    
+
     private IEnumerator ActivateLeftOrbitNextFrame()
     {
         yield return null;

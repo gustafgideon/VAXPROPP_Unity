@@ -2234,7 +2234,7 @@ MonoBehaviour:
   defaultCameraDistance: 5
   zoomSensitivity: 2
   zoomSpeed: 1.5
-  invertScrollDirection: 1
+  invertScrollDirection: 0
   walkSpeed: 4
   runSpeed: 10
   jumpForce: 8
@@ -2288,10 +2288,20 @@ MonoBehaviour:
   eyeCloseColor: {r: 0, g: 0, b: 0, a: 1}
   restoreCursorPositionAfterOrbit: 1
   forceLockedCursorInFirstPerson: 1
+  alignCharacterOnRightMouseDown: 1
+  alignmentThresholdDegrees: 5
+  smoothAlignment: 0
+  alignmentDuration: 0.15
+  dampFirstOrbitDeltaFrame: 1
+  suppressRightLookInitialFrames: 1
+  rightLookActivationDeltaThreshold: 3
+  autoDetectPlatform: 1
+  invertLookYOnMac: 1
+  invertScrollOnMac: 1
+  invertLookY: 0
   debugAnimationStates: 0
   debugMovementValues: 0
   debugCameraFollow: 0
-  dampFirstOrbitDeltaFrame: 1
 --- !u!1 &8164630866908874380
 GameObject:
   m_ObjectHideFlags: 0

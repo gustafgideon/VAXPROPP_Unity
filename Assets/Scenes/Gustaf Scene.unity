@@ -106394,6 +106394,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1649150592486612637, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
+      propertyPath: invertScrollDirection
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5613598807659730627, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
