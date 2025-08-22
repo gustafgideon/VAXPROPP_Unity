@@ -851,8 +851,9 @@ public class PlayerController : MonoBehaviour
         rightMouseLookMode = rightMousePressed;
     }
     
-    // NEW: Determine left mouse camera mode (only when not holding object)
-    bool leftMouseCameraMode = enableLeftMouseCamera && leftMousePressed && !isHoldingObject;
+    // FIXED: Determine left mouse camera mode - now works when charging throw
+    bool leftMouseCameraMode = enableLeftMouseCamera && leftMousePressed && 
+                               (!isHoldingObject || isChargingThrow);
     
     // Combined mouse look mode
     isMouseLookMode = rightMouseLookMode;
@@ -891,7 +892,7 @@ public class PlayerController : MonoBehaviour
         HandleFreeLookMode();
     }
     
-    // NEW: Handle object holding camera behavior
+    // FIXED: Handle object holding camera behavior
     HandleObjectHoldingCamera();
     
     wasHoldingObjectLastFrame = isHoldingObject;
@@ -951,12 +952,12 @@ private void HandleFreeLookMode()
     // No manual camera rotation from mouse in this mode
 }
 
-// NEW: Handle camera behavior when holding objects
+// FIXED: Handle camera behavior when holding objects
 private void HandleObjectHoldingCamera()
 {
-    if (isHoldingObject)
+    if (isHoldingObject && !isChargingThrow)
     {
-        // When holding an object, force camera to point forward behind character
+        // FIXED: Only force camera when holding object AND not charging throw
         if (!wasHoldingObjectLastFrame)
         {
             // Just picked up an object - start forcing camera behind character
@@ -978,10 +979,16 @@ private void HandleObjectHoldingCamera()
         shouldFollowCamera = false;
         cameraFollowTimer = 0f;
         
-        // Keep vertical rotation but slightly elevated for better throwing view
-        float targetVerticalRotation = 5f; // Slightly look down for throwing
+        // Keep vertical rotation but slightly elevated for better view
+        float targetVerticalRotation = 5f; // Slightly look down
         verticalRotation = Mathf.Lerp(verticalRotation, targetVerticalRotation, Time.deltaTime * 2f);
         freeLookRotation.y = verticalRotation;
+    }
+    else if (isChargingThrow)
+    {
+        // FIXED: When charging throw, allow full camera control for aiming
+        // Camera is controlled by left mouse input handled in HandleLeftMouseCameraMode()
+        // No automatic camera positioning
     }
     else if (wasHoldingObjectLastFrame && !isHoldingObject)
     {
@@ -1543,8 +1550,8 @@ private void HandleObjectHoldingCamera()
             StartCoroutine(SmoothTransition());
         }
     }
-
-    private IEnumerator EyeCloseTransition()
+    
+        private IEnumerator EyeCloseTransition()
     {
         isTransitioning = true;
 
@@ -1861,7 +1868,7 @@ private void HandleObjectHoldingCamera()
             throwChargeTimer = 0f;
             ShowThrowBar(true);
         
-            Debug.Log("Started charging throw - left mouse reserved for throwing");
+            Debug.Log("Started charging throw - left mouse now controls camera for aiming");
         }
     }
 
@@ -1876,11 +1883,11 @@ private void HandleObjectHoldingCamera()
             throwChargeTimer = 0f;
             ShowThrowBar(false);
         
-            Debug.Log("Released throw - left mouse now available for camera");
+            Debug.Log("Released throw - returning to normal camera behavior");
         }
     }
     
-        private void UpdateThrowCharge()
+    private void UpdateThrowCharge()
     {
         if (isChargingThrow)
         {
@@ -1962,6 +1969,9 @@ private void HandleObjectHoldingCamera()
         {
             GUILayout.BeginArea(new Rect(10, 10, 300, 200));
             GUILayout.Label($"Mouse Look Mode: {isMouseLookMode}");
+            GUILayout.Label($"Left Mouse Camera Active: {leftMouseCameraActive}");
+            GUILayout.Label($"Is Holding Object: {isHoldingObject}");
+            GUILayout.Label($"Is Charging Throw: {isChargingThrow}");
             GUILayout.Label($"Move Input: {moveInput}");
             GUILayout.Label($"Current Speed: {currentMovementSpeed:F2}");
             GUILayout.Label($"Is Running: {isRunning}");
