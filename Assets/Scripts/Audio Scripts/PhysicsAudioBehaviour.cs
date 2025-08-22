@@ -18,10 +18,10 @@ public class BreakableSettings
     public enum MaterialType
     {
         Custom,
-        Glass,          // Fragile, breaks easily
-        WoodenCrate,    // Medium durability
-        MetalContainer, // Very durable
-        Ceramic         // Fragile but harder than glass
+        Glass          // Fragile, breaks easily
+        
+        
+       
     }
     
     public void ApplyPreset()
@@ -32,28 +32,7 @@ public class BreakableSettings
                 maxHealth = 30f;
                 breakThreshold = 10f;
                 damageMultiplier = 1f;
-                minDamageThreshold = 1f;
-                break;
-                
-            case MaterialType.WoodenCrate:
-                maxHealth = 300f;
-                breakThreshold = 20f;      // Won't break from normal drops
-                damageMultiplier = 1f;
-                minDamageThreshold = 3f;   // Needs decent impact to damage
-                break;
-                
-            case MaterialType.MetalContainer:
-                maxHealth = 200f;
-                breakThreshold = 25f;
-                damageMultiplier = 5f;
                 minDamageThreshold = 5f;
-                break;
-                
-            case MaterialType.Ceramic:
-                maxHealth = 50f;
-                breakThreshold = 8f;
-                damageMultiplier = 15f;
-                minDamageThreshold = 1.5f;
                 break;
         }
     }
