@@ -135,6 +135,39 @@ public class PlayerController : MonoBehaviour
     private bool restoreCursorPositionAfterOrbit = true;
     [SerializeField, Tooltip("Hide and lock cursor strictly in first person (prevents any accidental reappearance).")]
     private bool forceLockedCursorInFirstPerson = true;
+    
+    [Header("Mouse Look Alignment")]
+    [SerializeField, Tooltip("If true, when RMB is pressed the character will align to the camera's facing direction if misaligned beyond the threshold.")]
+    private bool alignCharacterOnRightMouseDown = true;
+    [SerializeField, Range(0f, 30f), Tooltip("Minimum yaw difference (degrees) between camera and character before an alignment is performed on RMB press.")]
+    private float alignmentThresholdDegrees = 5f;
+    [SerializeField, Tooltip("If true, the character rotates smoothly to match the camera instead of snapping instantly.")]
+    private bool smoothAlignment = false;
+    [SerializeField, Range(0.01f, 1f), Tooltip("Duration of the smooth alignment (seconds) if smoothAlignment is enabled.")]
+    private float alignmentDuration = 0.15f;
+
+    [Header("Input Smoothing / Dampening")]
+    [SerializeField, Tooltip("Ignore (smooth out) the very first look delta frame after entering left-mouse orbit to avoid a perceived hitch.")]
+    private bool dampFirstOrbitDeltaFrame = true;
+
+    // NEW: Right mouse look activation gating
+    [Header("Right Mouse Look Activation")]
+    [SerializeField, Tooltip("Number of initial frames after pressing RMB to forcibly ignore (helps swallow cursor lock warp).")]
+    private int suppressRightLookInitialFrames = 1;
+    [SerializeField, Tooltip("Minimum raw mouse delta magnitude required (after suppression frames) to actually start rotating while holding RMB.")]
+    private float rightLookActivationDeltaThreshold = 0.02f;
+    #endregion
+
+    #region Inspector: Platform Adaptation
+    [Header("Platform Adaptation")]
+    [SerializeField, Tooltip("Automatically detect platform (Mac/Windows) and adjust inversion settings.")]
+    private bool autoDetectPlatform = true;
+    [SerializeField, Tooltip("Invert look Y automatically on Mac (can still be overridden manually).")]
+    private bool invertLookYOnMac = true;
+    [SerializeField, Tooltip("Invert zoom scroll direction automatically on Mac (trackpads use 'natural' scrolling).")]
+    private bool invertScrollOnMac = true;
+    [SerializeField, Tooltip("Manual toggle to invert the vertical look input (independent of scroll zoom inversion).")]
+    private bool invertLookY = false;
     #endregion
 
     #region Inspector: Debug
@@ -177,8 +210,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 storedRightCursorPosition;
     private bool pendingLeftOrbitActivation = false;
     private int leftOrbitEnterFrame = -1;
-    [SerializeField, Tooltip("Ignore (smooth out) the very first look delta frame after entering left orbit to avoid a perceived hitch.")]
-    private bool dampFirstOrbitDeltaFrame = true;
+    private int rightLookEnterFrame = -1; // kept for reference / debugging
     #endregion
 
     #region Input State
@@ -208,6 +240,14 @@ public class PlayerController : MonoBehaviour
     private bool leftMouseCameraActive = false;
     private float currentCameraDistance;
     private float targetCameraDistance;
+    private bool isAligningOnMouseLook = false;
+    private float alignElapsed = 0f;
+    private float alignStartYaw = 0f;
+    private float alignTargetYaw = 0f;
+
+    // NEW: Right mouse look gating state
+    private bool rightLookPending = false;
+    private int rightLookFramesToSuppress = 0;
     #endregion
 
     #region Animation State
@@ -297,6 +337,7 @@ public class PlayerController : MonoBehaviour
         SetupInputActions();
         CreateEyeCloseOverlay();
         InitializeState();
+        ApplyPlatformAdaptation(); // NEW: platform detection call
     }
 
     private void Start()
@@ -426,6 +467,22 @@ public class PlayerController : MonoBehaviour
     }
     #endregion
 
+    #region Platform Adaptation
+    // Detects if we are on macOS and applies inversion settings if requested.
+    private void ApplyPlatformAdaptation()
+    {
+        if (!autoDetectPlatform) return;
+
+#if UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+        if (invertLookYOnMac)
+            invertLookY = true;
+        if (invertScrollOnMac)
+            invertScrollDirection = !invertScrollDirection; // flip existing preference
+#endif
+        // (You could extend with other platforms here if needed.)
+    }
+    #endregion
+
     #region Update Systems
     private void UpdateInput(float deltaTime)
     {
@@ -508,9 +565,6 @@ public class PlayerController : MonoBehaviour
                 const float airControlStrength = 2f;
                 currentVelocity.x = Mathf.Lerp(currentVelocity.x, airTarget.x, airControlStrength * deltaTime);
                 currentVelocity.z = Mathf.Lerp(currentVelocity.z, airTarget.z, airControlStrength * deltaTime);
-
-                if (debugMovementValues && Time.frameCount % 10 == 0)
-                    Debug.Log($"Air control - Target: {airTarget}, Current: {new Vector3(currentVelocity.x, 0, currentVelocity.z)}");
             }
         }
     }
@@ -536,62 +590,52 @@ public class PlayerController : MonoBehaviour
     }
 
     private void HandleFreeLookRotation(float deltaTime)
-{
-    if (moveInput.magnitude <= 0.1f) return;
-
-    // Calculate desired movement direction in character space
-    Vector3 inputDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-    inputDirection.y = 0f;
-    inputDirection = inputDirection.normalized;
-
-    bool isMovingForward  = moveInput.y >  0.1f;   // W
-    bool isMovingBackward = moveInput.y < -0.1f;   // S
-    bool hasSideInput     = Mathf.Abs(moveInput.x) > 0.3f; // A or D
-
-    // We only rotate the character when moving forward/backward AND there is side input (same as before)
-    if ((isMovingForward || isMovingBackward) && hasSideInput)
     {
-        float targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
+        if (moveInput.magnitude <= 0.1f) return;
 
-        if (isMovingBackward)
+        Vector3 inputDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+        inputDirection.y = 0f;
+        inputDirection = inputDirection.normalized;
+
+        bool isMovingForward  = moveInput.y >  0.1f;
+        bool isMovingBackward = moveInput.y < -0.1f;
+        bool hasSideInput     = Mathf.Abs(moveInput.x) > 0.3f;
+
+        if ((isMovingForward || isMovingBackward) && hasSideInput)
         {
-            // Backing up: flip direction
-            targetAngle += 180f;
-            if (targetAngle > 180f) targetAngle -= 360f;
-            if (targetAngle < -180f) targetAngle += 360f;
-        }
+            float targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
 
-        float currentAngle = transform.eulerAngles.y;
-        float angleDifference = Mathf.DeltaAngle(currentAngle, targetAngle);
+            if (isMovingBackward)
+            {
+                targetAngle += 180f;
+                if (targetAngle > 180f) targetAngle -= 360f;
+                if (targetAngle < -180f) targetAngle += 360f;
+            }
 
-        if (Mathf.Abs(angleDifference) > rotationAngleThreshold)
-        {
-            // Original speeds:
-            //  - forward used freeLookRotationSpeed
-            //  - backward used 0.7f * freeLookRotationSpeed
-            // Now we add a diagonal damp when forward + strafe to create a wider arc.
+            float currentAngle = transform.eulerAngles.y;
+            float angleDifference = Mathf.DeltaAngle(currentAngle, targetAngle);
 
-            bool isForwardDiagonal = isMovingForward && hasSideInput && !isMovingBackward;
+            if (Mathf.Abs(angleDifference) > rotationAngleThreshold)
+            {
+                bool isForwardDiagonal = isMovingForward && hasSideInput && !isMovingBackward;
 
-            float baseSpeed =
-                isMovingForward  ? freeLookRotationSpeed :
-                isMovingBackward ? freeLookRotationSpeed * 0.7f :
-                freeLookRotationSpeed;
+                float baseSpeed =
+                    isMovingForward  ? freeLookRotationSpeed :
+                    isMovingBackward ? freeLookRotationSpeed * 0.7f :
+                    freeLookRotationSpeed;
 
-            // Apply diagonal multiplier (usually < 1) to slow rotation (wider turning circle)
-            float rotationSpeed = isForwardDiagonal
-                ? baseSpeed * diagonalTurnSpeedMultiplier
-                : baseSpeed;
+                float rotationSpeed = isForwardDiagonal
+                    ? baseSpeed * diagonalTurnSpeedMultiplier
+                    : baseSpeed;
 
-            // Interpolate towards target angle
-            float rotationStep = rotationSpeed * deltaTime;
-            float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationStep);
-            transform.rotation = Quaternion.Euler(0, newAngle, 0);
+                float rotationStep = rotationSpeed * deltaTime;
+                float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationStep);
+                transform.rotation = Quaternion.Euler(0, newAngle, 0);
 
-            directionsNeedUpdate = true;
+                directionsNeedUpdate = true;
+            }
         }
     }
-}
     #endregion
 
     #region Camera
@@ -613,91 +657,129 @@ public class PlayerController : MonoBehaviour
     }
 
     private void UpdateCameraMode()
-{
-    // First-person enforcement
-    if (isFirstPerson && forceLockedCursorInFirstPerson)
     {
-        SafeSetCursor(CursorLockMode.Locked, false);
-        wasLeftMouseCameraActive = false;
-        wasRightMouseLookActive = false;
-        pendingLeftOrbitActivation = false;
-        return;
-    }
-
-    // Determine modes
-    isMouseLookMode = useRightMouseButton && rightMousePressed;
-    leftMouseCameraActive = enableLeftMouseCamera && leftMousePressed &&
-                            (!isHoldingObject || isChargingThrow);
-
-    bool startedLeftOrbit = leftMouseCameraActive && !wasLeftMouseCameraActive;
-    bool endedLeftOrbit   = !leftMouseCameraActive && wasLeftMouseCameraActive;
-
-    bool startedRightLook = isMouseLookMode && !wasRightMouseLookActive;
-    bool endedRightLook   = !isMouseLookMode && wasRightMouseLookActive;
-
-    // Store cursor positions (unchanged from your earlier logic)
-    if (startedLeftOrbit && restoreCursorPositionAfterOrbit && cachedMouse != null)
-        storedCursorPosition = cachedMouse.position.ReadValue();
-    if (startedRightLook && restoreCursorPositionAfterOrbit && cachedMouse != null)
-        storedRightCursorPosition = cachedMouse.position.ReadValue();
-
-    // Defer left orbit cursor hide to next frame
-    if (startedLeftOrbit)
-    {
-        pendingLeftOrbitActivation = true;
-        StartCoroutine(ActivateLeftOrbitNextFrame());
-    }
-
-    if (isMouseLookMode)
-    {
-        // Right mouse look: lock for infinite delta
-        SafeSetCursor(CursorLockMode.Locked, false);
-        shouldFollowCamera = false;
-        cameraFollowTimer = 0f;
-    }
-    else if (leftMouseCameraActive)
-    {
-        // If we are still waiting to hide the cursor (first frame of click), do nothing yet.
-        if (!pendingLeftOrbitActivation)
+        if (isFirstPerson && forceLockedCursorInFirstPerson)
         {
-            // Already activated: ensure we are hidden but not re-calling needlessly.
-            SafeSetCursor(CursorLockMode.None, false);
-        }
-        shouldFollowCamera = false;
-        cameraFollowTimer = 0f;
-    }
-    else
-    {
-        // Exiting orbit modes
-        if (endedLeftOrbit && restoreCursorPositionAfterOrbit && cachedMouse != null)
-        {
-#if UNITY_EDITOR || UNITY_STANDALONE
-            UnityEngine.InputSystem.Mouse.current.WarpCursorPosition(storedCursorPosition);
-#endif
-        }
-        if (endedRightLook && restoreCursorPositionAfterOrbit && cachedMouse != null)
-        {
-#if UNITY_EDITOR || UNITY_STANDALONE
-            UnityEngine.InputSystem.Mouse.current.WarpCursorPosition(storedRightCursorPosition);
-#endif
+            SafeSetCursor(CursorLockMode.Locked, false);
+            wasLeftMouseCameraActive = false;
+            wasRightMouseLookActive = false;
+            pendingLeftOrbitActivation = false;
+            rightLookPending = false;
+            return;
         }
 
-        if (useWoWCameraStyle && !isFirstPerson)
-            SafeSetCursor(CursorLockMode.None, true);
+        isMouseLookMode = useRightMouseButton && rightMousePressed;
+        leftMouseCameraActive = enableLeftMouseCamera && leftMousePressed &&
+                                (!isHoldingObject || isChargingThrow);
+
+        bool startedLeftOrbit = leftMouseCameraActive && !wasLeftMouseCameraActive;
+        bool endedLeftOrbit   = !leftMouseCameraActive && wasLeftMouseCameraActive;
+
+        bool startedRightLook = isMouseLookMode && !wasRightMouseLookActive;
+        bool endedRightLook   = !isMouseLookMode && wasRightMouseLookActive;
+
+        if (startedLeftOrbit && restoreCursorPositionAfterOrbit && cachedMouse != null)
+            storedCursorPosition = cachedMouse.position.ReadValue();
+        if (startedRightLook && restoreCursorPositionAfterOrbit && cachedMouse != null)
+            storedRightCursorPosition = cachedMouse.position.ReadValue();
+
+        if (startedLeftOrbit)
+        {
+            pendingLeftOrbitActivation = true;
+            StartCoroutine(ActivateLeftOrbitNextFrame());
+        }
+
+        if (startedRightLook)
+        {
+            if (restoreCursorPositionAfterOrbit && cachedMouse != null)
+                storedRightCursorPosition = cachedMouse.position.ReadValue();
+
+            rightLookPending = true;
+            rightLookFramesToSuppress = Mathf.Max(0, suppressRightLookInitialFrames);
+            rightLookEnterFrame = Time.frameCount;
+
+            lookInput = Vector2.zero;
+            smoothedLookInput = Vector2.zero;
+            lookInputVelocity = Vector2.zero;
+
+            if (!isFirstPerson && alignCharacterOnRightMouseDown)
+            {
+                Vector3 camForwardFlat = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized;
+                float camYaw = Mathf.Atan2(camForwardFlat.x, camForwardFlat.z) * Mathf.Rad2Deg;
+                float charYaw = transform.eulerAngles.y;
+                float diff = Mathf.Abs(Mathf.DeltaAngle(charYaw, camYaw));
+
+                if (diff > alignmentThresholdDegrees)
+                {
+                    if (smoothAlignment && alignmentDuration > 0.01f)
+                    {
+                        isAligningOnMouseLook = true;
+                        alignElapsed = 0f;
+                        alignStartYaw = charYaw;
+                        alignTargetYaw = camYaw;
+                    }
+                    else
+                    {
+                        transform.rotation = Quaternion.Euler(0f, camYaw, 0f);
+                        horizontalRotation = camYaw;
+                        freeLookRotation.x = camYaw;
+                        directionsNeedUpdate = true;
+                    }
+                }
+            }
+        }
+
+        if (endedRightLook)
+        {
+            rightLookPending = false;
+        }
+
+        if (isMouseLookMode)
+        {
+            SafeSetCursor(CursorLockMode.Locked, false);
+            shouldFollowCamera = false;
+            cameraFollowTimer = 0f;
+        }
+        else if (leftMouseCameraActive)
+        {
+            if (!pendingLeftOrbitActivation)
+            {
+                SafeSetCursor(CursorLockMode.None, false);
+            }
+            shouldFollowCamera = false;
+            cameraFollowTimer = 0f;
+        }
         else
-            SafeSetCursor(CursorLockMode.None, true);
-    }
+        {
+            if (endedLeftOrbit && restoreCursorPositionAfterOrbit && cachedMouse != null)
+            {
+#if UNITY_EDITOR || UNITY_STANDALONE
+                UnityEngine.InputSystem.Mouse.current.WarpCursorPosition(storedCursorPosition);
+#endif
+            }
+            if (endedRightLook && restoreCursorPositionAfterOrbit && cachedMouse != null)
+            {
+#if UNITY_EDITOR || UNITY_STANDALONE
+                UnityEngine.InputSystem.Mouse.current.WarpCursorPosition(storedRightCursorPosition);
+#endif
+            }
 
-    wasLeftMouseCameraActive = leftMouseCameraActive;
-    wasRightMouseLookActive  = isMouseLookMode;
-}
+            if (useWoWCameraStyle && !isFirstPerson)
+                SafeSetCursor(CursorLockMode.None, true);
+            else
+                SafeSetCursor(CursorLockMode.None, true);
+        }
+
+        wasLeftMouseCameraActive = leftMouseCameraActive;
+        wasRightMouseLookActive  = isMouseLookMode;
+    }
 
     private void UpdateCameraRotation(float deltaTime)
     {
         if (isFirstPerson)
         {
             transform.Rotate(Vector3.up * smoothedLookInput.x * mouseLookSensitivity);
-            verticalRotation = ClampVertical(verticalRotation - smoothedLookInput.y * mouseLookSensitivity);
+            verticalRotation = ClampVertical(verticalRotation - AdjustLookY(smoothedLookInput.y) * mouseLookSensitivity);
             cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
             directionsNeedUpdate = true;
         }
@@ -708,7 +790,7 @@ public class PlayerController : MonoBehaviour
         else
         {
             horizontalRotation += smoothedLookInput.x * mouseLookSensitivity;
-            verticalRotation -= smoothedLookInput.y * mouseLookSensitivity;
+            verticalRotation -= AdjustLookY(smoothedLookInput.y) * mouseLookSensitivity;
             verticalRotation = Mathf.Clamp(verticalRotation, minVerticalAngle, maxVerticalAngle);
         }
     }
@@ -717,19 +799,60 @@ public class PlayerController : MonoBehaviour
     {
         if (isMouseLookMode)
         {
-            float sens = mouseLookSensitivity;
-            transform.Rotate(Vector3.up * smoothedLookInput.x * sens);
-            verticalRotation = Mathf.Clamp(verticalRotation - smoothedLookInput.y * sens, minVerticalAngle, maxVerticalAngle);
+            if (isAligningOnMouseLook)
+            {
+                alignElapsed += deltaTime;
+                float t = Mathf.Clamp01(alignElapsed / Mathf.Max(0.0001f, alignmentDuration));
+                float newYaw = Mathf.LerpAngle(alignStartYaw, alignTargetYaw, Mathf.SmoothStep(0f, 1f, t));
+                transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
+
+                horizontalRotation = transform.eulerAngles.y;
+                freeLookRotation.x = horizontalRotation;
+                directionsNeedUpdate = true;
+
+                if (t >= 1f)
+                    isAligningOnMouseLook = false;
+
+                freeLookRotation.y = verticalRotation;
+                return;
+            }
+
+            if (rightLookPending)
+            {
+                if (rightLookFramesToSuppress > 0)
+                {
+                    rightLookFramesToSuppress--;
+                }
+                else
+                {
+                    float rawMag = lookInput.magnitude;
+                    if (rawMag >= rightLookActivationDeltaThreshold)
+                        rightLookPending = false;
+                }
+            }
+
+            if (!rightLookPending)
+            {
+                float sens = mouseLookSensitivity;
+                transform.Rotate(Vector3.up * smoothedLookInput.x * sens);
+                verticalRotation = Mathf.Clamp(verticalRotation - AdjustLookY(smoothedLookInput.y) * sens, minVerticalAngle, maxVerticalAngle);
+                directionsNeedUpdate = true;
+            }
 
             horizontalRotation = transform.eulerAngles.y;
             freeLookRotation = new Vector2(horizontalRotation, verticalRotation);
-            directionsNeedUpdate = true;
         }
         else if (leftMouseCameraActive)
         {
+            bool suppressThisFrame = dampFirstOrbitDeltaFrame && Time.frameCount == leftOrbitEnterFrame;
             float sens = leftMouseCameraSensitivity;
-            freeLookRotation.x += smoothedLookInput.x * sens;
-            freeLookRotation.y = Mathf.Clamp(freeLookRotation.y - smoothedLookInput.y * sens, minVerticalAngle, maxVerticalAngle);
+
+            if (!suppressThisFrame)
+            {
+                freeLookRotation.x += smoothedLookInput.x * sens;
+                freeLookRotation.y = Mathf.Clamp(freeLookRotation.y - AdjustLookY(smoothedLookInput.y) * sens, minVerticalAngle, maxVerticalAngle);
+            }
+
             horizontalRotation = freeLookRotation.x;
             verticalRotation = freeLookRotation.y;
         }
@@ -757,7 +880,6 @@ public class PlayerController : MonoBehaviour
         if (currentlyMoving && !wasMovingLastFrame)
         {
             movementTimer = 0f;
-            if (debugCameraFollow) Debug.Log("Started moving - camera follow candidate");
         }
         else if (currentlyMoving)
         {
@@ -767,7 +889,6 @@ public class PlayerController : MonoBehaviour
         {
             cameraFollowTimer = 0f;
             shouldFollowCamera = false;
-            if (debugCameraFollow) Debug.Log("Stopped moving - camera follow halted");
         }
 
         if (alwaysFollowBehindPlayer &&
@@ -780,9 +901,6 @@ public class PlayerController : MonoBehaviour
             {
                 shouldFollowCamera = true;
                 currentFollowSpeed = behindPlayerFollowSpeed;
-
-                if (debugCameraFollow && Time.frameCount % 60 == 0)
-                    Debug.Log($"Follow behind - Character: {currentAngle:F1}°, Cam: {horizontalRotation:F1}°");
             }
             else if (!currentlyMoving)
             {
@@ -806,12 +924,7 @@ public class PlayerController : MonoBehaviour
                         if (cameraCharacterDiff > cameraFollowThreshold)
                         {
                             cameraFollowTimer += deltaTime;
-                            if (cameraFollowTimer > followDelay)
-                            {
-                                trigger = true;
-                                if (debugCameraFollow)
-                                    Debug.Log($"Angle follow triggered - diff: {cameraCharacterDiff:F1}°");
-                            }
+                            if (cameraFollowTimer > followDelay) trigger = true;
                         }
                         else
                         {
@@ -863,10 +976,6 @@ public class PlayerController : MonoBehaviour
         {
             horizontalRotation = Mathf.LerpAngle(horizontalRotation, targetHorizontalRotation, Time.deltaTime * followSpeed);
             freeLookRotation.x = horizontalRotation;
-
-            float diff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, targetHorizontalRotation));
-            if (debugCameraFollow && Time.frameCount % 30 == 0)
-                Debug.Log($"Continuous follow - Current: {horizontalRotation:F1}°, Target: {targetHorizontalRotation:F1}°, Diff: {diff:F1}°");
         }
         else
         {
@@ -879,8 +988,6 @@ public class PlayerController : MonoBehaviour
             {
                 shouldFollowCamera = false;
                 cameraFollowTimer = 0f;
-                if (debugCameraFollow)
-                    Debug.Log("Camera follow finished (<2°)");
             }
         }
     }
@@ -1088,9 +1195,6 @@ public class PlayerController : MonoBehaviour
                 Vector3 horizMomentum = jumpMomentumDirection * finalSpeed;
                 currentVelocity.x = horizMomentum.x;
                 currentVelocity.z = horizMomentum.z;
-
-                if (debugMovementValues)
-                    Debug.Log($"Jump executed - Momentum: {horizMomentum}, Final Vel: {currentVelocity}");
             }
 
             isJumpQueued = false;
@@ -1126,9 +1230,6 @@ public class PlayerController : MonoBehaviour
 
             jumpMomentumSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
             if (jumpMomentumSpeed < jumpForwardForce) jumpMomentumSpeed = jumpForwardForce;
-
-            if (debugMovementValues)
-                Debug.Log($"Jump momentum stored - Dir: {jumpMomentumDirection}, Speed: {jumpMomentumSpeed:F2}");
         }
         else
         {
@@ -1408,60 +1509,59 @@ public class PlayerController : MonoBehaviour
     }
 
     private IEnumerator EyeCloseTransition()
-{
-    isTransitioning = true;
-    float fadeInDuration = eyeCloseTransitionDuration * 0.3f;
-    float elapsedTime = 0f;
-
-    while (elapsedTime < fadeInDuration)
     {
-        elapsedTime += Time.deltaTime;
-        float alpha = elapsedTime / fadeInDuration;
-        eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
-        yield return null;
+        isTransitioning = true;
+        float fadeInDuration = eyeCloseTransitionDuration * 0.3f;
+        float elapsedTime = 0f;
+
+        while (elapsedTime < fadeInDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float alpha = elapsedTime / fadeInDuration;
+            eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
+            yield return null;
+        }
+
+        transform.rotation = Quaternion.Euler(0, horizontalRotation, 0);
+        horizontalRotation = transform.eulerAngles.y;
+        verticalRotation = 0f;
+
+        Vector3 playerTargetPosition = transform.position + thirdPersonOffset;
+        Vector3 directionToCamera = Quaternion.Euler(verticalRotation, horizontalRotation, 0f) * -Vector3.forward;
+
+        currentCameraDistance = defaultCameraDistance;
+        targetCameraDistance = defaultCameraDistance;
+
+        Vector3 desiredCameraPos = playerTargetPosition + directionToCamera * currentCameraDistance;
+        cameraTransform.position = desiredCameraPos;
+        cameraTransform.LookAt(playerTargetPosition);
+
+        isFirstPerson = false;
+        cameraHolder.localPosition = originalCameraPosition;
+        cameraHolder.localRotation = Quaternion.identity;
+        directionsNeedUpdate = true;
+
+        yield return new WaitForSeconds(eyeCloseTransitionDuration * 0.4f);
+
+        float fadeOutDuration = eyeCloseTransitionDuration * 0.3f;
+        elapsedTime = 0f;
+        while (elapsedTime < fadeOutDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float alpha = 1f - (elapsedTime / fadeOutDuration);
+            eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
+            yield return null;
+        }
+
+        eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
+
+        if (useWoWCameraStyle)
+            SafeSetCursor(CursorLockMode.None, true);
+        else
+            SafeSetCursor(CursorLockMode.None, true);
+
+        isTransitioning = false;
     }
-
-    transform.rotation = Quaternion.Euler(0, horizontalRotation, 0);
-    horizontalRotation = transform.eulerAngles.y;
-    verticalRotation = 0f;
-
-    Vector3 playerTargetPosition = transform.position + thirdPersonOffset;
-    Vector3 directionToCamera = Quaternion.Euler(verticalRotation, horizontalRotation, 0f) * -Vector3.forward;
-
-    currentCameraDistance = defaultCameraDistance;
-    targetCameraDistance = defaultCameraDistance;
-
-    Vector3 desiredCameraPos = playerTargetPosition + directionToCamera * currentCameraDistance;
-    cameraTransform.position = desiredCameraPos;
-    cameraTransform.LookAt(playerTargetPosition);
-
-    isFirstPerson = false;
-    cameraHolder.localPosition = originalCameraPosition;
-    cameraHolder.localRotation = Quaternion.identity;
-    directionsNeedUpdate = true;
-
-    yield return new WaitForSeconds(eyeCloseTransitionDuration * 0.4f);
-
-    float fadeOutDuration = eyeCloseTransitionDuration * 0.3f;
-    elapsedTime = 0f;
-    while (elapsedTime < fadeOutDuration)
-    {
-        elapsedTime += Time.deltaTime;
-        float alpha = 1f - (elapsedTime / fadeOutDuration);
-        eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
-        yield return null;
-    }
-
-    eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
-
-    // NEW: show cursor again in 3rd person (WoW style) after transition
-    if (useWoWCameraStyle)
-        SafeSetCursor(CursorLockMode.None, true);
-    else
-        SafeSetCursor(CursorLockMode.None, true);
-
-    isTransitioning = false;
-}
 
     private IEnumerator SmoothTransition()
     {
@@ -1501,7 +1601,6 @@ public class PlayerController : MonoBehaviour
         cameraTransform.rotation = transform.rotation;
         directionsNeedUpdate = true;
 
-        // NEW: enforce hidden locked cursor in first-person
         if (forceLockedCursorInFirstPerson)
             SafeSetCursor(CursorLockMode.Locked, false);
 
@@ -1514,16 +1613,23 @@ public class PlayerController : MonoBehaviour
     {
         if (!(debugMovementValues || debugCameraFollow)) return;
 
-        GUILayout.BeginArea(new Rect(10, 10, 400, 350));
+        GUILayout.BeginArea(new Rect(10, 10, 420, 420));
 
         if (debugMovementValues)
         {
             GUILayout.Label($"Mouse Look Mode: {isMouseLookMode}");
+            GUILayout.Label($"RMB Pending: {rightLookPending}");
+            GUILayout.Label($"RMB Frames Suppress: {rightLookFramesToSuppress}");
+            GUILayout.Label($"RMB Enter Frame: {rightLookEnterFrame}");
+            GUILayout.Label($"Raw LookInput: {lookInput}");
+            GUILayout.Label($"Smoothed Look: {smoothedLookInput}");
             GUILayout.Label($"Left Mouse Camera Active: {leftMouseCameraActive}");
             GUILayout.Label($"Is Holding Object: {isHoldingObject}");
             GUILayout.Label($"Move Input: {moveInput}");
             GUILayout.Label($"Current Speed: {currentMovementSpeed:F2}");
             GUILayout.Label($"Is Moving: {isMoving}");
+            GUILayout.Label($"InvertLookY: {invertLookY}");
+            GUILayout.Label($"InvertScrollDirection: {invertScrollDirection}");
         }
 
         if (debugCameraFollow)
@@ -1572,6 +1678,9 @@ public class PlayerController : MonoBehaviour
     #region Helper Methods
     private float ClampVertical(float value) => Mathf.Clamp(value, -80f, 80f);
 
+    // Adjust vertical look value based on inversion setting.
+    private float AdjustLookY(float y) => invertLookY ? -y : y;
+
     private void SafeSetCursor(CursorLockMode mode, bool visible)
     {
         if (Cursor.lockState != mode)
@@ -1582,11 +1691,10 @@ public class PlayerController : MonoBehaviour
     
     private IEnumerator ActivateLeftOrbitNextFrame()
     {
-        // Defer state change to avoid doing OS cursor hide on the same frame as the mouse down event.
-        yield return null; // wait 1 frame
-        if (leftMouseCameraActive) // still valid
+        yield return null;
+        if (leftMouseCameraActive)
         {
-            SafeSetCursor(CursorLockMode.None, false); // hide but not lock
+            SafeSetCursor(CursorLockMode.None, false);
             leftOrbitEnterFrame = Time.frameCount;
         }
         pendingLeftOrbitActivation = false;
@@ -1594,7 +1702,7 @@ public class PlayerController : MonoBehaviour
     #endregion
 }
 
-// Interface definitions remain the same
+// Interfaces unchanged
 public interface IInteractable
 {
     void Interact();
