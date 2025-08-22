@@ -55,9 +55,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float runSpeed = 7f;
     [SerializeField] private float jumpForce = 5f;
     [SerializeField] private float jumpAnimationDelay = 0.08f;
-    [SerializeField] private float jumpForwardForce = 3f; // NEW: Forward momentum when jumping
-    [SerializeField] private bool maintainJumpMomentum = true; // NEW: Enable momentum preservation
-    [SerializeField] private float jumpMomentumMultiplier = 0.8f;
+    [SerializeField] private float jumpForwardForce = 3f;
+    [SerializeField] private bool maintainJumpMomentum = true;
+    [SerializeField] private float jumpMomentumMultiplier = 1.0f;
     [SerializeField] private float gravityMultiplier = 2.5f;
     [SerializeField] private float airControl = 0.8f;
     [SerializeField] private float crouchSpeed = 2.5f;
@@ -151,6 +151,8 @@ public class PlayerController : MonoBehaviour
     private bool isGrounded;
     private bool isRunning;
     private bool isMoving;
+    private Vector3 jumpMomentumDirection;
+    private float jumpMomentumSpeed;
 
     // Camera state
     private bool isFirstPerson = false;
@@ -435,19 +437,16 @@ public class PlayerController : MonoBehaviour
         {
             if (isMouseLookMode)
             {
-                // Mouse look: camera-relative movement
                 moveDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
             }
             else
             {
-                // Free look: character-relative movement with rotation
                 moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
                 HandleFreeLookRotation(deltaTime);
             }
         }
         else
         {
-            // Original camera system
             moveDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
         }
         
@@ -458,43 +457,43 @@ public class PlayerController : MonoBehaviour
     float targetSpeed = CalculateTargetSpeed(moveDirection);
     targetVelocity = moveDirection * targetSpeed;
     
-    // Apply acceleration/deceleration
-    Vector3 horizontalVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
-    Vector3 targetHorizontal = new Vector3(targetVelocity.x, 0f, targetVelocity.z);
-    
-    float acceleration = targetHorizontal.magnitude > horizontalVelocity.magnitude ? 
-        movementAcceleration : movementDeceleration;
-    
-    horizontalVelocity = Vector3.Lerp(horizontalVelocity, targetHorizontal, acceleration * deltaTime);
-    
-    currentVelocity.x = horizontalVelocity.x;
-    currentVelocity.z = horizontalVelocity.z;
-    
-    // Handle vertical movement
-    if (!isGrounded)
+    if (isGrounded)
     {
+        // GROUNDED MOVEMENT
+        Vector3 horizontalVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
+        Vector3 targetHorizontal = new Vector3(targetVelocity.x, 0f, targetVelocity.z);
+        
+        float acceleration = targetHorizontal.magnitude > horizontalVelocity.magnitude ? 
+            movementAcceleration : movementDeceleration;
+        
+        horizontalVelocity = Vector3.Lerp(horizontalVelocity, targetHorizontal, acceleration * deltaTime);
+        
+        currentVelocity.x = horizontalVelocity.x;
+        currentVelocity.z = horizontalVelocity.z;
+        
+        // Stick to ground
+        if (currentVelocity.y < 0)
+            currentVelocity.y = -2f;
+    }
+    else
+    {
+        // AIRBORNE MOVEMENT
         currentVelocity.y += Physics.gravity.y * gravityMultiplier * deltaTime;
         
-        // IMPROVED: Enhanced air control that works better with jump momentum
+        // Air control - only apply if there's input
         if (inputMagnitude > 0.1f)
         {
-            Vector3 airMovement = moveDirection * targetSpeed * airControl;
+            Vector3 airTargetVelocity = moveDirection * targetSpeed * airControl;
             
-            // Only apply air control if it's not fighting against jump momentum too much
-            float currentHorizontalSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
-            float maxAirControlSpeed = targetSpeed * 1.2f; // Allow some speed boost in air
+            // Apply air control more gently to preserve jump momentum
+            float airControlStrength = 2f; // How quickly you can change direction in air
             
-            if (currentHorizontalSpeed < maxAirControlSpeed)
+            currentVelocity.x = Mathf.Lerp(currentVelocity.x, airTargetVelocity.x, airControlStrength * deltaTime);
+            currentVelocity.z = Mathf.Lerp(currentVelocity.z, airTargetVelocity.z, airControlStrength * deltaTime);
+            
+            if (debugMovementValues && Time.frameCount % 10 == 0) // Reduce spam
             {
-                // Normal air control
-                currentVelocity.x = Mathf.Lerp(currentVelocity.x, airMovement.x, deltaTime * 2f);
-                currentVelocity.z = Mathf.Lerp(currentVelocity.z, airMovement.z, deltaTime * 2f);
-            }
-            else
-            {
-                // Reduced air control when moving fast (preserve jump momentum)
-                currentVelocity.x = Mathf.Lerp(currentVelocity.x, airMovement.x, deltaTime * 0.5f);
-                currentVelocity.z = Mathf.Lerp(currentVelocity.z, airMovement.z, deltaTime * 0.5f);
+                Debug.Log($"Air control - Target: {airTargetVelocity}, Current: {new Vector3(currentVelocity.x, 0, currentVelocity.z)}");
             }
         }
     }
@@ -1067,80 +1066,40 @@ public class PlayerController : MonoBehaviour
     }
 
     private void UpdateJumpState(float deltaTime)
-{
-    if (isJumpQueued)
     {
-        jumpTimer += deltaTime;
-        if (jumpTimer >= jumpAnimationDelay)
+        if (isJumpQueued)
         {
-            // Apply vertical jump force
-            currentVelocity.y = jumpForce;
-            
-            // NEW: Apply forward momentum based on current movement
-            if (maintainJumpMomentum && moveInput.magnitude > 0.1f)
+            jumpTimer += deltaTime;
+            if (jumpTimer >= jumpAnimationDelay)
             {
-                // Calculate the direction the player is moving
-                Vector3 jumpDirection = Vector3.zero;
+                // Apply vertical jump force
+                currentVelocity.y = jumpForce;
+            
+                // Apply stored momentum
+                if (maintainJumpMomentum && jumpMomentumDirection.magnitude > 0.1f)
+                {
+                    float finalMomentumSpeed = jumpMomentumSpeed * jumpMomentumMultiplier;
+                    Vector3 horizontalMomentum = jumpMomentumDirection * finalMomentumSpeed;
                 
-                if (isFirstPerson)
-                {
-                    jumpDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-                }
-                else if (useWoWCameraStyle)
-                {
-                    if (isMouseLookMode)
+                    // FIXED: Set the horizontal velocity directly instead of adding to it
+                    currentVelocity.x = horizontalMomentum.x;
+                    currentVelocity.z = horizontalMomentum.z;
+                
+                    if (debugMovementValues)
                     {
-                        // Mouse look: camera-relative movement
-                        jumpDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
-                    }
-                    else
-                    {
-                        // Free look: character-relative movement
-                        jumpDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+                        Debug.Log($"Jump executed - Applied momentum: {horizontalMomentum}, Final velocity: {currentVelocity}");
                     }
                 }
-                else
-                {
-                    // Original camera system
-                    jumpDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
-                }
-                
-                jumpDirection.y = 0f; // Only horizontal momentum
-                jumpDirection = jumpDirection.normalized;
-                
-                // Calculate current movement speed to preserve
-                float currentHorizontalSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
-                
-                // Use either current speed or base jump forward force, whichever is higher
-                float jumpMomentum = Mathf.Max(currentHorizontalSpeed * jumpMomentumMultiplier, jumpForwardForce);
-                
-                // Apply the horizontal jump force
-                Vector3 horizontalJumpForce = jumpDirection * jumpMomentum;
-                currentVelocity.x += horizontalJumpForce.x;
-                currentVelocity.z += horizontalJumpForce.z;
-                
-                if (debugMovementValues)
-                {
-                    Debug.Log($"Jump with momentum - Direction: {jumpDirection}, Force: {jumpMomentum:F2}, " +
-                              $"Current Speed: {currentHorizontalSpeed:F2}, Final Velocity: {currentVelocity}");
-                }
-            }
-            else if (moveInput.magnitude > 0.1f)
-            {
-                // Fallback: just apply basic forward force in movement direction
-                Vector3 moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-                moveDirection.y = 0f;
-                moveDirection = moveDirection.normalized;
-                
-                currentVelocity.x += moveDirection.x * jumpForwardForce;
-                currentVelocity.z += moveDirection.z * jumpForwardForce;
-            }
             
-            isJumpQueued = false;
-            jumpTimer = 0f;
+                isJumpQueued = false;
+                jumpTimer = 0f;
+            
+                // Clear stored momentum
+                jumpMomentumDirection = Vector3.zero;
+                jumpMomentumSpeed = 0f;
+            }
         }
     }
-}
 
     private void UpdateInteractions(float deltaTime)
     {
@@ -1225,27 +1184,74 @@ public class PlayerController : MonoBehaviour
 
     // Input handling methods
     private void TryJump()
+{
+    if (isCrouching)
     {
-        if (isCrouching)
+        if (CanStandUp())
         {
-            if (CanStandUp())
+            StopCrouch();
+        }
+        return;
+    }
+    
+    if (isGrounded && !isJumpQueued)
+    {
+        // Store current movement for jump momentum
+        if (maintainJumpMomentum && moveInput.magnitude > 0.1f)
+        {
+            // Calculate current movement direction
+            if (isFirstPerson)
             {
-                StopCrouch();
+                jumpMomentumDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
             }
-            return;
+            else if (useWoWCameraStyle)
+            {
+                if (isMouseLookMode)
+                {
+                    jumpMomentumDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
+                }
+                else
+                {
+                    jumpMomentumDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+                }
+            }
+            else
+            {
+                jumpMomentumDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
+            }
+            
+            jumpMomentumDirection.y = 0f;
+            jumpMomentumDirection = jumpMomentumDirection.normalized;
+            
+            // Store current horizontal speed
+            jumpMomentumSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
+            
+            // Ensure minimum forward force
+            if (jumpMomentumSpeed < jumpForwardForce)
+            {
+                jumpMomentumSpeed = jumpForwardForce;
+            }
+            
+            if (debugMovementValues)
+            {
+                Debug.Log($"Jump momentum stored - Direction: {jumpMomentumDirection}, Speed: {jumpMomentumSpeed:F2}");
+            }
+        }
+        else
+        {
+            jumpMomentumDirection = Vector3.zero;
+            jumpMomentumSpeed = 0f;
         }
         
-        if (isGrounded && !isJumpQueued)
+        isJumpQueued = true;
+        jumpTimer = 0f;
+        
+        if (animator != null)
         {
-            isJumpQueued = true;
-            jumpTimer = 0f;
-            
-            if (animator != null)
-            {
-                animator.SetTrigger(AnimParamJump);
-            }
+            animator.SetTrigger(AnimParamJump);
         }
     }
+}
 
     private void TryAttack()
     {
