@@ -30,8 +30,8 @@ public class BreakableSettings
         {
             case MaterialType.Glass:
                 maxHealth = 30f;
-                breakThreshold = 6f;
-                damageMultiplier = 20f;
+                breakThreshold = 10f;
+                damageMultiplier = 1f;
                 minDamageThreshold = 1f;
                 break;
                 
