@@ -33,10 +33,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float cameraFollowThreshold = 15f;
     [SerializeField] private bool onlyFollowWhenMoving = true;
     [SerializeField] private float movementFollowDelay = 0.3f;
-    [SerializeField] private bool enableInstantWASDFollow = true;
-    [SerializeField] private float wasdFollowSpeed = 4f; 
-    [SerializeField] private float wasdFollowThreshold = 5f; 
-    [SerializeField] private float wasdMovementDelay = 0.1f;
+    [SerializeField] private bool alwaysFollowBehindPlayer = true;
+    [SerializeField] private float behindPlayerFollowSpeed = 3f;
+    [SerializeField] private float minMovementForFollow = 0.1f;
     
     [Header("Third Person Camera Settings")]
     [SerializeField] private float thirdPersonDistance = 5f;
@@ -55,6 +54,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float walkSpeed = 4f;
     [SerializeField] private float runSpeed = 7f;
     [SerializeField] private float jumpForce = 5f;
+    [SerializeField] private float jumpAnimationDelay = 0.08f;
+    [SerializeField] private float jumpForwardForce = 3f; // NEW: Forward momentum when jumping
+    [SerializeField] private bool maintainJumpMomentum = true; // NEW: Enable momentum preservation
+    [SerializeField] private float jumpMomentumMultiplier = 0.8f;
     [SerializeField] private float gravityMultiplier = 2.5f;
     [SerializeField] private float airControl = 0.8f;
     [SerializeField] private float crouchSpeed = 2.5f;
@@ -107,6 +110,7 @@ public class PlayerController : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool debugAnimationStates = false;
     [SerializeField] private bool debugMovementValues = false;
+    [SerializeField] private bool debugCameraFollow = false;
 
     // Cached animation parameter hashes
     private static readonly int AnimParamSpeed = Animator.StringToHash("Speed");
@@ -198,6 +202,7 @@ public class PlayerController : MonoBehaviour
     private bool wasMovingLastFrame = false;
     private float lastCharacterAngle = 0f;
     private bool shouldFollowCamera = false;
+    private float currentFollowSpeed = 2f;
 
     // Transition state
     private bool isTransitioning = false;
@@ -382,7 +387,7 @@ public class PlayerController : MonoBehaviour
     {
         // Smooth look input for better camera feel
         smoothedLookInput = Vector2.SmoothDamp(smoothedLookInput, lookInput, 
-            ref lookInputVelocity, 1f / 15f); // Cached smoothing value
+            ref lookInputVelocity, 1f / 15f);
     }
 
     private void UpdateMovement(float deltaTime)
@@ -415,70 +420,85 @@ public class PlayerController : MonoBehaviour
     }
 
     private void CalculateMovement(float deltaTime)
+{
+    Vector3 moveDirection = Vector3.zero;
+    float inputMagnitude = moveInput.magnitude;
+    
+    if (inputMagnitude > pivotThreshold)
     {
-        Vector3 moveDirection = Vector3.zero;
-        float inputMagnitude = moveInput.magnitude;
-        
-        if (inputMagnitude > pivotThreshold)
+        // Calculate movement direction based on camera mode
+        if (isFirstPerson)
         {
-            // Calculate movement direction based on camera mode
-            if (isFirstPerson)
+            moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+        }
+        else if (useWoWCameraStyle)
+        {
+            if (isMouseLookMode)
             {
-                moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-            }
-            else if (useWoWCameraStyle)
-            {
-                if (isMouseLookMode)
-                {
-                    // Mouse look: camera-relative movement
-                    moveDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
-                }
-                else
-                {
-                    // Free look: character-relative movement with rotation
-                    moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-                    HandleFreeLookRotation(deltaTime);
-                }
+                // Mouse look: camera-relative movement
+                moveDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
             }
             else
             {
-                // Original camera system
-                moveDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
+                // Free look: character-relative movement with rotation
+                moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+                HandleFreeLookRotation(deltaTime);
             }
-            
-            moveDirection = Vector3.ClampMagnitude(moveDirection, 1f);
+        }
+        else
+        {
+            // Original camera system
+            moveDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
         }
         
-        // Calculate target speed
-        float targetSpeed = CalculateTargetSpeed(moveDirection);
-        targetVelocity = moveDirection * targetSpeed;
+        moveDirection = Vector3.ClampMagnitude(moveDirection, 1f);
+    }
+    
+    // Calculate target speed
+    float targetSpeed = CalculateTargetSpeed(moveDirection);
+    targetVelocity = moveDirection * targetSpeed;
+    
+    // Apply acceleration/deceleration
+    Vector3 horizontalVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
+    Vector3 targetHorizontal = new Vector3(targetVelocity.x, 0f, targetVelocity.z);
+    
+    float acceleration = targetHorizontal.magnitude > horizontalVelocity.magnitude ? 
+        movementAcceleration : movementDeceleration;
+    
+    horizontalVelocity = Vector3.Lerp(horizontalVelocity, targetHorizontal, acceleration * deltaTime);
+    
+    currentVelocity.x = horizontalVelocity.x;
+    currentVelocity.z = horizontalVelocity.z;
+    
+    // Handle vertical movement
+    if (!isGrounded)
+    {
+        currentVelocity.y += Physics.gravity.y * gravityMultiplier * deltaTime;
         
-        // Apply acceleration/deceleration
-        Vector3 horizontalVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
-        Vector3 targetHorizontal = new Vector3(targetVelocity.x, 0f, targetVelocity.z);
-        
-        float acceleration = targetHorizontal.magnitude > horizontalVelocity.magnitude ? 
-            movementAcceleration : movementDeceleration;
-        
-        horizontalVelocity = Vector3.Lerp(horizontalVelocity, targetHorizontal, acceleration * deltaTime);
-        
-        currentVelocity.x = horizontalVelocity.x;
-        currentVelocity.z = horizontalVelocity.z;
-        
-        // Handle vertical movement
-        if (!isGrounded)
+        // IMPROVED: Enhanced air control that works better with jump momentum
+        if (inputMagnitude > 0.1f)
         {
-            currentVelocity.y += Physics.gravity.y * gravityMultiplier * deltaTime;
+            Vector3 airMovement = moveDirection * targetSpeed * airControl;
             
-            // Air control
-            if (inputMagnitude > 0.1f)
+            // Only apply air control if it's not fighting against jump momentum too much
+            float currentHorizontalSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
+            float maxAirControlSpeed = targetSpeed * 1.2f; // Allow some speed boost in air
+            
+            if (currentHorizontalSpeed < maxAirControlSpeed)
             {
-                Vector3 airMovement = moveDirection * targetSpeed * airControl;
+                // Normal air control
                 currentVelocity.x = Mathf.Lerp(currentVelocity.x, airMovement.x, deltaTime * 2f);
                 currentVelocity.z = Mathf.Lerp(currentVelocity.z, airMovement.z, deltaTime * 2f);
             }
+            else
+            {
+                // Reduced air control when moving fast (preserve jump momentum)
+                currentVelocity.x = Mathf.Lerp(currentVelocity.x, airMovement.x, deltaTime * 0.5f);
+                currentVelocity.z = Mathf.Lerp(currentVelocity.z, airMovement.z, deltaTime * 0.5f);
+            }
         }
     }
+}
 
     private float CalculateTargetSpeed(Vector3 moveDirection)
     {
@@ -507,59 +527,56 @@ public class PlayerController : MonoBehaviour
     }
 
     private void HandleFreeLookRotation(float deltaTime)
-{
-    if (moveInput.magnitude > 0.1f)
     {
-        // Calculate desired movement direction
-        Vector3 inputDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-        inputDirection.y = 0f;
-        inputDirection = inputDirection.normalized;
-        
-        bool isMovingForward = moveInput.y > 0.1f;  // W key
-        bool isMovingBackward = moveInput.y < -0.1f; // S key
-        bool hasSideInput = Mathf.Abs(moveInput.x) > 0.3f; // A or D key
-        
-        // Rotate character when moving forward OR backward with side input
-        if ((isMovingForward || isMovingBackward) && hasSideInput)
+        if (moveInput.magnitude > 0.1f)
         {
-            float targetAngle;
+            // Calculate desired movement direction
+            Vector3 inputDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+            inputDirection.y = 0f;
+            inputDirection = inputDirection.normalized;
             
-            if (isMovingForward)
-            {
-                // Forward movement: normal rotation calculation
-                targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
-            }
-            else
-            {
-                // Backward movement: calculate rotation but account for backing up
-                targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
-                targetAngle = targetAngle + 180f; // Flip the direction
-                
-                // Normalize angle
-                if (targetAngle > 180f) targetAngle -= 360f;
-                if (targetAngle < -180f) targetAngle += 360f;
-            }
+            bool isMovingForward = moveInput.y > 0.1f;  // W key
+            bool isMovingBackward = moveInput.y < -0.1f; // S key
+            bool hasSideInput = Mathf.Abs(moveInput.x) > 0.3f; // A or D key
             
-            float currentAngle = transform.eulerAngles.y;
-            float angleDifference = Mathf.DeltaAngle(currentAngle, targetAngle);
-            
-            // Only rotate if difference is significant
-            if (Mathf.Abs(angleDifference) > rotationAngleThreshold)
+            // Rotate character when moving forward OR backward with side input
+            if ((isMovingForward || isMovingBackward) && hasSideInput)
             {
-                float rotationSpeed = isMovingForward ? freeLookRotationSpeed : freeLookRotationSpeed * 0.7f;
-                float rotationStep = rotationSpeed * deltaTime;
-                float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationStep);
-                transform.rotation = Quaternion.Euler(0, newAngle, 0);
+                float targetAngle;
                 
-                // Mark directions as needing update
-                directionsNeedUpdate = true;
+                if (isMovingForward)
+                {
+                    // Forward movement: normal rotation calculation
+                    targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
+                }
+                else
+                {
+                    // Backward movement: calculate rotation but account for backing up
+                    targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
+                    targetAngle = targetAngle + 180f; // Flip the direction
+                    
+                    // Normalize angle
+                    if (targetAngle > 180f) targetAngle -= 360f;
+                    if (targetAngle < -180f) targetAngle += 360f;
+                }
                 
-                // IMPORTANT: This character rotation should trigger camera follow
-                Debug.Log($"Character rotated from {currentAngle:F1}° to {newAngle:F1}° - this should trigger camera follow");
+                float currentAngle = transform.eulerAngles.y;
+                float angleDifference = Mathf.DeltaAngle(currentAngle, targetAngle);
+                
+                // Only rotate if difference is significant
+                if (Mathf.Abs(angleDifference) > rotationAngleThreshold)
+                {
+                    float rotationSpeed = isMovingForward ? freeLookRotationSpeed : freeLookRotationSpeed * 0.7f;
+                    float rotationStep = rotationSpeed * deltaTime;
+                    float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationStep);
+                    transform.rotation = Quaternion.Euler(0, newAngle, 0);
+                    
+                    // Mark directions as needing update
+                    directionsNeedUpdate = true;
+                }
             }
         }
     }
-}
 
     private void UpdateCamera(float deltaTime)
     {
@@ -683,163 +700,179 @@ public class PlayerController : MonoBehaviour
             freeLookRotation.y = verticalRotation;
         }
     }
-    
-    private void UpdateAutomaticCameraFollow()
-    {
-        float targetHorizontalRotation = transform.eulerAngles.y;
-    
-        // Use the current follow speed (which might be faster for WASD movement)
-        float followSpeed = currentFollowSpeed;
-    
-        // Smoothly rotate camera to face behind character
-        float currentHorizontal = horizontalRotation;
-        float newHorizontal = Mathf.LerpAngle(currentHorizontal, targetHorizontalRotation, 
-            Time.deltaTime * followSpeed);
-    
-        horizontalRotation = newHorizontal;
-        verticalRotation = freeLookRotation.y; // Keep vertical rotation unchanged
-    
-        // Update free look rotation to match
-        freeLookRotation.x = horizontalRotation;
-    
-        // Stop following when camera is close enough to target
-        float angleDifference = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, targetHorizontalRotation));
-        if (angleDifference < 2f) // Within 2 degrees
-        {
-            shouldFollowCamera = false;
-            cameraFollowTimer = 0f;
-            Debug.Log("Camera follow completed - within 2 degrees of target");
-        }
-    
-        if (debugMovementValues)
-        {
-            Debug.Log($"Camera following - Current: {currentHorizontal:F1}°, Target: {targetHorizontalRotation:F1}°, " +
-                      $"Diff: {angleDifference:F1}°, Speed: {followSpeed}");
-        }
-    }
 
     private void UpdateCameraFollowing(float deltaTime)
     {
-    bool isCurrentlyMoving = moveInput.magnitude > pivotThreshold;
-    float currentCharacterAngle = transform.eulerAngles.y;
-    
-    // Track movement state
-    if (isCurrentlyMoving && !wasMovingLastFrame)
-    {
-        // Just started moving
-        movementTimer = 0f;
-        Debug.Log("Started moving - resetting movement timer");
-    }
-    else if (isCurrentlyMoving)
-    {
-        // Continuing to move
-        movementTimer += deltaTime;
-    }
-    else if (!isCurrentlyMoving && wasMovingLastFrame)
-    {
-        // Just stopped moving
-        cameraFollowTimer = 0f;
-        shouldFollowCamera = false;
-        Debug.Log("Stopped moving - stopping camera follow");
-    }
-    
-    // Check if character has rotated significantly
-    float angleDifference = Mathf.Abs(Mathf.DeltaAngle(lastCharacterAngle, currentCharacterAngle));
-    
-    // Determine if camera should follow
-    if (enableCameraFollow && !isMouseLookMode && !leftMouseCameraActive)
-    {
-        bool shouldTriggerFollow = false;
-        float followSpeed = cameraFollowSpeed;
-        float followThreshold = cameraFollowThreshold;
-        float followDelay = cameraFollowDelay;
+        bool isCurrentlyMoving = moveInput.magnitude > minMovementForFollow;
+        float currentCharacterAngle = transform.eulerAngles.y;
         
-        // ENHANCED: Special handling for WASD movement
-        if (enableInstantWASDFollow && isCurrentlyMoving)
+        // Track movement state
+        if (isCurrentlyMoving && !wasMovingLastFrame)
         {
-            // Check if this is pure WASD movement (no mouse look)
-            bool isPureWASDMovement = moveInput.magnitude > 0.1f && 
-                                    !isMouseLookMode && 
-                                    !leftMouseCameraActive;
-            
-            if (isPureWASDMovement)
-            {
-                // Use more responsive settings for WASD
-                followSpeed = wasdFollowSpeed;
-                followThreshold = wasdFollowThreshold;
-                followDelay = wasdMovementDelay;
-                
-                Debug.Log($"Pure WASD movement detected - using responsive follow settings");
-            }
+            movementTimer = 0f;
+            if (debugCameraFollow)
+                Debug.Log("Started moving - camera should follow behind player");
+        }
+        else if (isCurrentlyMoving)
+        {
+            movementTimer += deltaTime;
+        }
+        else if (!isCurrentlyMoving && wasMovingLastFrame)
+        {
+            cameraFollowTimer = 0f;
+            shouldFollowCamera = false;
+            if (debugCameraFollow)
+                Debug.Log("Stopped moving - stopping camera follow");
         }
         
-        if (onlyFollowWhenMoving)
+        // Always follow behind player logic
+        if (alwaysFollowBehindPlayer && 
+            enableCameraFollow && 
+            !isMouseLookMode && 
+            !leftMouseCameraActive && 
+            !isHoldingObject)
         {
-            // Only follow when moving
-            if (isCurrentlyMoving && movementTimer > followDelay)
+            if (isCurrentlyMoving && movementTimer > movementFollowDelay)
             {
-                // Check if camera is significantly off from character facing
-                float cameraCharacterAngleDiff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, currentCharacterAngle));
+                // Always make camera follow behind character when moving
+                shouldFollowCamera = true;
+                currentFollowSpeed = behindPlayerFollowSpeed;
                 
-                if (cameraCharacterAngleDiff > followThreshold)
+                if (debugCameraFollow && Time.frameCount % 60 == 0) // Log every 60 frames to avoid spam
                 {
-                    cameraFollowTimer += deltaTime;
-                    
-                    if (cameraFollowTimer > followDelay)
-                    {
-                        shouldFollowCamera = true;
-                        // Store the follow speed for use in UpdateAutomaticCameraFollow
-                        currentFollowSpeed = followSpeed;
-                        
-                        Debug.Log($"Triggering camera follow - angle diff: {cameraCharacterAngleDiff:F1}°, follow speed: {followSpeed}");
-                    }
-                }
-                else
-                {
-                    cameraFollowTimer = 0f;
-                    shouldFollowCamera = false;
+                    Debug.Log($"Always following behind player - Character facing: {currentCharacterAngle:F1}°, Camera: {horizontalRotation:F1}°");
                 }
             }
             else if (!isCurrentlyMoving)
             {
-                // Reset when not moving
-                cameraFollowTimer = 0f;
                 shouldFollowCamera = false;
             }
         }
         else
         {
-            // Follow anytime character rotates significantly
-            if (angleDifference > followThreshold)
+            // Original angle-difference based following logic
+            float angleDifference = Mathf.Abs(Mathf.DeltaAngle(lastCharacterAngle, currentCharacterAngle));
+            
+            if (enableCameraFollow && !isMouseLookMode && !leftMouseCameraActive)
             {
-                cameraFollowTimer += deltaTime;
+                bool shouldTriggerFollow = false;
+                float followSpeed = cameraFollowSpeed;
+                float followThreshold = cameraFollowThreshold;
+                float followDelay = cameraFollowDelay;
                 
-                if (cameraFollowTimer > followDelay)
+                if (onlyFollowWhenMoving)
+                {
+                    if (isCurrentlyMoving && movementTimer > followDelay)
+                    {
+                        float cameraCharacterAngleDiff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, currentCharacterAngle));
+                        
+                        if (cameraCharacterAngleDiff > followThreshold)
+                        {
+                            cameraFollowTimer += deltaTime;
+                            
+                            if (cameraFollowTimer > followDelay)
+                            {
+                                shouldTriggerFollow = true;
+                                if (debugCameraFollow)
+                                    Debug.Log($"Angle-based follow triggered - diff: {cameraCharacterAngleDiff:F1}°");
+                            }
+                        }
+                        else
+                        {
+                            cameraFollowTimer = 0f;
+                            shouldFollowCamera = false;
+                        }
+                    }
+                }
+                else
+                {
+                    if (angleDifference > followThreshold)
+                    {
+                        cameraFollowTimer += deltaTime;
+                        
+                        if (cameraFollowTimer > followDelay)
+                        {
+                            shouldTriggerFollow = true;
+                        }
+                    }
+                    else
+                    {
+                        cameraFollowTimer = 0f;
+                        shouldFollowCamera = false;
+                    }
+                }
+                
+                if (shouldTriggerFollow)
                 {
                     shouldFollowCamera = true;
                     currentFollowSpeed = followSpeed;
-                    Debug.Log($"Triggering camera follow on rotation - angle change: {angleDifference:F1}°");
                 }
             }
             else
             {
-                cameraFollowTimer = 0f;
                 shouldFollowCamera = false;
+                cameraFollowTimer = 0f;
+            }
+        }
+        
+        // Apply automatic camera following
+        if (shouldFollowCamera)
+        {
+            UpdateAutomaticCameraFollow();
+        }
+        
+        wasMovingLastFrame = isCurrentlyMoving;
+        lastCharacterAngle = currentCharacterAngle;
+    }
+
+    private void UpdateAutomaticCameraFollow()
+    {
+        float targetHorizontalRotation = transform.eulerAngles.y;
+        
+        // Use the current follow speed
+        float followSpeed = currentFollowSpeed;
+        
+        // For always-behind-player mode, use a more responsive interpolation
+        if (alwaysFollowBehindPlayer && isMoving)
+        {
+            // Smoothly but continuously rotate camera to face behind character
+            float currentHorizontal = horizontalRotation;
+            float newHorizontal = Mathf.LerpAngle(currentHorizontal, targetHorizontalRotation, 
+                Time.deltaTime * followSpeed);
+            
+            horizontalRotation = newHorizontal;
+            freeLookRotation.x = horizontalRotation;
+            
+            // Don't stop following until movement stops - keep following continuously
+            float angleDifference = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, targetHorizontalRotation));
+            
+            if (debugCameraFollow && Time.frameCount % 30 == 0) // Log every 30 frames to avoid spam
+            {
+                Debug.Log($"Continuously following - Current: {currentHorizontal:F1}°, Target: {targetHorizontalRotation:F1}°, Diff: {angleDifference:F1}°");
+            }
+        }
+        else
+        {
+            // Original logic for angle-based following
+            float currentHorizontal = horizontalRotation;
+            float newHorizontal = Mathf.LerpAngle(currentHorizontal, targetHorizontalRotation, 
+                Time.deltaTime * followSpeed);
+            
+            horizontalRotation = newHorizontal;
+            verticalRotation = freeLookRotation.y;
+            freeLookRotation.x = horizontalRotation;
+            
+            // Stop following when close enough
+            float angleDifference = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, targetHorizontalRotation));
+            if (angleDifference < 2f)
+            {
+                shouldFollowCamera = false;
+                cameraFollowTimer = 0f;
+                if (debugCameraFollow)
+                    Debug.Log("Camera follow completed - within 2 degrees of target");
             }
         }
     }
-    else
-    {
-        // Camera follow disabled or mouse control active
-        shouldFollowCamera = false;
-        cameraFollowTimer = 0f;
-    }
-    
-    wasMovingLastFrame = isCurrentlyMoving;
-    lastCharacterAngle = currentCharacterAngle;
-    }
-    
-    private float currentFollowSpeed = 2f;
 
     private void UpdateCameraPosition(float deltaTime)
     {
@@ -1034,18 +1067,80 @@ public class PlayerController : MonoBehaviour
     }
 
     private void UpdateJumpState(float deltaTime)
+{
+    if (isJumpQueued)
     {
-        if (isJumpQueued)
+        jumpTimer += deltaTime;
+        if (jumpTimer >= jumpAnimationDelay)
         {
-            jumpTimer += deltaTime;
-            if (jumpTimer >= 0.08f) // Jump animation delay
+            // Apply vertical jump force
+            currentVelocity.y = jumpForce;
+            
+            // NEW: Apply forward momentum based on current movement
+            if (maintainJumpMomentum && moveInput.magnitude > 0.1f)
             {
-                currentVelocity.y = jumpForce;
-                isJumpQueued = false;
-                jumpTimer = 0f;
+                // Calculate the direction the player is moving
+                Vector3 jumpDirection = Vector3.zero;
+                
+                if (isFirstPerson)
+                {
+                    jumpDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+                }
+                else if (useWoWCameraStyle)
+                {
+                    if (isMouseLookMode)
+                    {
+                        // Mouse look: camera-relative movement
+                        jumpDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
+                    }
+                    else
+                    {
+                        // Free look: character-relative movement
+                        jumpDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+                    }
+                }
+                else
+                {
+                    // Original camera system
+                    jumpDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
+                }
+                
+                jumpDirection.y = 0f; // Only horizontal momentum
+                jumpDirection = jumpDirection.normalized;
+                
+                // Calculate current movement speed to preserve
+                float currentHorizontalSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
+                
+                // Use either current speed or base jump forward force, whichever is higher
+                float jumpMomentum = Mathf.Max(currentHorizontalSpeed * jumpMomentumMultiplier, jumpForwardForce);
+                
+                // Apply the horizontal jump force
+                Vector3 horizontalJumpForce = jumpDirection * jumpMomentum;
+                currentVelocity.x += horizontalJumpForce.x;
+                currentVelocity.z += horizontalJumpForce.z;
+                
+                if (debugMovementValues)
+                {
+                    Debug.Log($"Jump with momentum - Direction: {jumpDirection}, Force: {jumpMomentum:F2}, " +
+                              $"Current Speed: {currentHorizontalSpeed:F2}, Final Velocity: {currentVelocity}");
+                }
             }
+            else if (moveInput.magnitude > 0.1f)
+            {
+                // Fallback: just apply basic forward force in movement direction
+                Vector3 moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
+                moveDirection.y = 0f;
+                moveDirection = moveDirection.normalized;
+                
+                currentVelocity.x += moveDirection.x * jumpForwardForce;
+                currentVelocity.z += moveDirection.z * jumpForwardForce;
+            }
+            
+            isJumpQueued = false;
+            jumpTimer = 0f;
         }
     }
+}
 
     private void UpdateInteractions(float deltaTime)
     {
@@ -1533,47 +1628,67 @@ public class PlayerController : MonoBehaviour
     {
         if (throwPowerBar != null)
             throwPowerBar.gameObject.SetActive(false);
-        
-        if (throwPowerBar != null)
-            throwPowerBar.gameObject.SetActive(false);
-    
-        // Optimize settings for responsive WASD camera following
-        if (enableInstantWASDFollow)
-        {
-            // These settings make the camera more responsive to WASD movement
-            wasdFollowSpeed = 4f; // Faster than normal follow speed
-            wasdFollowThreshold = 5f; // Lower threshold means it follows sooner
-            wasdMovementDelay = 0.1f; // Very short delay
-        
-            Debug.Log("WASD camera following optimized - camera will follow behind character quickly during WASD movement");
-        }
     }
 
     // Debug visualization
-    private void OnDrawGizmosSelected()
+    private void OnGUI()
+{
+    if (debugMovementValues || debugCameraFollow)
     {
-        if (playerCamera != null)
+        GUILayout.BeginArea(new Rect(10, 10, 400, 350));
+        
+        if (debugMovementValues)
         {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(cameraTransform.position, interactionRange);
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(cameraTransform.position, attackRange);
-            Gizmos.color = Color.green;
-            
-            if (isFirstPerson)
-            {
-                Vector3 rayStart = cameraTransform.position;
-                Vector3 rayEnd = rayStart + cameraTransform.forward * pickupRange;
-                Gizmos.DrawLine(rayStart, rayEnd);
-                Gizmos.DrawWireSphere(rayEnd, 0.1f);
-            }
-            else
-            {
-                Vector3 playerCenter = transform.position + Vector3.up * 1.0f;
-                Gizmos.DrawWireSphere(playerCenter, pickupRange);
-            }
+            GUILayout.Label($"Mouse Look Mode: {isMouseLookMode}");
+            GUILayout.Label($"Left Mouse Camera Active: {leftMouseCameraActive}");
+            GUILayout.Label($"Is Holding Object: {isHoldingObject}");
+            GUILayout.Label($"Move Input: {moveInput}");
+            GUILayout.Label($"Current Speed: {currentMovementSpeed:F2}");
+            GUILayout.Label($"Is Moving: {isMoving}");
+        }
+        
+        if (debugCameraFollow)
+        {
+            GUILayout.Label("=== CAMERA FOLLOW DEBUG ===");
+            GUILayout.Label($"Character Rotation: {transform.eulerAngles.y:F1}°");
+            GUILayout.Label($"Camera Rotation: {horizontalRotation:F1}°");
+            float angleDiff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, transform.eulerAngles.y));
+            GUILayout.Label($"Angle Difference: {angleDiff:F1}°");
+            GUILayout.Label($"Should Follow Camera: {shouldFollowCamera}");
+            GUILayout.Label($"Always Follow Behind: {alwaysFollowBehindPlayer}");
+            GUILayout.Label($"Behind Follow Speed: {behindPlayerFollowSpeed}");
+            GUILayout.Label($"Movement Timer: {movementTimer:F2}");
+            GUILayout.Label($"Current Follow Speed: {currentFollowSpeed:F1}");
+        }
+        
+        GUILayout.EndArea();
+    }
+}
+
+private void OnDrawGizmosSelected()
+{
+    if (playerCamera != null)
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(cameraTransform.position, interactionRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(cameraTransform.position, attackRange);
+        Gizmos.color = Color.green;
+        
+        if (isFirstPerson)
+        {
+            Vector3 rayStart = cameraTransform.position;
+            Vector3 rayEnd = rayStart + cameraTransform.forward * pickupRange;
+            Gizmos.DrawLine(rayStart, rayEnd);
+            Gizmos.DrawWireSphere(rayEnd, 0.1f);
+        }
+        else
+        {
+            Vector3 playerCenter = transform.position + Vector3.up * 1.0f;
+            Gizmos.DrawWireSphere(playerCenter, pickupRange);
         }
     }
+}
 }
 
 // Interface definitions remain the same

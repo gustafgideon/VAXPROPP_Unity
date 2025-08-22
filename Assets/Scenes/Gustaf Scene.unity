@@ -106394,6 +106394,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2929856958564049586, guid: f993fea2bdb7048c7b8074c6910c5b31, type: 3}
+      propertyPath: wasdFollowSpeed
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2929856958564049586, guid: f993fea2bdb7048c7b8074c6910c5b31, type: 3}
+      propertyPath: maxCameraDistance
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 2929856958564049586, guid: f993fea2bdb7048c7b8074c6910c5b31, type: 3}
+      propertyPath: minCameraDistance
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2929856958564049586, guid: f993fea2bdb7048c7b8074c6910c5b31, type: 3}
+      propertyPath: wasdFollowThreshold
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 3957311738302469541, guid: f993fea2bdb7048c7b8074c6910c5b31, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -106437,6 +106453,10 @@ PrefabInstance:
     - target: {fileID: 6340429635498620888, guid: f993fea2bdb7048c7b8074c6910c5b31, type: 3}
       propertyPath: m_Name
       value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 8540531280041772243, guid: f993fea2bdb7048c7b8074c6910c5b31, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
