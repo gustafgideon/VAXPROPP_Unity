@@ -84514,7 +84514,7 @@ MonoBehaviour:
   eyeCloseFadeInPortion: 0.15
   walkSpeed: 5
   runSpeed: 10
-  acceleration: 14
+  acceleration: 40
   deceleration: 18
   airControlPercent: 0.45
   gravity: -28
@@ -84534,11 +84534,15 @@ MonoBehaviour:
   enableBothButtonsForward: 1
   bothButtonsForwardDeadZone: 0.2
   animator: {fileID: 385713866}
-  speedBlendAcceleration: 8
+  speedBlendAcceleration: 0.7
   animParamSpeed: Speed
   animParamIsGrounded: IsGrounded
   animParamIsRunning: IsRunning
   animParamJump: Jump
+  animParamHorizontal: Horizontal
+  animParamVertical: Vertical
+  animUseVelocityForDirectional: 1
+  directionalBlendAcceleration: 12
   switchViewActionName: SwitchView
   tpToFpTransitionDuration: 0.5
   tpToFpVerticalArc: 0.4
