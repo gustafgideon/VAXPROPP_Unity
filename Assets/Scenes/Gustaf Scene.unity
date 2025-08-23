@@ -28175,6 +28175,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2091271265}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &293036508 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4620869523910750262, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
+  m_PrefabInstance: {fileID: 8138449569234776272}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &306139547
 GameObject:
   m_ObjectHideFlags: 0
@@ -38630,6 +38635,11 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
+--- !u!95 &385713866 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 211149131322263224, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
+  m_PrefabInstance: {fileID: 8138449569234776272}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &392080392
 GameObject:
   m_ObjectHideFlags: 0
@@ -45805,6 +45815,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2091271265}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!20 &713608291 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 6500323762408953479, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
+  m_PrefabInstance: {fileID: 8138449569234776272}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &723289602
 GameObject:
   m_ObjectHideFlags: 0
@@ -84445,6 +84460,128 @@ MonoBehaviour:
   m_SelectedFaces: 
   m_SelectedEdges: []
   m_SelectedVertices: 
+--- !u!1 &1224740609 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7783658885076508457, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
+  m_PrefabInstance: {fileID: 8138449569234776272}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1224740610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1224740609}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f7a9c89ab33c4484a1161425c603d72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cameraPivot: {fileID: 1308394993}
+  playerCamera: {fileID: 713608291}
+  distance: 6
+  minDistance: 2
+  maxDistance: 14
+  zoomSensitivity: 2.5
+  orbitSensitivityX: 1000
+  orbitSensitivityY: 1000
+  minPitch: -30
+  maxPitch: 70
+  followYawLag: 6
+  cameraCollisionRadius: 0.25
+  cameraCollisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  cameraCollisionRecoverSpeed: 6
+  cameraHeightOffset: 1.2
+  startInFirstPerson: 0
+  firstPersonAnchor: {fileID: 293036508}
+  fpLookSensitivityX: 1000
+  fpLookSensitivityY: 1000
+  fpMinPitch: -80
+  fpMaxPitch: 80
+  lockCursorInFP: 1
+  hideCursorInFP: 1
+  enableHeadBob: 1
+  bobFreqWalk: 2.2
+  bobFreqRun: 3.4
+  bobAmpHorizontal: 0.025
+  bobAmpVertical: 0.035
+  bobReturnSpeed: 6
+  useEyeCloseTransition: 1
+  eyeCloseTotalDuration: 0.2
+  eyeCloseColor: {r: 0, g: 0, b: 0, a: 1}
+  eyeCloseFadeInPortion: 0.15
+  walkSpeed: 5
+  runSpeed: 10
+  acceleration: 14
+  deceleration: 18
+  airControlPercent: 0.45
+  gravity: -28
+  jumpForce: 10
+  extraFallGravityMultiplier: 1.5
+  allowRotateToMovementWhenNotMouselooking: 1
+  rotateToMovementSpeed: 540
+  forceAAndDAsStrafe: 1
+  characterMouseLookYawSpeed: 720
+  rotateOnlyWhenMovingForward: 1
+  allowBackwardTurn: 0
+  allowPureStrafeTurn: 0
+  forwardDiagonalTurnSpeedMultiplier: 0.2
+  diagonalExtraDampDegrees: 0
+  forwardThreshold: 0.2
+  strafeThreshold: 0.2
+  enableBothButtonsForward: 1
+  bothButtonsForwardDeadZone: 0.2
+  animator: {fileID: 385713866}
+  speedBlendAcceleration: 8
+  animParamSpeed: Speed
+  animParamIsGrounded: IsGrounded
+  animParamIsRunning: IsRunning
+  animParamJump: Jump
+  switchViewActionName: SwitchView
+  tpToFpTransitionDuration: 0.5
+  tpToFpVerticalArc: 0.4
+  pickupActionName: Pickup
+  throwActionName: Throw
+  pickupRange: 3
+  pickupMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  holdDistance: 1.6
+  holdHeightOffset: 0
+  holdLerpSpeed: 14
+  rotateHeldObjectToCamera: 1
+  throwMinForce: 20
+  throwMaxForce: 500
+  throwChargeTime: 10
+  throwChargeCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  throwPowerBar: {fileID: 0}
+  showThrowBarWhileCharging: 1
+  forwardThrowUpwardFactor: 0.15
 --- !u!43 &1246486612
 Mesh:
   m_ObjectHideFlags: 0
@@ -87261,6 +87398,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2091271265}
   m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
+--- !u!4 &1308394993 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8129192215991311916, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
+  m_PrefabInstance: {fileID: 8138449569234776272}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &1309849773
 Mesh:
   m_ObjectHideFlags: 0
@@ -106442,10 +106584,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1649150592486612637, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7783658885076508457, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1224740610}
   m_SourcePrefab: {fileID: 100100000, guid: 1e001d02652eb4a74b2f3895b1d9d7d6, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

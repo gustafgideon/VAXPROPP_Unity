@@ -1,1668 +1,921 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
-    #region Inspector: Camera Setup
-    [Header("Camera Setup")]
+    #region Inspector - Camera (Third-Person)
+    [Header("Third Person Camera")]
+    [SerializeField] private Transform cameraPivot;
     [SerializeField] private Camera playerCamera;
-    [SerializeField] private Transform firstPersonPosition;
-    [SerializeField] private Transform thirdPersonPosition;
-    [SerializeField] private Transform cameraHolder;
-    [SerializeField] private float cameraTransitionSpeed = 10f;
+    [SerializeField] private float distance = 6f;
+    [SerializeField] private float minDistance = 2f;
+    [SerializeField] private float maxDistance = 14f;
+    [SerializeField] private float zoomSensitivity = 2.5f;
+    [SerializeField] private float orbitSensitivityX = 180f;
+    [SerializeField] private float orbitSensitivityY = 120f;
+    [SerializeField] private float minPitch = -30f;
+    [SerializeField] private float maxPitch = 70f;
+    [SerializeField] private float followYawLag = 6f;
+    [SerializeField] private float cameraCollisionRadius = 0.25f;
+    [SerializeField] private LayerMask cameraCollisionMask = ~0;
+    [SerializeField] private float cameraCollisionRecoverSpeed = 6f;
+    [SerializeField] private float cameraHeightOffset = 1.6f;
     #endregion
 
-    #region Inspector: Animation
+    #region Inspector - First Person
+    [Header("First Person")]
+    [SerializeField] private bool startInFirstPerson = false;
+    [SerializeField] private Transform firstPersonAnchor;
+    [SerializeField] private float fpLookSensitivityX = 180f;
+    [SerializeField] private float fpLookSensitivityY = 120f;
+    [SerializeField] private float fpMinPitch = -80f;
+    [SerializeField] private float fpMaxPitch = 80f;
+    [SerializeField] private bool lockCursorInFP = true;
+    [SerializeField] private bool hideCursorInFP = true;
+    #endregion
+
+    #region Inspector - Head Bob (FP)
+    [Header("Head Bob (FP)")]
+    [SerializeField] private bool enableHeadBob = true;
+    [SerializeField] private float bobFreqWalk = 2.2f;
+    [SerializeField] private float bobFreqRun = 3.4f;
+    [SerializeField] private float bobAmpHorizontal = 0.025f;
+    [SerializeField] private float bobAmpVertical = 0.035f;
+    [SerializeField] private float bobReturnSpeed = 6f;
+    #endregion
+
+    #region Inspector - Eye Close Transition
+    [Header("Eye Close Transition")]
+    [SerializeField] private bool useEyeCloseTransition = true;
+    [SerializeField] private float eyeCloseTotalDuration = 0.6f;
+    [SerializeField] private Color eyeCloseColor = Color.black;
+    [SerializeField, Range(0.05f, 0.95f)] private float eyeCloseFadeInPortion = 0.35f;
+    #endregion
+
+    #region Inspector - Movement
+    [Header("Movement")]
+    [SerializeField] private float walkSpeed = 4.2f;
+    [SerializeField] private float runSpeed = 7.5f;
+    [SerializeField] private float acceleration = 14f;
+    [SerializeField] private float deceleration = 18f;
+    [SerializeField] private float airControlPercent = 0.45f;
+    [SerializeField] private float gravity = -28f;
+    [SerializeField] private float jumpForce = 8f;
+    [SerializeField] private float extraFallGravityMultiplier = 1.3f;
+    [SerializeField] private bool allowRotateToMovementWhenNotMouselooking = true;
+    [SerializeField] private float rotateToMovementSpeed = 540f;
+    [SerializeField] private bool forceAAndDAsStrafe = true;
+    [SerializeField] private float characterMouseLookYawSpeed = 720f;
+    #endregion
+
+    #region Inspector - Turning Style (NEW WoW tuning)
+    [Header("Turning Style (WoW-like)")]
+    [Tooltip("Only auto-rotate when there is forward input (W). Pure strafe or backward no rotation.")]
+    [SerializeField] private bool rotateOnlyWhenMovingForward = true;
+    [Tooltip("Allow rotation if moving purely backward (S). Usually false for WoW feel.")]
+    [SerializeField] private bool allowBackwardTurn = false;
+    [Tooltip("Allow rotation on pure strafe (A or D only). Usually false; enabling recreates the spinning you saw.")]
+    [SerializeField] private bool allowPureStrafeTurn = false;
+    [Tooltip("Multiplier (<1 slows) applied to rotation when moving forward+strafe (W+A / W+D) to widen turning arc.")]
+    [SerializeField, Range(0.05f, 1f)] private float forwardDiagonalTurnSpeedMultiplier = 0.4f;
+    [Tooltip("Extra slow-down when forward AND strafe input present; set 0 for none.")]
+    [SerializeField] private float diagonalExtraDampDegrees = 0f;
+    [Tooltip("Minimum forward input before considering it 'forward'. Helps ignore analog noise.")]
+    [SerializeField] private float forwardThreshold = 0.2f;
+    [Tooltip("Minimum strafe input threshold.")]
+    [SerializeField] private float strafeThreshold = 0.2f;
+    #endregion
+
+    #region Inspector - Auto Forward
+    [Header("Auto Forward (Both Mouse Buttons)")]
+    [SerializeField] private bool enableBothButtonsForward = true;
+    [SerializeField] private float bothButtonsForwardDeadZone = 0.2f;
+    #endregion
+
+    #region Inspector - Animation
     [Header("Animation")]
     [SerializeField] private Animator animator;
+    [SerializeField] private float speedBlendAcceleration = 8f;
+    [SerializeField] private string animParamSpeed = "Speed";
+    [SerializeField] private string animParamIsGrounded = "IsGrounded";
+    [SerializeField] private string animParamIsRunning = "IsRunning";
+    [SerializeField] private string animParamJump = "Jump";
     #endregion
 
-    #region Inspector: WoW-Style Camera
-    [Header("WoW-Style Camera Settings")]
-    [SerializeField] private bool useWoWCameraStyle = true;
-    [SerializeField] private float freeLookSensitivity = 2f;
-    [SerializeField] private float mouseLookSensitivity = 2f;
-    [SerializeField] private bool useRightMouseButton = true;
-    [SerializeField] private bool enableLeftMouseCamera = true;
-    [SerializeField] private float leftMouseCameraSensitivity = 1.5f;
+    #region Inspector - View Toggle
+    [Header("View Toggle")]
+    [SerializeField] private string switchViewActionName = "SwitchView";
+    [SerializeField] private float tpToFpTransitionDuration = 0.8f;
+    [SerializeField] private float tpToFpVerticalArc = 0.3f;
     #endregion
 
-    #region Inspector: Turning Tweaks
-    [Header("Turning Tweaks")]
-    [SerializeField, Tooltip("Multiplier (<1 slows) applied to rotation when holding forward+strafe (W+A / W+D) to create a wider turning arc.")]
-    private float diagonalTurnSpeedMultiplier = 0.4f;
-    #endregion
-
-    #region Inspector: Camera Follow
-    [Header("Camera Follow Settings")]
-    [SerializeField] private bool enableCameraFollow = true;
-    [SerializeField] private float cameraFollowSpeed = 2f;
-    [SerializeField] private float cameraFollowDelay = 0.5f;
-    [SerializeField] private float cameraFollowThreshold = 15f;
-    [SerializeField] private bool onlyFollowWhenMoving = true;
-    [SerializeField] private float movementFollowDelay = 0.3f;
-    [SerializeField] private bool alwaysFollowBehindPlayer = true;
-    [SerializeField] private float behindPlayerFollowSpeed = 3f;
-    [SerializeField] private float minMovementForFollow = 0.1f;
-    #endregion
-
-    #region Inspector: Third Person Camera
-    [Header("Third Person Camera Settings")]
-    [SerializeField] private float thirdPersonDistance = 5f;
-    [SerializeField] private float minVerticalAngle = -30f;
-    [SerializeField] private float maxVerticalAngle = 60f;
-    [SerializeField] private float cameraCollisionOffset = 0.2f;
-    [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 1.5f, 0f);
-    [SerializeField] private float minCameraDistance = 1f;
-    [SerializeField] private float maxCameraDistance = 10f;
-    [SerializeField] private float defaultCameraDistance = 5f;
-    [SerializeField] private float zoomSensitivity = 1f;
-    [SerializeField] private float zoomSpeed = 8f;
-    #endregion
-
-    #region Inspector: Movement
-    [Header("Movement Settings")]
-    [SerializeField] private float walkSpeed = 4f;
-    [SerializeField] private float runSpeed = 7f;
-    [SerializeField] private float jumpForce = 5f;
-    [SerializeField] private float jumpAnimationDelay = 0.08f;
-    [SerializeField] private float jumpForwardForce = 3f;
-    [SerializeField] private bool maintainJumpMomentum = true;
-    [SerializeField] private float jumpMomentumMultiplier = 1.0f;
-    [SerializeField] private float gravityMultiplier = 2.5f;
-    [SerializeField] private float airControl = 0.8f;
-    [SerializeField] private float crouchSpeed = 2.5f;
-    [SerializeField] private float crouchHeight = 1f;
-    [SerializeField] private float standingHeight = 2f;
-    [SerializeField] private float crouchTransitionSpeed = 8f;
-    [SerializeField] private float movementAcceleration = 12f;
-    [SerializeField] private float movementDeceleration = 15f;
-    [SerializeField] private float backwardSpeedMultiplier = 0.6f;
-    [SerializeField] private float strafeSpeedMultiplier = 0.8f;
-    [SerializeField] private float backwardStrafeSpeedMultiplier = 0.5f;
-    [SerializeField] private float pivotThreshold = 0.1f;
-    #endregion
-
-    #region Inspector: Animation Tuning
-    [Header("Animation Settings")]
-    [SerializeField] private float animationSmoothTime = 0.1f;
-    [SerializeField] private float walkSpeedThreshold = 0.5f;
-    [SerializeField] private float runSpeedThreshold = 0.8f;
-    [SerializeField] private float crouchSpeedThreshold = 0.3f;
-    [SerializeField] private float idleThreshold = 0.1f;
-    [SerializeField] private float freeLookRotationSpeed = 2.4f;
-    [SerializeField] private float rotationAngleThreshold = 5f;
-    #endregion
-
-    #region Inspector: Head Bob
-    [Header("Head Bob Settings")]
-    [SerializeField] private float bobFrequency = 2f;
-    [SerializeField] private float bobAmount = 0.05f;
-    [SerializeField] private float crouchBobFrequency = 1.5f;
-    [SerializeField] private float crouchBobAmount = 0.03f;
-    [SerializeField] private bool enableCrouchHeadBob = true;
-    #endregion
-
-    #region Inspector: Interaction
-    [Header("Interaction Settings")]
-    [SerializeField] private float interactionRange = 3f;
-    [SerializeField] private LayerMask interactionMask;
-    [SerializeField] private float attackRange = 2f;
-    [SerializeField] private float attackCooldown = 0.5f;
-    [SerializeField] private int attackDamage = 10;
+    #region Inspector - Pickup / Throw
+    [Header("Pickup / Throw")]
+    [SerializeField] private string pickupActionName = "Pickup";
+    [SerializeField] private string throwActionName = "Throw";
     [SerializeField] private float pickupRange = 3f;
-    [SerializeField] private float throwForce = 600f;
-    [SerializeField] private LayerMask pickupMask = -1;
-    [SerializeField] private float holdDistance = 1.5f;
-    [SerializeField] private float holdPositionSpeed = 10f;
-    [SerializeField] private float minThrowForce = 200f;
-    [SerializeField] private float maxThrowForce = 1200f;
-    [SerializeField] private float maxHoldTime = 1.5f;
+    [SerializeField] private LayerMask pickupMask = ~0;
+    [SerializeField] private float holdDistance = 1.6f;
+    [SerializeField] private float holdHeightOffset = 0.0f;
+    [SerializeField] private float holdLerpSpeed = 14f;
+    [SerializeField] private bool rotateHeldObjectToCamera = true;
+    [SerializeField] private float throwMinForce = 250f;
+    [SerializeField] private float throwMaxForce = 1200f;
+    [SerializeField] private float throwChargeTime = 1.2f;
+    [SerializeField] private AnimationCurve throwChargeCurve = AnimationCurve.EaseInOut(0,0,1,1);
+    [SerializeField] private UnityEngine.UI.Image throwPowerBar;
+    [SerializeField] private bool showThrowBarWhileCharging = true;
+    [SerializeField] private float forwardThrowUpwardFactor = 0.15f;
     #endregion
 
-    #region Inspector: UI
-    [Header("UI")]
-    [SerializeField] private Image throwPowerBar;
-    [SerializeField] private float eyeCloseTransitionDuration = 0.6f;
-    [SerializeField] private Color eyeCloseColor = Color.black;
-    [SerializeField, Tooltip("When orbiting with Left Mouse (free look in 3rd person), restore the cursor to its original screen position on release.")]
-    private bool restoreCursorPositionAfterOrbit = true;
-    [SerializeField, Tooltip("Hide and lock cursor strictly in first person (prevents any accidental reappearance).")]
-    private bool forceLockedCursorInFirstPerson = true;
-
-    [Header("Mouse Look Alignment")]
-    [SerializeField, Tooltip("If true, when RMB is pressed the character will align to the camera's facing direction if misaligned beyond the threshold.")]
-    private bool alignCharacterOnRightMouseDown = true;
-    [SerializeField, Range(0f, 30f), Tooltip("Minimum yaw difference (degrees) between camera and character before an alignment is performed on RMB press.")]
-    private float alignmentThresholdDegrees = 5f;
-    [SerializeField, Tooltip("If true, the character rotates smoothly to match the camera instead of snapping instantly.")]
-    private bool smoothAlignment = false;
-    [SerializeField, Range(0.01f, 1f), Tooltip("Duration of the smooth alignment (seconds) if smoothAlignment is enabled.")]
-    private float alignmentDuration = 0.15f;
-
-    [Header("Input Smoothing / Dampening")]
-    [SerializeField, Tooltip("Ignore (smooth out) the very first look delta frame after entering left-mouse orbit to avoid a perceived hitch.")]
-    private bool dampFirstOrbitDeltaFrame = true;
-
-    [Header("Right Mouse Look Activation")]
-    [SerializeField, Tooltip("Number of initial frames after pressing RMB to forcibly ignore (helps swallow cursor lock warp).")]
-    private int suppressRightLookInitialFrames = 1;
-    [SerializeField, Tooltip("Minimum raw mouse delta magnitude required (after suppression frames) to actually start rotating while holding RMB.")]
-    private float rightLookActivationDeltaThreshold = 0.02f;
-    #endregion
-
-    #region Inspector: Debug
-    [Header("Debug")]
-    [SerializeField] private bool debugAnimationStates = false;
-    [SerializeField] private bool debugMovementValues = false;
-    [SerializeField] private bool debugCameraFollow = false;
-    #endregion
-
-    #region Animator Hashes
-    private static readonly int AnimParamSpeed = Animator.StringToHash("Speed");
-    private static readonly int AnimParamIsGrounded = Animator.StringToHash("IsGrounded");
-    private static readonly int AnimParamIsRunning = Animator.StringToHash("IsRunning");
-    private static readonly int AnimParamIsCrouching = Animator.StringToHash("IsCrouching");
-    private static readonly int AnimParamJump = Animator.StringToHash("Jump");
-    private static readonly int AnimParamPunch = Animator.StringToHash("Punch");
-    private static readonly int AnimParamKick = Animator.StringToHash("Kick");
-    private static readonly int AnimParamPickup = Animator.StringToHash("Pickup");
-    private static readonly int AnimParamDrop = Animator.StringToHash("Drop");
-    private static readonly int AnimParamThrow = Animator.StringToHash("Throw");
-    private static readonly int AnimParamInteract = Animator.StringToHash("Interact");
-    private static readonly int AnimParamHorizontal = Animator.StringToHash("Horizontal");
-    private static readonly int AnimParamVertical = Animator.StringToHash("Vertical");
-    private static readonly int AnimParamIsStrafing = Animator.StringToHash("IsStrafing");
-    private static readonly int AnimParamIsBackwardStrafing = Animator.StringToHash("IsBackwardStrafing");
-    #endregion
-
-    #region Components & Cached
-    private CharacterController characterController;
+    #region Runtime - Components & Input
+    private CharacterController controller;
     private PlayerInput playerInput;
-    private Transform cameraTransform;
-    #endregion
-
-    #region UI Runtime
-    private GameObject eyeCloseOverlay;
-    private Image eyeCloseImage;
-    private bool wasLeftMouseCameraActive = false;
-    private Vector2 storedCursorPosition;
-    private bool wasRightMouseLookActive = false;
-    private Vector2 storedRightCursorPosition;
-    private bool pendingLeftOrbitActivation = false;
-    private int leftOrbitEnterFrame = -1;
-    private int rightLookEnterFrame = -1;
-    #endregion
-
-    #region Input State
-    private Vector2 moveInput;
-    private Vector2 lookInput;
-    private Vector2 smoothedLookInput;
-    private Vector2 lookInputVelocity;
-    #endregion
-
-    #region Movement State
-    private Vector3 currentVelocity;
-    private Vector3 targetVelocity;
-    private float currentMovementSpeed;
-    private bool isGrounded;
-    private bool isRunning;
-    private bool isMoving;
-    private Vector3 jumpMomentumDirection;
-    private float jumpMomentumSpeed;
-    #endregion
-
-    #region Camera State
-    private bool isFirstPerson = false;
-    private float verticalRotation;
-    private float horizontalRotation;
-    private Vector2 freeLookRotation;
-    private bool isMouseLookMode = false;
-    private bool leftMouseCameraActive = false;
-    private float currentCameraDistance;
-    private float targetCameraDistance;
-    private bool isAligningOnMouseLook = false;
-    private float alignElapsed = 0f;
-    private float alignStartYaw = 0f;
-    private float alignTargetYaw = 0f;
-
-    private bool rightLookPending = false;
-    private int rightLookFramesToSuppress = 0;
-    #endregion
-
-    #region Animation State
-    private float smoothedHorizontal;
-    private float smoothedVertical;
-    private float smoothedSpeed;
-    private float horizontalVelocity;
-    private float verticalVelocityAnim;
-    private float speedVelocity;
-    private bool isStrafing;
-    private bool isBackwardStrafing;
-    #endregion
-
-    #region Crouch State
-    private bool isCrouching;
-    private float targetHeight;
-    private float currentCameraYOffset;
-    private float targetCameraYOffset;
-    private float originalControllerCenterY;
-    private float targetControllerCenterY;
-    #endregion
-
-    #region Jump State
-    private bool isJumpQueued = false;
-    private float jumpTimer = 0f;
-    #endregion
-
-    #region Head Bob State
-    private float bobTimer;
-    private Vector3 originalCameraPosition;
-    #endregion
-
-    #region Interaction / Pickup State
-    private GameObject heldObject;
-    private Rigidbody heldObjectRb;
-    private bool isHoldingObject = false;
-    private bool isChargingThrow = false;
-    private float throwChargeTimer = 0f;
-    private float currentAttackCooldown;
-    #endregion
-
-    #region Camera Follow State
-    private float cameraFollowTimer = 0f;
-    private float movementTimer = 0f;
-    private bool wasMovingLastFrame = false;
-    private float lastCharacterAngle = 0f;
-    private bool shouldFollowCamera = false;
-    private float currentFollowSpeed = 2f;
-    #endregion
-
-    #region Transition State
-    private bool isTransitioning = false;
-    #endregion
-
-    #region Direction Caches
-    private Vector3 cachedCharacterForward;
-    private Vector3 cachedCharacterRight;
-    private Vector3 cachedCameraForward;
-    private Vector3 cachedCameraRight;
-    private bool directionsNeedUpdate = true;
-    #endregion
-
-    #region Mouse State
-    private UnityEngine.InputSystem.Mouse cachedMouse;
-    private bool rightMousePressed = false;
-    private bool leftMousePressed = false;
-    #endregion
-
-    #region Input Actions
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;
     private InputAction runAction;
-    private InputAction attackAction;
     private InputAction switchViewAction;
-    private InputAction interactAction;
-    private InputAction crouchAction;
-    private InputAction zoomAction;
     private InputAction pickupAction;
     private InputAction throwAction;
+    private Vector2 moveInput;
+    private Vector2 lookDelta;
+    #endregion
+
+    #region Runtime - Movement State
+    private Vector3 velocity;
+    private bool isGrounded;
+    private bool wasGrounded;
+    private bool jumpQueued;
+    private bool isRunning;
+    private float animSpeedValue;
+    #endregion
+
+    #region Runtime - Camera State
+    private float cameraYaw;
+    private float cameraPitch;
+    private float targetDistance;
+    private float currentDistance;
+    private bool rightMouseHeld;
+    private bool leftMouseHeld;
+    private bool bothButtonsForward;
+    private bool isFirstPerson;
+    private bool isTransitioningView;
+    #endregion
+
+    #region Runtime - Head Bob
+    private float bobTimer;
+    private Vector3 bobOffset;
+    #endregion
+
+    #region Runtime - Eye Close UI
+    private Canvas eyeCanvas;
+    private UnityEngine.UI.Image eyeImage;
+    #endregion
+
+    #region Runtime - Pickup / Throw State
+    private GameObject heldObject;
+    private Rigidbody heldRb;
+    private bool isHoldingObject;
+    private bool isChargingThrow;
+    private float throwChargeTimer;
+    #endregion
+
+    #region Constants
+    private const float EPS = 0.0001f;
     #endregion
 
     #region Unity Lifecycle
     private void Awake()
     {
-        InitializeComponents();
-        SetupInputActions();
-        CreateEyeCloseOverlay();
-        InitializeState();
-    }
-
-    private void Start()
-    {
-        if (throwPowerBar != null)
-            throwPowerBar.gameObject.SetActive(false);
-    }
-
-    private void OnEnable() => EnableAllInputs(true);
-    private void OnDisable() => EnableAllInputs(false);
-
-    private void Update()
-    {
-        float dt = Time.deltaTime;
-
-        UpdateInput(dt);
-        UpdateMovement(dt);
-
-        if (!isTransitioning)
-            UpdateCamera(dt);
-
-        UpdateAnimations(dt);
-        UpdateInteractions(dt);
-        UpdateUI(dt);
-
-        if (directionsNeedUpdate)
-            UpdateCachedDirections();
-    }
-
-    private void OnDestroy()
-    {
-        if (eyeCloseOverlay != null)
-            Destroy(eyeCloseOverlay.transform.parent.gameObject);
-    }
-    #endregion
-
-    #region Initialization
-    private void InitializeComponents()
-    {
-        characterController = GetComponent<CharacterController>();
+        controller = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
+        if (!playerCamera) playerCamera = Camera.main;
+        if (!cameraPivot) cameraPivot = transform;
+        if (!animator) animator = GetComponentInChildren<Animator>();
 
-        if (playerCamera == null)
-            playerCamera = Camera.main;
-
-        cameraTransform = playerCamera.transform;
-
-        if (animator == null)
-            animator = GetComponentInChildren<Animator>();
-
-        cachedMouse = UnityEngine.InputSystem.Mouse.current;
-    }
-
-    private void InitializeState()
-    {
-        originalCameraPosition = cameraHolder.localPosition;
-        originalControllerCenterY = characterController.center.y;
-        targetControllerCenterY = originalControllerCenterY;
-
-        characterController.height = standingHeight;
-        targetHeight = standingHeight;
-
-        horizontalRotation = transform.eulerAngles.y;
-        verticalRotation = 0f;
-        currentCameraDistance = defaultCameraDistance;
-        targetCameraDistance = defaultCameraDistance;
-        thirdPersonDistance = defaultCameraDistance;
-
-        if (useWoWCameraStyle && !isFirstPerson)
-        {
-            freeLookRotation = new Vector2(transform.eulerAngles.y, 0f);
-            SafeSetCursor(CursorLockMode.None, true);
-        }
-        else
-        {
-            SafeSetCursor(CursorLockMode.Locked, false);
-        }
-    }
-
-    private void SetupInputActions()
-    {
         var actions = playerInput.actions;
         moveAction = actions["Move"];
         lookAction = actions["Look"];
         jumpAction = actions["Jump"];
         runAction = actions["Run"];
-        attackAction = actions["Attack"];
-        switchViewAction = actions["SwitchView"];
-        interactAction = actions["Interact"];
-        crouchAction = actions["Crouch"];
-        zoomAction = actions["Zoom"];
-        pickupAction = actions["Pickup"];
-        throwAction = actions["Throw"];
+        if (!string.IsNullOrEmpty(switchViewActionName) && actions.FindAction(switchViewActionName) != null)
+            switchViewAction = actions[switchViewActionName];
+        if (!string.IsNullOrEmpty(pickupActionName) && actions.FindAction(pickupActionName) != null)
+            pickupAction = actions[pickupActionName];
+        if (!string.IsNullOrEmpty(throwActionName) && actions.FindAction(throwActionName) != null)
+            throwAction = actions[throwActionName];
 
-        moveAction.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-        moveAction.canceled += _ => moveInput = Vector2.zero;
+        targetDistance = distance;
+        currentDistance = distance;
 
-        lookAction.performed += ctx => { if (!isTransitioning) lookInput = ctx.ReadValue<Vector2>(); };
-        lookAction.canceled += _ => lookInput = Vector2.zero;
+        Vector3 forwardFlat = Vector3.ProjectOnPlane(playerCamera.transform.forward, Vector3.up).normalized;
+        cameraYaw = (forwardFlat.sqrMagnitude > 0.1f)
+            ? Mathf.Atan2(forwardFlat.x, forwardFlat.z) * Mathf.Rad2Deg
+            : transform.eulerAngles.y;
 
-        runAction.performed += _ => isRunning = true;
-        runAction.canceled += _ => isRunning = false;
+        Vector3 localForward = Quaternion.Euler(0, -cameraYaw, 0) * playerCamera.transform.forward;
+        cameraPitch = Mathf.Asin(localForward.y) * Mathf.Rad2Deg;
+        cameraPitch = Mathf.Clamp(cameraPitch, minPitch, maxPitch);
 
-        zoomAction.performed += ctx => HandleZoom(ctx.ReadValue<float>());
-        jumpAction.performed += _ => TryJump();
-        attackAction.performed += _ => TryAttack();
-        interactAction.performed += _ => TryInteract();
-        pickupAction.performed += _ => TryPickup();
-        switchViewAction.performed += _ => { if (!isTransitioning) ToggleView(); };
+        isFirstPerson = startInFirstPerson;
+        if (isFirstPerson)
+        {
+            cameraPitch = Mathf.Clamp(cameraPitch, fpMinPitch, fpMaxPitch);
+            ApplyCursorStateFP();
+        }
+        else
+        {
+            ApplyCursorStateTP();
+        }
 
-        throwAction.started += _ => { if (isHoldingObject) StartChargingThrow(); };
-        throwAction.canceled += _ => { if (isHoldingObject) ReleaseThrow(); };
+        if (useEyeCloseTransition) CreateEyeCloseOverlay();
+        if (throwPowerBar) throwPowerBar.gameObject.SetActive(false);
     }
 
-    private void EnableAllInputs(bool enable)
+    private void OnEnable()
     {
-        var list = new[] {
-            moveAction, lookAction, jumpAction, runAction, attackAction,
-            switchViewAction, interactAction, crouchAction, zoomAction, pickupAction, throwAction
-        };
+        moveAction?.Enable();
+        lookAction?.Enable();
+        jumpAction?.Enable();
+        runAction?.Enable();
+        switchViewAction?.Enable();
+        pickupAction?.Enable();
+        throwAction?.Enable();
 
-        foreach (var a in list)
+        if (switchViewAction != null) switchViewAction.performed += OnSwitchView;
+        if (pickupAction != null) pickupAction.performed += OnPickupPressed;
+        if (throwAction != null)
         {
-            if (a == null) continue;
-            if (enable) a.Enable(); else a.Disable();
+            throwAction.started += OnThrowStarted;
+            throwAction.canceled += OnThrowCanceled;
         }
+    }
+
+    private void OnDisable()
+    {
+        moveAction?.Disable();
+        lookAction?.Disable();
+        jumpAction?.Disable();
+        runAction?.Disable();
+        switchViewAction?.Disable();
+        pickupAction?.Disable();
+        throwAction?.Disable();
+
+        if (switchViewAction != null) switchViewAction.performed -= OnSwitchView;
+        if (pickupAction != null) pickupAction.performed -= OnPickupPressed;
+        if (throwAction != null)
+        {
+            throwAction.started -= OnThrowStarted;
+            throwAction.canceled -= OnThrowCanceled;
+        }
+    }
+
+    private void Update()
+    {
+        if (isTransitioningView)
+        {
+            ReadMovementInput();
+            UpdateMovement(Time.deltaTime);
+            UpdatePickupThrow(Time.deltaTime);
+            return;
+        }
+
+        ReadInput();
+        HandleJumpQueue();
+        UpdateMovement(Time.deltaTime);
+        UpdateCamera(Time.deltaTime);
+        UpdateAnimation(Time.deltaTime);
+        UpdatePickupThrow(Time.deltaTime);
     }
     #endregion
 
-    #region Update Systems
-    private void UpdateInput(float deltaTime)
+    #region Input
+    private void ReadInput()
     {
-        smoothedLookInput = Vector2.SmoothDamp(
-            smoothedLookInput, lookInput,
-            ref lookInputVelocity, 1f / 15f);
+        ReadMovementInput();
+        ReadMouseButtons();
+        ReadLookInput();
+        ReadRunJump();
+        HandleBothButtonsForward();
     }
 
-    private void UpdateMovement(float deltaTime)
+    private void ReadMovementInput() => moveInput = moveAction.ReadValue<Vector2>();
+
+    private void ReadMouseButtons()
     {
-        bool wasGround = isGrounded;
-        isGrounded = characterController.isGrounded;
-        if (isGrounded && !wasGround) currentVelocity.y = -2f;
+        if (Mouse.current != null)
+        {
+            leftMouseHeld = Mouse.current.leftButton.isPressed;
+            rightMouseHeld = Mouse.current.rightButton.isPressed;
+        }
+    }
 
-        UpdateCrouchState();
-        UpdateCrouchTransition(deltaTime);
-        UpdateJumpState(deltaTime);
+    private void ReadLookInput() => lookDelta = lookAction.ReadValue<Vector2>();
 
-        CalculateMovement(deltaTime);
+    private void ReadRunJump()
+    {
+        isRunning = runAction.ReadValue<float>() > 0.5f;
+        if (jumpAction.triggered && !jumpQueued && isGrounded)
+            jumpQueued = true;
+    }
 
-        characterController.Move(currentVelocity * deltaTime);
+    private void HandleBothButtonsForward()
+    {
+        bothButtonsForward = enableBothButtonsForward && leftMouseHeld && rightMouseHeld && moveInput.y < bothButtonsForwardDeadZone;
+        if (bothButtonsForward) moveInput.y = 1f;
+    }
 
-        isMoving = moveInput.magnitude > idleThreshold;
-        currentMovementSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
+    private void OnSwitchView(InputAction.CallbackContext ctx)
+    {
+        if (!isTransitioningView) ToggleView();
     }
     #endregion
 
     #region Movement
-    private void CalculateMovement(float deltaTime)
+    private void HandleJumpQueue() { }
+
+    private void UpdateMovement(float dt)
     {
-        Vector3 moveDirection = Vector3.zero;
-        float inputMagnitude = moveInput.magnitude;
+        wasGrounded = isGrounded;
+        isGrounded = controller.isGrounded;
+        if (isGrounded && velocity.y < 0f) velocity.y = -2f;
 
-        if (inputMagnitude > pivotThreshold)
+        Vector3 camForward = playerCamera.transform.forward; camForward.y = 0f; camForward.Normalize();
+        Vector3 camRight = playerCamera.transform.right;   camRight.y = 0f; camRight.Normalize();
+
+        Vector3 inputDir = (camForward * moveInput.y + camRight * moveInput.x);
+        if (inputDir.sqrMagnitude > 1f) inputDir.Normalize();
+
+        float targetSpeed = (isRunning ? runSpeed : walkSpeed) * inputDir.magnitude;
+
+        Vector3 horizVel = new Vector3(velocity.x, 0f, velocity.z);
+        float currentSpeed = horizVel.magnitude;
+        float accel = targetSpeed > currentSpeed ? acceleration : deceleration;
+        if (!isGrounded) accel *= airControlPercent;
+
+        Vector3 targetHoriz = inputDir * targetSpeed;
+        horizVel = targetSpeed < EPS
+            ? Vector3.MoveTowards(horizVel, Vector3.zero, accel * dt)
+            : Vector3.MoveTowards(horizVel, targetHoriz, accel * dt);
+
+        velocity.x = horizVel.x;
+        velocity.z = horizVel.z;
+
+        if (jumpQueued)
         {
-            if (isFirstPerson)
-            {
-                moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-            }
-            else if (useWoWCameraStyle)
-            {
-                if (isMouseLookMode)
-                    moveDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
-                else
-                {
-                    moveDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-                    HandleFreeLookRotation(deltaTime);
-                }
-            }
-            else
-            {
-                moveDirection = cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y;
-            }
-
-            moveDirection = Vector3.ClampMagnitude(moveDirection, 1f);
+            velocity.y = jumpForce;
+            jumpQueued = false;
+            animator?.SetTrigger(animParamJump);
         }
 
-        float targetSpeed = CalculateTargetSpeed(moveDirection);
-        targetVelocity = moveDirection * targetSpeed;
+        float g = gravity;
+        if (velocity.y < 0f) g *= extraFallGravityMultiplier;
+        velocity.y += g * dt;
 
-        if (isGrounded)
+        controller.Move(velocity * dt);
+        isGrounded = controller.isGrounded;
+        if (isGrounded && velocity.y < 0f) velocity.y = -2f;
+
+        HandleCharacterRotation(inputDir, dt);
+    }
+
+    // UPDATED turning logic
+    private void HandleCharacterRotation(Vector3 desiredDir, float dt)
+    {
+        // First Person: always follow camera yaw
+        if (isFirstPerson)
         {
-            Vector3 horizVel = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
-            Vector3 targetHorizontal = new Vector3(targetVelocity.x, 0f, targetVelocity.z);
+            transform.rotation = Quaternion.Euler(0f, cameraYaw, 0f);
+            return;
+        }
 
-            float accel = targetHorizontal.magnitude > horizVel.magnitude ? movementAcceleration : movementDeceleration;
-            horizVel = Vector3.Lerp(horizVel, targetHorizontal, accel * deltaTime);
+        // RMB: strong camera-driven turning
+        if (rightMouseHeld)
+        {
+            float newYaw = Mathf.MoveTowardsAngle(
+                transform.eulerAngles.y,
+                cameraYaw,
+                characterMouseLookYawSpeed * dt
+            );
+            transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
+            return;
+        }
 
-            currentVelocity.x = horizVel.x;
-            currentVelocity.z = horizVel.z;
+        if (!allowRotateToMovementWhenNotMouselooking) return;
 
-            if (currentVelocity.y < 0) currentVelocity.y = -2f;
+        float forward = moveInput.y;
+        float strafe = moveInput.x;
+
+        bool hasForward = forward > forwardThreshold;
+        bool hasBackward = forward < -forwardThreshold;
+        bool hasStrafe = Mathf.Abs(strafe) > strafeThreshold;
+
+        // Decide if rotation should occur based on config:
+        bool shouldRotate = true;
+
+        if (rotateOnlyWhenMovingForward)
+        {
+            if (!hasForward)
+            {
+                // If not forward, maybe allow backward?
+                if (hasBackward && allowBackwardTurn) shouldRotate = true;
+                else if (hasStrafe && allowPureStrafeTurn) shouldRotate = true;
+                else shouldRotate = false;
+            }
         }
         else
         {
-            currentVelocity.y += Physics.gravity.y * gravityMultiplier * deltaTime;
-            if (inputMagnitude > 0.1f)
-            {
-                Vector3 airTarget = moveDirection * targetSpeed * airControl;
-                const float airControlStrength = 2f;
-                currentVelocity.x = Mathf.Lerp(currentVelocity.x, airTarget.x, airControlStrength * deltaTime);
-                currentVelocity.z = Mathf.Lerp(currentVelocity.z, airTarget.z, airControlStrength * deltaTime);
-            }
+            // rotateOnlyWhenMovingForward == false
+            if (hasBackward && !allowBackwardTurn) shouldRotate = false;
+            if (hasStrafe && !hasForward && !hasBackward && !allowPureStrafeTurn) shouldRotate = false;
         }
-    }
 
-    private float CalculateTargetSpeed(Vector3 moveDirection)
-    {
-        float baseSpeed = isCrouching ? crouchSpeed : (isRunning ? runSpeed : walkSpeed);
+        if (!shouldRotate || desiredDir.sqrMagnitude < 0.0001f)
+            return;
 
-        if (!isFirstPerson && moveDirection.magnitude > 0.1f)
+        // Determine target direction:
+        // For forward+strafe, we want the diagonal direction (already in desiredDir).
+        Vector3 flat = desiredDir;
+        flat.y = 0f;
+        if (flat.sqrMagnitude < 0.0001f) return;
+        flat.Normalize();
+
+        float targetYaw = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
+        float currentYaw = transform.eulerAngles.y;
+
+        float turningSpeed = rotateToMovementSpeed;
+
+        // Slow down when doing diagonals (forward + strafe)
+        bool diagonal = hasForward && hasStrafe;
+        if (diagonal)
+            turningSpeed *= forwardDiagonalTurnSpeedMultiplier;
+
+        float maxStep = turningSpeed * dt;
+
+        // Optional extra damping for diagonals
+        if (diagonal && diagonalExtraDampDegrees > 0f)
         {
-            Vector3 nd = moveDirection.normalized;
-            float forwardDot = Vector3.Dot(nd, cachedCharacterForward);
-            float rightDot = Vector3.Dot(nd, cachedCharacterRight);
-
-            if (forwardDot < -0.7f && Mathf.Abs(rightDot) < 0.3f)
-                return baseSpeed * backwardSpeedMultiplier;
-            if (Mathf.Abs(rightDot) > 0.7f && Mathf.Abs(forwardDot) < 0.3f)
-                return baseSpeed * strafeSpeedMultiplier;
-            if (forwardDot < -0.3f && Mathf.Abs(rightDot) > 0.3f)
-                return baseSpeed * backwardStrafeSpeedMultiplier;
+            float diff = Mathf.Abs(Mathf.DeltaAngle(currentYaw, targetYaw));
+            float damp = Mathf.Clamp01(diff / diagonalExtraDampDegrees);
+            maxStep *= damp;
         }
-        return baseSpeed;
-    }
 
-    private void HandleFreeLookRotation(float deltaTime)
-    {
-        if (moveInput.magnitude <= 0.1f) return;
-
-        Vector3 inputDirection = cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y;
-        inputDirection.y = 0f;
-        inputDirection = inputDirection.normalized;
-
-        bool isMovingForward  = moveInput.y >  0.1f;
-        bool isMovingBackward = moveInput.y < -0.1f;
-        bool hasSideInput     = Mathf.Abs(moveInput.x) > 0.3f;
-
-        if ((isMovingForward || isMovingBackward) && hasSideInput)
-        {
-            float targetAngle = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg;
-
-            if (isMovingBackward)
-            {
-                targetAngle += 180f;
-                if (targetAngle > 180f) targetAngle -= 360f;
-                if (targetAngle < -180f) targetAngle += 360f;
-            }
-
-            float currentAngle = transform.eulerAngles.y;
-            float angleDifference = Mathf.DeltaAngle(currentAngle, targetAngle);
-
-            if (Mathf.Abs(angleDifference) > rotationAngleThreshold)
-            {
-                bool isForwardDiagonal = isMovingForward && hasSideInput && !isMovingBackward;
-
-                float baseSpeed =
-                    isMovingForward  ? freeLookRotationSpeed :
-                    isMovingBackward ? freeLookRotationSpeed * 0.7f :
-                    freeLookRotationSpeed;
-
-                float rotationSpeed = isForwardDiagonal
-                    ? baseSpeed * diagonalTurnSpeedMultiplier
-                    : baseSpeed;
-
-                float rotationStep = rotationSpeed * deltaTime;
-                float newAngle = Mathf.LerpAngle(currentAngle, targetAngle, rotationStep);
-                transform.rotation = Quaternion.Euler(0, newAngle, 0);
-
-                directionsNeedUpdate = true;
-            }
-        }
+        float newYawSmooth = Mathf.MoveTowardsAngle(currentYaw, targetYaw, maxStep);
+        transform.rotation = Quaternion.Euler(0f, newYawSmooth, 0f);
     }
     #endregion
 
     #region Camera
-    private void UpdateCamera(float deltaTime)
+    private void UpdateCamera(float dt)
     {
-        UpdateMouseState();
-        UpdateCameraMode();
-        UpdateCameraRotation(deltaTime);
-        UpdateCameraPosition(deltaTime);
-        UpdateZoom(deltaTime);
-        if (isFirstPerson) UpdateHeadBob(deltaTime);
+        if (!playerCamera) return;
+
+        if (!isFirstPerson && !isTransitioningView)
+        {
+            float scroll = 0f;
+            if (Mouse.current != null)
+                scroll = Mouse.current.scroll.ReadValue().y / 120f;
+            if (Mathf.Abs(scroll) > 0.01f)
+                targetDistance = Mathf.Clamp(targetDistance - scroll * zoomSensitivity, minDistance, maxDistance);
+            currentDistance = Mathf.MoveTowards(currentDistance, targetDistance, dt * 10f);
+        }
+
+        if (isFirstPerson) UpdateFirstPersonLook(dt);
+        else UpdateThirdPersonLook(dt);
+
+        if (isFirstPerson) PositionFirstPersonCamera(dt);
+        else PositionThirdPersonCamera(dt);
     }
 
-    private void UpdateMouseState()
+    private void UpdateThirdPersonLook(float dt)
     {
-        if (cachedMouse == null) return;
-        rightMousePressed = cachedMouse.rightButton.isPressed;
-        leftMousePressed = cachedMouse.leftButton.isPressed;
+        if ((leftMouseHeld || rightMouseHeld) && !isTransitioningView)
+        {
+            float dx = lookDelta.x;
+            float dy = lookDelta.y;
+            float yawDelta = (dx / Mathf.Max(1, Screen.width)) * orbitSensitivityX;
+            float pitchDelta = (dy / Mathf.Max(1, Screen.height)) * orbitSensitivityY;
+            cameraYaw += yawDelta;
+            cameraPitch = Mathf.Clamp(cameraPitch - pitchDelta, minPitch, maxPitch);
+        }
+        else if (!rightMouseHeld)
+        {
+            float targetYaw = transform.eulerAngles.y;
+            float diff = Mathf.Abs(Mathf.DeltaAngle(cameraYaw, targetYaw));
+            cameraYaw = Mathf.MoveTowardsAngle(cameraYaw, targetYaw, followYawLag * dt * diff);
+        }
     }
 
-    private void UpdateCameraMode()
+    private void UpdateFirstPersonLook(float dt)
     {
-        if (isFirstPerson && forceLockedCursorInFirstPerson)
+        float dx = lookDelta.x;
+        float dy = lookDelta.y;
+        float yawDelta = (dx / Mathf.Max(1, Screen.width)) * fpLookSensitivityX;
+        float pitchDelta = (dy / Mathf.Max(1, Screen.height)) * fpLookSensitivityY;
+        cameraYaw += yawDelta;
+        cameraPitch = Mathf.Clamp(cameraPitch - pitchDelta, fpMinPitch, fpMaxPitch);
+    }
+
+    private void PositionThirdPersonCamera(float dt)
+    {
+        Vector3 pivotPos = transform.position + Vector3.up * cameraHeightOffset;
+        Quaternion camRot = Quaternion.Euler(cameraPitch, cameraYaw, 0f);
+        Vector3 desired = pivotPos - camRot * Vector3.forward * currentDistance;
+
+        if (Physics.SphereCast(pivotPos, cameraCollisionRadius,
+            (desired - pivotPos).normalized,
+            out RaycastHit hit, currentDistance, cameraCollisionMask, QueryTriggerInteraction.Ignore))
         {
-            SafeSetCursor(CursorLockMode.Locked, false);
-            wasLeftMouseCameraActive = false;
-            wasRightMouseLookActive = false;
-            pendingLeftOrbitActivation = false;
-            rightLookPending = false;
-            return;
-        }
-
-        isMouseLookMode = useRightMouseButton && rightMousePressed;
-        leftMouseCameraActive = enableLeftMouseCamera && leftMousePressed &&
-                                (!isHoldingObject || isChargingThrow);
-
-        bool startedLeftOrbit = leftMouseCameraActive && !wasLeftMouseCameraActive;
-        bool endedLeftOrbit   = !leftMouseCameraActive && wasLeftMouseCameraActive;
-
-        bool startedRightLook = isMouseLookMode && !wasRightMouseLookActive;
-        bool endedRightLook   = !isMouseLookMode && wasRightMouseLookActive;
-
-        if (startedLeftOrbit && restoreCursorPositionAfterOrbit && cachedMouse != null)
-            storedCursorPosition = cachedMouse.position.ReadValue();
-        if (startedRightLook && restoreCursorPositionAfterOrbit && cachedMouse != null)
-            storedRightCursorPosition = cachedMouse.position.ReadValue();
-
-        if (startedLeftOrbit)
-        {
-            pendingLeftOrbitActivation = true;
-            StartCoroutine(ActivateLeftOrbitNextFrame());
-        }
-
-        if (startedRightLook)
-        {
-            if (restoreCursorPositionAfterOrbit && cachedMouse != null)
-                storedRightCursorPosition = cachedMouse.position.ReadValue();
-
-            rightLookPending = true;
-            rightLookFramesToSuppress = Mathf.Max(0, suppressRightLookInitialFrames);
-            rightLookEnterFrame = Time.frameCount;
-
-            lookInput = Vector2.zero;
-            smoothedLookInput = Vector2.zero;
-            lookInputVelocity = Vector2.zero;
-
-            if (!isFirstPerson && alignCharacterOnRightMouseDown)
-            {
-                Vector3 camForwardFlat = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized;
-                float camYaw = Mathf.Atan2(camForwardFlat.x, camForwardFlat.z) * Mathf.Rad2Deg;
-                float charYaw = transform.eulerAngles.y;
-                float diff = Mathf.Abs(Mathf.DeltaAngle(charYaw, camYaw));
-
-                if (diff > alignmentThresholdDegrees)
-                {
-                    if (smoothAlignment && alignmentDuration > 0.01f)
-                    {
-                        isAligningOnMouseLook = true;
-                        alignElapsed = 0f;
-                        alignStartYaw = charYaw;
-                        alignTargetYaw = camYaw;
-                    }
-                    else
-                    {
-                        transform.rotation = Quaternion.Euler(0f, camYaw, 0f);
-                        horizontalRotation = camYaw;
-                        freeLookRotation.x = camYaw;
-                        directionsNeedUpdate = true;
-                    }
-                }
-            }
-        }
-
-        if (endedRightLook)
-            rightLookPending = false;
-
-        if (isMouseLookMode)
-        {
-            SafeSetCursor(CursorLockMode.Locked, false);
-            shouldFollowCamera = false;
-            cameraFollowTimer = 0f;
-        }
-        else if (leftMouseCameraActive)
-        {
-            if (!pendingLeftOrbitActivation)
-                SafeSetCursor(CursorLockMode.None, false);
-            shouldFollowCamera = false;
-            cameraFollowTimer = 0f;
+            float hitDist = hit.distance - 0.1f;
+            float safeDist = Mathf.Clamp(hitDist, minDistance * 0.35f, currentDistance);
+            Vector3 collidedPos = pivotPos - camRot * Vector3.forward * safeDist;
+            playerCamera.transform.position = Vector3.Lerp(playerCamera.transform.position, collidedPos, dt * cameraCollisionRecoverSpeed);
         }
         else
         {
-            if (endedLeftOrbit && restoreCursorPositionAfterOrbit && cachedMouse != null)
-            {
-#if UNITY_EDITOR || UNITY_STANDALONE
-                UnityEngine.InputSystem.Mouse.current.WarpCursorPosition(storedCursorPosition);
-#endif
-            }
-            if (endedRightLook && restoreCursorPositionAfterOrbit && cachedMouse != null)
-            {
-#if UNITY_EDITOR || UNITY_STANDALONE
-                UnityEngine.InputSystem.Mouse.current.WarpCursorPosition(storedRightCursorPosition);
-#endif
-            }
-
-            if (useWoWCameraStyle && !isFirstPerson)
-                SafeSetCursor(CursorLockMode.None, true);
-            else
-                SafeSetCursor(CursorLockMode.None, true);
+            playerCamera.transform.position = desired;
         }
 
-        wasLeftMouseCameraActive = leftMouseCameraActive;
-        wasRightMouseLookActive  = isMouseLookMode;
+        playerCamera.transform.rotation = camRot;
     }
 
-    private void UpdateCameraRotation(float deltaTime)
+    private void PositionFirstPersonCamera(float dt)
+    {
+        Vector3 basePos = firstPersonAnchor ? firstPersonAnchor.position : transform.position + Vector3.up * cameraHeightOffset;
+        Vector3 bobbed = basePos + (enableHeadBob ? ComputeHeadBob(dt) : Vector3.zero);
+        playerCamera.transform.position = Vector3.Lerp(playerCamera.transform.position, bobbed, dt * 20f);
+        playerCamera.transform.rotation = Quaternion.Euler(cameraPitch, cameraYaw, 0f);
+    }
+    #endregion
+
+    #region Head Bob
+    private Vector3 ComputeHeadBob(float dt)
+    {
+        Vector2 planar = new Vector2(velocity.x, velocity.z);
+        float speed = planar.magnitude;
+        if (!isGrounded || speed < 0.1f)
+        {
+            bobTimer = Mathf.MoveTowards(bobTimer, 0f, dt * bobReturnSpeed);
+            bobOffset = Vector3.Lerp(bobOffset, Vector3.zero, dt * bobReturnSpeed);
+            return bobOffset;
+        }
+
+        float norm = Mathf.Clamp01(speed / runSpeed);
+        float freq = Mathf.Lerp(bobFreqWalk, bobFreqRun, norm);
+        bobTimer += dt * freq;
+        float horiz = Mathf.Cos(bobTimer) * bobAmpHorizontal;
+        float vert = Mathf.Sin(bobTimer * 2f) * bobAmpVertical;
+        bobOffset = new Vector3(horiz, vert, 0f);
+        return bobOffset;
+    }
+    #endregion
+
+    #region View Toggle / Transitions
+    private void ToggleView()
     {
         if (isFirstPerson)
         {
-            // Mouse X rotates character yaw
-            transform.Rotate(Vector3.up * smoothedLookInput.x * mouseLookSensitivity);
-            // Mouse Y: move mouse up => look up (negative pitch)
-            verticalRotation = ClampVertical(verticalRotation - smoothedLookInput.y * mouseLookSensitivity);
-            cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
-            directionsNeedUpdate = true;
+            if (useEyeCloseTransition) StartCoroutine(EyeCloseToThirdPerson());
+            else SetThirdPersonInstant();
         }
-        else if (useWoWCameraStyle)
-        {
-            UpdateWoWCameraRotation(deltaTime);
-        }
-        else
-        {
-            horizontalRotation += smoothedLookInput.x * mouseLookSensitivity;
-            verticalRotation -= smoothedLookInput.y * mouseLookSensitivity;
-            verticalRotation = Mathf.Clamp(verticalRotation, minVerticalAngle, maxVerticalAngle);
-        }
+        else StartCoroutine(ThirdPersonToFirstPerson());
     }
 
-    private void UpdateWoWCameraRotation(float deltaTime)
+    private void SetThirdPersonInstant()
     {
-        if (isMouseLookMode)
-        {
-            if (isAligningOnMouseLook)
-            {
-                alignElapsed += deltaTime;
-                float t = Mathf.Clamp01(alignElapsed / Mathf.Max(0.0001f, alignmentDuration));
-                float newYaw = Mathf.LerpAngle(alignStartYaw, alignTargetYaw, Mathf.SmoothStep(0f, 1f, t));
-                transform.rotation = Quaternion.Euler(0f, newYaw, 0f);
-
-                horizontalRotation = transform.eulerAngles.y;
-                freeLookRotation.x = horizontalRotation;
-                directionsNeedUpdate = true;
-
-                if (t >= 1f)
-                    isAligningOnMouseLook = false;
-
-                freeLookRotation.y = verticalRotation;
-                return;
-            }
-
-            if (rightLookPending)
-            {
-                if (rightLookFramesToSuppress > 0)
-                {
-                    rightLookFramesToSuppress--;
-                }
-                else
-                {
-                    float rawMag = lookInput.magnitude;
-                    if (rawMag >= rightLookActivationDeltaThreshold)
-                        rightLookPending = false;
-                }
-            }
-
-            if (!rightLookPending)
-            {
-                float sens = mouseLookSensitivity;
-                transform.Rotate(Vector3.up * smoothedLookInput.x * sens);
-                verticalRotation = Mathf.Clamp(verticalRotation - smoothedLookInput.y * sens, minVerticalAngle, maxVerticalAngle);
-                directionsNeedUpdate = true;
-            }
-
-            horizontalRotation = transform.eulerAngles.y;
-            freeLookRotation = new Vector2(horizontalRotation, verticalRotation);
-        }
-        else if (leftMouseCameraActive)
-        {
-            bool suppressThisFrame = dampFirstOrbitDeltaFrame && Time.frameCount == leftOrbitEnterFrame;
-            float sens = leftMouseCameraSensitivity;
-
-            if (!suppressThisFrame)
-            {
-                freeLookRotation.x += smoothedLookInput.x * sens;
-                freeLookRotation.y = Mathf.Clamp(freeLookRotation.y - smoothedLookInput.y * sens, minVerticalAngle, maxVerticalAngle);
-            }
-
-            horizontalRotation = freeLookRotation.x;
-            verticalRotation = freeLookRotation.y;
-        }
-        else
-        {
-            UpdateCameraFollowing(deltaTime);
-        }
-
-        if (isHoldingObject && !isChargingThrow)
-        {
-            float targetHor = transform.eulerAngles.y;
-            horizontalRotation = Mathf.LerpAngle(horizontalRotation, targetHor, deltaTime * cameraFollowSpeed * 2f);
-            freeLookRotation.x = horizontalRotation;
-
-            verticalRotation = Mathf.Lerp(verticalRotation, 5f, deltaTime * 2f);
-            freeLookRotation.y = verticalRotation;
-        }
+        isFirstPerson = false;
+        isTransitioningView = false;
+        ApplyCursorStateTP();
+        cameraPitch = Mathf.Clamp(cameraPitch, minPitch, maxPitch);
     }
 
-    private void UpdateCameraFollowing(float deltaTime)
+    private IEnumerator ThirdPersonToFirstPerson()
     {
-        bool currentlyMoving = moveInput.magnitude > minMovementForFollow;
-        float currentAngle = transform.eulerAngles.y;
-
-        if (currentlyMoving && !wasMovingLastFrame)
+        if (!firstPersonAnchor)
         {
-            movementTimer = 0f;
+            isFirstPerson = true;
+            ApplyCursorStateFP();
+            yield break;
         }
-        else if (currentlyMoving)
-        {
-            movementTimer += deltaTime;
-        }
-        else if (!currentlyMoving && wasMovingLastFrame)
-        {
-            cameraFollowTimer = 0f;
-            shouldFollowCamera = false;
-        }
+        isTransitioningView = true;
+        ApplyCursorStateFP();
 
-        if (alwaysFollowBehindPlayer &&
-            enableCameraFollow &&
-            !isMouseLookMode &&
-            !leftMouseCameraActive &&
-            !isHoldingObject)
+        Vector3 startPos = playerCamera.transform.position;
+        Quaternion startRot = playerCamera.transform.rotation;
+        Quaternion targetRot = Quaternion.Euler(cameraPitch, cameraYaw, 0f);
+        Vector3 targetPos = firstPersonAnchor.position;
+
+        float elapsed = 0f;
+        while (elapsed < tpToFpTransitionDuration)
         {
-            if (currentlyMoving && movementTimer > movementFollowDelay)
-            {
-                shouldFollowCamera = true;
-                currentFollowSpeed = behindPlayerFollowSpeed;
-            }
-            else if (!currentlyMoving)
-            {
-                shouldFollowCamera = false;
-            }
-        }
-        else
-        {
-            float angleDiff = Mathf.Abs(Mathf.DeltaAngle(lastCharacterAngle, currentAngle));
-
-            if (enableCameraFollow && !isMouseLookMode && !leftMouseCameraActive)
-            {
-                bool trigger = false;
-                float followDelay = cameraFollowDelay;
-
-                if (onlyFollowWhenMoving)
-                {
-                    if (currentlyMoving && movementTimer > followDelay)
-                    {
-                        float cameraCharacterDiff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, currentAngle));
-                        if (cameraCharacterDiff > cameraFollowThreshold)
-                        {
-                            cameraFollowTimer += deltaTime;
-                            if (cameraFollowTimer > followDelay) trigger = true;
-                        }
-                        else
-                        {
-                            cameraFollowTimer = 0f;
-                            shouldFollowCamera = false;
-                        }
-                    }
-                }
-                else
-                {
-                    if (angleDiff > cameraFollowThreshold)
-                    {
-                        cameraFollowTimer += deltaTime;
-                        if (cameraFollowTimer > followDelay) trigger = true;
-                    }
-                    else
-                    {
-                        cameraFollowTimer = 0f;
-                        shouldFollowCamera = false;
-                    }
-                }
-
-                if (trigger)
-                {
-                    shouldFollowCamera = true;
-                    currentFollowSpeed = cameraFollowSpeed;
-                }
-            }
-            else
-            {
-                shouldFollowCamera = false;
-                cameraFollowTimer = 0f;
-            }
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / tpToFpTransitionDuration);
+            float s = Mathf.SmoothStep(0f, 1f, t);
+            float arc = Mathf.Sin(s * Mathf.PI) * tpToFpVerticalArc;
+            Vector3 pos = Vector3.Lerp(startPos, targetPos, s) + Vector3.up * arc;
+            playerCamera.transform.position = pos;
+            playerCamera.transform.rotation = Quaternion.Slerp(startRot, targetRot, s);
+            yield return null;
         }
 
-        if (shouldFollowCamera)
-            UpdateAutomaticCameraFollow();
-
-        wasMovingLastFrame = currentlyMoving;
-        lastCharacterAngle = currentAngle;
+        isFirstPerson = true;
+        isTransitioningView = false;
+        cameraPitch = Mathf.Clamp(cameraPitch, fpMinPitch, fpMaxPitch);
     }
 
-    private void UpdateAutomaticCameraFollow()
+    private IEnumerator EyeCloseToThirdPerson()
     {
-        float targetHorizontalRotation = transform.eulerAngles.y;
-        float followSpeed = currentFollowSpeed;
-
-        horizontalRotation = Mathf.LerpAngle(horizontalRotation, targetHorizontalRotation, Time.deltaTime * followSpeed);
-        freeLookRotation.x = horizontalRotation;
-
-        float diff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, targetHorizontalRotation));
-        if (diff < 2f)
+        isTransitioningView = true;
+        if (!eyeImage)
         {
-            shouldFollowCamera = false;
-            cameraFollowTimer = 0f;
+            SetThirdPersonInstant();
+            yield break;
         }
-    }
 
-    private void UpdateCameraPosition(float deltaTime)
-    {
-        if (isFirstPerson)
+        float total = Mathf.Max(0.05f, eyeCloseTotalDuration);
+        float fadeInDur = total * eyeCloseFadeInPortion;
+        float fadeOutDur = total - fadeInDur;
+
+        float t = 0f;
+        while (t < fadeInDur)
         {
-            Vector3 targetPos = firstPersonPosition.position;
-            targetPos.y += currentCameraYOffset;
-            cameraTransform.position = Vector3.Lerp(cameraTransform.position, targetPos, deltaTime * cameraTransitionSpeed);
+            t += Time.deltaTime;
+            float a = Mathf.Clamp01(t / fadeInDur);
+            eyeImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, a);
+            yield return null;
         }
-        else
+
+        isFirstPerson = false;
+        ApplyCursorStateTP();
+        cameraYaw = transform.eulerAngles.y;
+        cameraPitch = Mathf.Clamp(cameraPitch, minPitch, maxPitch);
+
+        t = 0f;
+        while (t < fadeOutDur)
         {
-            Vector3 playerTarget = transform.position + thirdPersonOffset;
-            Vector3 dir = Quaternion.Euler(verticalRotation, horizontalRotation, 0f) * -Vector3.forward;
-            Vector3 desired = playerTarget + dir * currentCameraDistance;
-
-            if (Physics.Raycast(playerTarget, dir, out RaycastHit hit, currentCameraDistance))
-                desired = hit.point + dir * cameraCollisionOffset;
-
-            cameraTransform.position = desired;
-            cameraTransform.LookAt(playerTarget);
+            t += Time.deltaTime;
+            float a = 1f - Mathf.Clamp01(t / fadeOutDur);
+            eyeImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, a);
+            yield return null;
         }
-    }
-
-    private void UpdateZoom(float deltaTime)
-    {
-        if (isFirstPerson || isTransitioning) return;
-        currentCameraDistance = Mathf.Lerp(currentCameraDistance, targetCameraDistance, deltaTime * zoomSpeed);
-    }
-
-    private void UpdateHeadBob(float deltaTime)
-    {
-        Vector3 basePos = originalCameraPosition;
-        basePos.y += currentCameraYOffset;
-
-        if (isGrounded && isMoving)
-        {
-            float freq = isCrouching ? crouchBobFrequency : bobFrequency;
-            float amt = isCrouching ? crouchBobAmount : bobAmount;
-            float speedMul = currentMovementSpeed / walkSpeed;
-
-            bobTimer += deltaTime * freq * speedMul;
-            Vector3 bobOffset = new Vector3(
-                Mathf.Cos(bobTimer) * amt,
-                Mathf.Sin(bobTimer * 2) * amt,
-                0);
-
-            cameraHolder.localPosition = basePos + bobOffset;
-        }
-        else
-        {
-            bobTimer = 0;
-            cameraHolder.localPosition = Vector3.Lerp(cameraHolder.localPosition, basePos, deltaTime * 5f);
-        }
+        eyeImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
+        isTransitioningView = false;
     }
     #endregion
 
     #region Animation
-    private void UpdateAnimations(float deltaTime)
+    private void UpdateAnimation(float dt)
     {
-        if (animator == null) return;
-
-        float inputMag = moveInput.magnitude;
-        bool movingForAnim = inputMag > idleThreshold;
-
-        float animH = 0f;
-        float animV = 0f;
-        float animSpeed = 0f;
-
-        if (movingForAnim)
-        {
-            if (isFirstPerson)
-            {
-                animH = moveInput.x;
-                animV = moveInput.y;
-            }
-            else
-            {
-                if (useWoWCameraStyle && !isMouseLookMode)
-                {
-                    animH = moveInput.x;
-                    animV = moveInput.y;
-                }
-                else
-                {
-                    Vector3 inputDir = (cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y).normalized;
-                    animV = Vector3.Dot(inputDir, cachedCharacterForward);
-                    animH = Vector3.Dot(inputDir, cachedCharacterRight);
-                }
-            }
-
-            float baseSpeedMultiplier = isCrouching ? crouchSpeedThreshold :
-                (isRunning ? runSpeedThreshold : walkSpeedThreshold);
-
-            bool pureStrafe = Mathf.Abs(animV) < 0.1f && Mathf.Abs(animH) > 0.7f;
-            bool pureBackward = animV < -0.7f && Mathf.Abs(animH) < 0.1f;
-            bool backwardStrafe = animV < -0.3f && Mathf.Abs(animH) > 0.3f;
-
-            isStrafing = pureStrafe;
-            isBackwardStrafing = pureBackward;
-
-            if (pureStrafe)
-                animSpeed = baseSpeedMultiplier * strafeSpeedMultiplier;
-            else if (pureBackward)
-                animSpeed = baseSpeedMultiplier * backwardSpeedMultiplier;
-            else if (backwardStrafe)
-                animSpeed = baseSpeedMultiplier * backwardStrafeSpeedMultiplier;
-            else
-                animSpeed = baseSpeedMultiplier * inputMag;
-        }
-        else
-        {
-            isStrafing = false;
-            isBackwardStrafing = false;
-        }
-
-        smoothedHorizontal = Mathf.SmoothDamp(smoothedHorizontal, animH, ref horizontalVelocity, animationSmoothTime);
-        smoothedVertical = Mathf.SmoothDamp(smoothedVertical, animV, ref verticalVelocityAnim, animationSmoothTime);
-        smoothedSpeed = Mathf.SmoothDamp(smoothedSpeed, animSpeed, ref speedVelocity, animationSmoothTime);
-
-        smoothedHorizontal = Mathf.Clamp(smoothedHorizontal, -1f, 1f);
-        smoothedVertical = Mathf.Clamp(smoothedVertical, -1f, 1f);
-        smoothedSpeed = Mathf.Clamp(smoothedSpeed, 0f, 1f);
-
-        animator.SetFloat(AnimParamSpeed, smoothedSpeed);
-        animator.SetFloat(AnimParamHorizontal, smoothedHorizontal);
-        animator.SetFloat(AnimParamVertical, smoothedVertical);
-        animator.SetBool(AnimParamIsGrounded, isGrounded);
-        animator.SetBool(AnimParamIsRunning, isRunning && movingForAnim && !isCrouching);
-        animator.SetBool(AnimParamIsCrouching, isCrouching);
-        animator.SetBool(AnimParamIsStrafing, isStrafing);
-        animator.SetBool(AnimParamIsBackwardStrafing, isBackwardStrafing);
+        if (!animator) return;
+        Vector3 horiz = new Vector3(velocity.x, 0f, velocity.z);
+        float target = Mathf.Clamp01(horiz.magnitude / runSpeed);
+        animSpeedValue = Mathf.MoveTowards(animSpeedValue, target, speedBlendAcceleration * dt);
+        animator.SetFloat(animParamSpeed, animSpeedValue);
+        animator.SetBool(animParamIsGrounded, isGrounded);
+        animator.SetBool(animParamIsRunning, isRunning && animSpeedValue > 0.01f);
     }
     #endregion
 
-    #region Crouch
-    private void UpdateCrouchState()
+    #region Pickup / Throw
+    private void OnPickupPressed(InputAction.CallbackContext ctx)
     {
-        bool crouchInputValue = crouchAction.ReadValue<float>() > 0.5f;
-        if (crouchInputValue && !isCrouching)
-            StartCrouch();
-        else if (!crouchInputValue && isCrouching)
-        {
-            if (CanStandUp()) StopCrouch();
-        }
+        if (isHoldingObject) DropHeld();
+        else TryPickup();
     }
 
-    private void UpdateCrouchTransition(float deltaTime)
-    {
-        characterController.height = Mathf.Lerp(characterController.height, targetHeight, deltaTime * crouchTransitionSpeed);
-
-        Vector3 center = characterController.center;
-        center.y = Mathf.Lerp(center.y, targetControllerCenterY, deltaTime * crouchTransitionSpeed);
-        characterController.center = center;
-
-        if (isFirstPerson)
-        {
-            currentCameraYOffset = Mathf.Lerp(currentCameraYOffset, targetCameraYOffset, deltaTime * crouchTransitionSpeed);
-        }
-    }
-
-    private void StartCrouch()
-    {
-        isCrouching = true;
-        targetHeight = crouchHeight;
-        targetControllerCenterY = originalControllerCenterY - ((standingHeight - crouchHeight) * 0.5f);
-        if (isFirstPerson)
-            targetCameraYOffset = -(standingHeight - crouchHeight) * 0.5f;
-    }
-
-    private void StopCrouch()
-    {
-        isCrouching = false;
-        targetHeight = standingHeight;
-        targetControllerCenterY = originalControllerCenterY;
-        if (isFirstPerson)
-            targetCameraYOffset = 0f;
-    }
-
-    private bool CanStandUp()
-    {
-        if (!isCrouching) return true;
-        Vector3 bottom = transform.position + characterController.center - Vector3.up * (characterController.height * 0.5f);
-        Vector3 top = bottom + Vector3.up * standingHeight;
-        float radius = characterController.radius * 0.8f;
-        return !Physics.CheckCapsule(bottom + Vector3.up * radius, top - Vector3.up * radius, radius);
-    }
-    #endregion
-
-    #region Jump
-    private void UpdateJumpState(float deltaTime)
-    {
-        if (!isJumpQueued) return;
-
-        jumpTimer += deltaTime;
-        if (jumpTimer >= jumpAnimationDelay)
-        {
-            currentVelocity.y = jumpForce;
-
-            if (maintainJumpMomentum && jumpMomentumDirection.magnitude > 0.1f)
-            {
-                float finalSpeed = jumpMomentumSpeed * jumpMomentumMultiplier;
-                Vector3 horizMomentum = jumpMomentumDirection * finalSpeed;
-                currentVelocity.x = horizMomentum.x;
-                currentVelocity.z = horizMomentum.z;
-            }
-
-            isJumpQueued = false;
-            jumpTimer = 0f;
-            jumpMomentumDirection = Vector3.zero;
-            jumpMomentumSpeed = 0f;
-        }
-    }
-
-    private void TryJump()
-    {
-        if (isCrouching)
-        {
-            if (CanStandUp()) StopCrouch();
-            return;
-        }
-
-        if (!(isGrounded && !isJumpQueued)) return;
-
-        if (maintainJumpMomentum && moveInput.magnitude > 0.1f)
-        {
-            if (isFirstPerson)
-                jumpMomentumDirection = (cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y);
-            else if (useWoWCameraStyle)
-                jumpMomentumDirection = isMouseLookMode
-                    ? (cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y)
-                    : (cachedCharacterRight * moveInput.x + cachedCharacterForward * moveInput.y);
-            else
-                jumpMomentumDirection = (cachedCameraRight * moveInput.x + cachedCameraForward * moveInput.y);
-
-            jumpMomentumDirection.y = 0f;
-            jumpMomentumDirection = jumpMomentumDirection.normalized;
-
-            jumpMomentumSpeed = new Vector3(currentVelocity.x, 0, currentVelocity.z).magnitude;
-            if (jumpMomentumSpeed < jumpForwardForce) jumpMomentumSpeed = jumpForwardForce;
-        }
-        else
-        {
-            jumpMomentumDirection = Vector3.zero;
-            jumpMomentumSpeed = 0f;
-        }
-
-        isJumpQueued = true;
-        jumpTimer = 0f;
-
-        if (animator != null)
-            animator.SetTrigger(AnimParamJump);
-    }
-    #endregion
-
-    #region Interaction / Combat / Pickup
-    private void UpdateInteractions(float deltaTime)
-    {
-        if (currentAttackCooldown > 0) currentAttackCooldown -= deltaTime;
-        UpdateHeldObject();
-        if (isChargingThrow) throwChargeTimer += deltaTime;
-    }
-
-    private void TryAttack()
-    {
-        if (currentAttackCooldown > 0) return;
-
-        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, attackRange))
-        {
-            if (hit.collider.TryGetComponent(out IDamageable dmg))
-                dmg.TakeDamage(attackDamage);
-        }
-
-        if (animator != null)
-            animator.SetTrigger(UnityEngine.Random.value > 0.5f ? AnimParamPunch : AnimParamKick);
-
-        currentAttackCooldown = attackCooldown;
-    }
-
-    private void TryInteract()
-    {
-        if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, interactionRange, interactionMask))
-        {
-            if (hit.collider.TryGetComponent(out IInteractable interactable))
-                interactable.Interact();
-        }
-
-        if (animator != null)
-            animator.SetTrigger(AnimParamInteract);
-    }
-
-    private void TryPickup()
-    {
-        if (isHoldingObject)
-        {
-            DropObject();
-            return;
-        }
-
-        GameObject target = FindPickupTarget();
-        if (target != null)
-            PickupObject(target);
-    }
-
-    private GameObject FindPickupTarget()
-    {
-        if (isFirstPerson)
-        {
-            if (Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit, pickupRange, pickupMask))
-            {
-                if (hit.collider.TryGetComponent(out SimplePickup pickup) && pickup.CanBePickedUp())
-                    return pickup.gameObject;
-            }
-        }
-        else
-        {
-            Vector3 center = transform.position + Vector3.up * 1.0f;
-            Collider[] hits = Physics.OverlapSphere(center, pickupRange, pickupMask);
-
-            float closest = float.MaxValue;
-            GameObject selected = null;
-            foreach (var c in hits)
-            {
-                if (c.TryGetComponent(out SimplePickup pickup) && pickup.CanBePickedUp())
-                {
-                    float dist = Vector3.Distance(center, c.transform.position);
-                    if (dist < closest)
-                    {
-                        closest = dist;
-                        selected = pickup.gameObject;
-                    }
-                }
-            }
-            return selected;
-        }
-        return null;
-    }
-
-    private void PickupObject(GameObject obj)
-    {
-        heldObject = obj;
-        heldObjectRb = obj.GetComponent<Rigidbody>();
-        isHoldingObject = true;
-
-        if (heldObjectRb != null)
-        {
-            heldObjectRb.useGravity = false;
-            heldObjectRb.linearVelocity = Vector3.zero;
-            heldObjectRb.angularVelocity = Vector3.zero;
-            heldObjectRb.isKinematic = false;
-        }
-
-        if (animator != null)
-            animator.SetTrigger(AnimParamPickup);
-    }
-
-    private void DropObject()
-    {
-        if (heldObject == null) return;
-
-        heldObject.transform.SetParent(null);
-        if (heldObjectRb != null)
-        {
-            heldObjectRb.useGravity = true;
-            Vector3 dir = cameraTransform.forward + Vector3.up * 0.2f;
-            heldObjectRb.linearVelocity = dir * 2f;
-        }
-
-        heldObject = null;
-        heldObjectRb = null;
-        isHoldingObject = false;
-
-        if (animator != null)
-            animator.SetTrigger(AnimParamDrop);
-    }
-
-    private void UpdateHeldObject()
-    {
-        if (!isHoldingObject || heldObject == null) return;
-
-        Vector3 targetPos;
-        Quaternion targetRot;
-
-        if (isFirstPerson)
-        {
-            targetPos = cameraTransform.position + cameraTransform.forward * holdDistance;
-            targetRot = cameraTransform.rotation;
-        }
-        else
-        {
-            targetPos = transform.position + Vector3.up * 1.5f + cameraTransform.forward * holdDistance;
-            targetRot = cameraTransform.rotation;
-        }
-
-        heldObject.transform.position = Vector3.Lerp(heldObject.transform.position, targetPos, Time.deltaTime * holdPositionSpeed);
-        heldObject.transform.rotation = Quaternion.Lerp(heldObject.transform.rotation, targetRot, Time.deltaTime * holdPositionSpeed);
-
-        if (heldObjectRb != null)
-        {
-            heldObjectRb.linearVelocity = Vector3.zero;
-            heldObjectRb.angularVelocity = Vector3.zero;
-        }
-    }
-
-    private void StartChargingThrow()
+    private void OnThrowStarted(InputAction.CallbackContext ctx)
     {
         if (!isHoldingObject || isChargingThrow) return;
         isChargingThrow = true;
         throwChargeTimer = 0f;
+        if (throwPowerBar && showThrowBarWhileCharging)
+        {
+            throwPowerBar.fillAmount = 0f;
+            throwPowerBar.gameObject.SetActive(true);
+        }
+    }
+
+    private void OnThrowCanceled(InputAction.CallbackContext ctx)
+    {
+        if (!isChargingThrow || !isHoldingObject) return;
+        ReleaseThrow();
+    }
+
+    private void UpdatePickupThrow(float dt)
+    {
+        if (isChargingThrow)
+        {
+            throwChargeTimer += dt;
+            float pct = Mathf.Clamp01(throwChargeTimer / Mathf.Max(0.01f, throwChargeTime));
+            float curved = throwChargeCurve != null ? throwChargeCurve.Evaluate(pct) : pct;
+            if (throwPowerBar && showThrowBarWhileCharging) throwPowerBar.fillAmount = curved;
+        }
+        if (isHoldingObject) UpdateHeldObject(dt);
+    }
+
+    private void TryPickup()
+    {
+        GameObject target = FindPickupCandidate();
+        if (!target) return;
+        heldObject = target;
+        heldRb = heldObject.GetComponent<Rigidbody>();
+        if (heldRb)
+        {
+            heldRb.useGravity = false;
+            heldRb.isKinematic = false;
+            heldRb.linearVelocity = Vector3.zero;
+            heldRb.angularVelocity = Vector3.zero;
+        }
+        isHoldingObject = true;
+    }
+
+    private GameObject FindPickupCandidate()
+    {
+        if (isFirstPerson)
+        {
+            Vector3 origin = playerCamera.transform.position;
+            Vector3 dir = playerCamera.transform.forward;
+            if (Physics.Raycast(origin, dir, out RaycastHit hit, pickupRange, pickupMask, QueryTriggerInteraction.Collide))
+            {
+                if (IsPickupValid(hit.collider.gameObject)) return hit.collider.gameObject;
+            }
+        }
+        else
+        {
+            Vector3 center = transform.position + Vector3.up * 1.1f;
+            Collider[] hits = Physics.OverlapSphere(center, pickupRange, pickupMask, QueryTriggerInteraction.Collide);
+            float closest = float.MaxValue;
+            GameObject best = null;
+            foreach (var c in hits)
+            {
+                if (!IsPickupValid(c.gameObject)) continue;
+                float d = Vector3.Distance(center, c.transform.position);
+                if (d < closest) { closest = d; best = c.gameObject; }
+            }
+            return best;
+        }
+        return null;
+    }
+
+    private bool IsPickupValid(GameObject obj)
+    {
+        if (!obj) return false;
+        if (obj.TryGetComponent(out SimplePickup sp))
+            if (!sp.CanBePickedUp()) return false;
+        return obj.GetComponent<Rigidbody>() != null;
+    }
+
+    private void UpdateHeldObject(float dt)
+    {
+        if (!heldObject) { ClearHeld(); return; }
+        Vector3 basePos;
+        Quaternion baseRot;
+        if (isFirstPerson)
+        {
+            basePos = playerCamera.transform.position + playerCamera.transform.forward * holdDistance + playerCamera.transform.up * holdHeightOffset;
+            baseRot = playerCamera.transform.rotation;
+        }
+        else
+        {
+            Vector3 refPos = transform.position + Vector3.up * (cameraHeightOffset * 0.7f);
+            basePos = refPos + playerCamera.transform.forward * holdDistance + playerCamera.transform.up * holdHeightOffset;
+            baseRot = playerCamera.transform.rotation;
+        }
+
+        heldObject.transform.position = Vector3.Lerp(heldObject.transform.position, basePos, dt * holdLerpSpeed);
+        if (rotateHeldObjectToCamera)
+            heldObject.transform.rotation = Quaternion.Slerp(heldObject.transform.rotation, baseRot, dt * holdLerpSpeed);
+
+        if (heldRb)
+        {
+#if UNITY_600_OR_NEWER
+            heldRb.linearVelocity = Vector3.zero;
+            heldRb.angularVelocity = Vector3.zero;
+#else
+            heldRb.linearVelocity = Vector3.zero;
+            heldRb.angularVelocity = Vector3.zero;
+#endif
+        }
     }
 
     private void ReleaseThrow()
     {
-        if (!isChargingThrow || !isHoldingObject) return;
-
-        float percent = Mathf.Clamp01(throwChargeTimer / maxHoldTime);
-        float force = Mathf.Lerp(minThrowForce, maxThrowForce, percent);
-        ThrowObject(force);
-
+        float pct = Mathf.Clamp01(throwChargeTimer / Mathf.Max(0.01f, throwChargeTime));
+        float curved = throwChargeCurve != null ? throwChargeCurve.Evaluate(pct) : pct;
+        float force = Mathf.Lerp(throwMinForce, throwMaxForce, curved);
+        PerformThrow(force);
         isChargingThrow = false;
         throwChargeTimer = 0f;
+        if (throwPowerBar) throwPowerBar.gameObject.SetActive(false);
     }
 
-    private void ThrowObject(float force)
+    private void PerformThrow(float force)
     {
-        if (heldObject == null) return;
-
-        heldObject.transform.SetParent(null);
-        if (heldObjectRb != null)
+        if (!isHoldingObject || !heldObject) { ClearHeld(); return; }
+        if (heldRb)
         {
-            heldObjectRb.useGravity = true;
-            heldObjectRb.isKinematic = false;
-            Vector3 dir = cameraTransform.forward;
-            heldObjectRb.AddForce(dir * force);
-            heldObjectRb.AddForce(Vector3.up * 0.2f * force);
+            heldRb.useGravity = true;
+            heldRb.isKinematic = false;
+            Vector3 dir = playerCamera.transform.forward;
+            Vector3 finalVel = dir * (force / Mathf.Max(1f, heldRb.mass))
+                               + Vector3.up * (force / Mathf.Max(1f, heldRb.mass) * forwardThrowUpwardFactor);
+            heldRb.AddForce(finalVel, ForceMode.VelocityChange);
         }
+        ClearHeld();
+    }
 
+    private void DropHeld()
+    {
+        if (!isHoldingObject) return;
+        if (heldRb)
+        {
+            heldRb.useGravity = true;
+            heldRb.isKinematic = false;
+        }
+        ClearHeld();
+    }
+
+    private void ClearHeld()
+    {
         heldObject = null;
-        heldObjectRb = null;
+        heldRb = null;
         isHoldingObject = false;
-
-        if (animator != null)
-            animator.SetTrigger(AnimParamThrow);
+        isChargingThrow = false;
+        if (throwPowerBar) throwPowerBar.gameObject.SetActive(false);
     }
     #endregion
 
-    #region UI
-    private void UpdateUI(float deltaTime)
-    {
-        if (throwPowerBar == null) return;
-
-        if (isChargingThrow)
-        {
-            float percent = Mathf.Clamp01(throwChargeTimer / maxHoldTime);
-            throwPowerBar.fillAmount = percent;
-            if (!throwPowerBar.gameObject.activeInHierarchy)
-                throwPowerBar.gameObject.SetActive(true);
-        }
-        else if (throwPowerBar.gameObject.activeInHierarchy)
-        {
-            throwPowerBar.gameObject.SetActive(false);
-        }
-    }
-    #endregion
-
-    #region Direction Cache
-    private void UpdateCachedDirections()
-    {
-        cachedCharacterForward = transform.forward;
-        cachedCharacterRight = transform.right;
-        cachedCameraForward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized;
-        cachedCameraRight = Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized;
-        directionsNeedUpdate = false;
-    }
-    #endregion
-
-    #region Zoom / View / Transitions
-    private void HandleZoom(float scrollValue)
-    {
-        if (isFirstPerson || isTransitioning || Mathf.Abs(scrollValue) <= 0.01f) return;
-        // Assumption: positive scrollValue = wheel forward (away from user) => zoom IN (decrease distance)
-        // If your input system reports the opposite, flip the sign below.
-        targetCameraDistance = Mathf.Clamp(
-            targetCameraDistance - scrollValue * zoomSensitivity,
-            minCameraDistance, maxCameraDistance);
-    }
-
-    private void ToggleView()
-    {
-        if (isFirstPerson) StartCoroutine(EyeCloseTransition());
-        else StartCoroutine(SmoothTransition());
-    }
-
+    #region Eye Close Overlay
     private void CreateEyeCloseOverlay()
     {
         GameObject canvasGO = new GameObject("EyeCloseCanvas");
-        Canvas overlayCanvas = canvasGO.AddComponent<Canvas>();
-        overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        overlayCanvas.sortingOrder = 1000;
-
+        eyeCanvas = canvasGO.AddComponent<Canvas>();
+        eyeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        eyeCanvas.sortingOrder = 9999;
         var scaler = canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>();
         scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
         canvasGO.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
-        eyeCloseOverlay = new GameObject("EyeCloseOverlay");
-        eyeCloseOverlay.transform.SetParent(canvasGO.transform, false);
+        GameObject imgGO = new GameObject("EyeCloseImage");
+        imgGO.transform.SetParent(canvasGO.transform, false);
+        eyeImage = imgGO.AddComponent<UnityEngine.UI.Image>();
+        eyeImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
 
-        eyeCloseImage = eyeCloseOverlay.AddComponent<UnityEngine.UI.Image>();
-        eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
-
-        var rect = eyeCloseOverlay.GetComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.sizeDelta = Vector2.zero;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
+        RectTransform rt = imgGO.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
 
         DontDestroyOnLoad(canvasGO);
     }
+    #endregion
 
-    private IEnumerator EyeCloseTransition()
+    #region Cursor Helpers
+    private void ApplyCursorStateFP()
     {
-        isTransitioning = true;
-        float fadeInDuration = eyeCloseTransitionDuration * 0.3f;
-        float elapsedTime = 0f;
-
-        while (elapsedTime < fadeInDuration)
-        {
-            elapsedTime += Time.deltaTime;
-            float alpha = elapsedTime / fadeInDuration;
-            eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
-            yield return null;
-        }
-
-        transform.rotation = Quaternion.Euler(0, horizontalRotation, 0);
-        horizontalRotation = transform.eulerAngles.y;
-        verticalRotation = 0f;
-
-        Vector3 playerTargetPosition = transform.position + thirdPersonOffset;
-        Vector3 directionToCamera = Quaternion.Euler(verticalRotation, horizontalRotation, 0f) * -Vector3.forward;
-
-        currentCameraDistance = defaultCameraDistance;
-        targetCameraDistance = defaultCameraDistance;
-
-        Vector3 desiredCameraPos = playerTargetPosition + directionToCamera * currentCameraDistance;
-        cameraTransform.position = desiredCameraPos;
-        cameraTransform.LookAt(playerTargetPosition);
-
-        isFirstPerson = false;
-        cameraHolder.localPosition = originalCameraPosition;
-        cameraHolder.localRotation = Quaternion.identity;
-        directionsNeedUpdate = true;
-
-        yield return new WaitForSeconds(eyeCloseTransitionDuration * 0.4f);
-
-        float fadeOutDuration = eyeCloseTransitionDuration * 0.3f;
-        elapsedTime = 0f;
-        while (elapsedTime < fadeOutDuration)
-        {
-            elapsedTime += Time.deltaTime;
-            float alpha = 1f - (elapsedTime / fadeOutDuration);
-            eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, alpha);
-            yield return null;
-        }
-
-        eyeCloseImage.color = new Color(eyeCloseColor.r, eyeCloseColor.g, eyeCloseColor.b, 0f);
-
-        if (useWoWCameraStyle)
-            SafeSetCursor(CursorLockMode.None, true);
-        else
-            SafeSetCursor(CursorLockMode.None, true);
-
-        isTransitioning = false;
+        if (lockCursorInFP) Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = !hideCursorInFP;
     }
-
-    private IEnumerator SmoothTransition()
+    private void ApplyCursorStateTP()
     {
-        isTransitioning = true;
-
-        Vector3 startPosition = cameraTransform.position;
-        Quaternion startRotation = cameraTransform.rotation;
-        Vector3 targetPosition = firstPersonPosition.position;
-        Quaternion targetRotation = Quaternion.Euler(0f, horizontalRotation, 0f);
-
-        float duration = 0.8f;
-        float elapsedTime = 0f;
-
-        while (elapsedTime < duration)
-        {
-            elapsedTime += Time.deltaTime;
-            float progress = elapsedTime / duration;
-            float smoothProgress = Mathf.SmoothStep(0f, 1f, progress);
-
-            Vector3 straightPath = Vector3.Lerp(startPosition, targetPosition, smoothProgress);
-            float arcOffset = Mathf.Sin(smoothProgress * Mathf.PI) * 0.3f;
-            Vector3 currentPos = straightPath + Vector3.up * arcOffset;
-
-            cameraTransform.position = currentPos;
-            cameraTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, smoothProgress);
-
-            yield return null;
-        }
-
-        isFirstPerson = true;
-        transform.rotation = Quaternion.Euler(0f, horizontalRotation, 0f);
-        verticalRotation = 0f;
-        cameraHolder.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
-        currentCameraYOffset = targetCameraYOffset;
-
-        cameraTransform.position = firstPersonPosition.position;
-        cameraTransform.rotation = transform.rotation;
-        directionsNeedUpdate = true;
-
-        if (forceLockedCursorInFirstPerson)
-            SafeSetCursor(CursorLockMode.Locked, false);
-
-        isTransitioning = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
     #endregion
 
-    #region Debug / Gizmos
-    private void OnGUI()
-    {
-        if (!(debugMovementValues || debugCameraFollow)) return;
-
-        GUILayout.BeginArea(new Rect(10, 10, 420, 420));
-
-        if (debugMovementValues)
-        {
-            GUILayout.Label($"Mouse Look Mode: {isMouseLookMode}");
-            GUILayout.Label($"RMB Pending: {rightLookPending}");
-            GUILayout.Label($"RMB Frames Suppress: {rightLookFramesToSuppress}");
-            GUILayout.Label($"RMB Enter Frame: {rightLookEnterFrame}");
-            GUILayout.Label($"Raw LookInput: {lookInput}");
-            GUILayout.Label($"Smoothed Look: {smoothedLookInput}");
-            GUILayout.Label($"Left Mouse Camera Active: {leftMouseCameraActive}");
-            GUILayout.Label($"Is Holding Object: {isHoldingObject}");
-            GUILayout.Label($"Move Input: {moveInput}");
-            GUILayout.Label($"Current Speed: {currentMovementSpeed:F2}");
-            GUILayout.Label($"Is Moving: {isMoving}");
-        }
-
-        if (debugCameraFollow)
-        {
-            GUILayout.Label("=== CAMERA FOLLOW DEBUG ===");
-            GUILayout.Label($"Character Rotation: {transform.eulerAngles.y:F1}°");
-            GUILayout.Label($"Camera Rotation: {horizontalRotation:F1}°");
-            float diff = Mathf.Abs(Mathf.DeltaAngle(horizontalRotation, transform.eulerAngles.y));
-            GUILayout.Label($"Angle Difference: {diff:F1}°");
-            GUILayout.Label($"Should Follow Camera: {shouldFollowCamera}");
-            GUILayout.Label($"Always Follow Behind: {alwaysFollowBehindPlayer}");
-            GUILayout.Label($"Behind Follow Speed: {behindPlayerFollowSpeed}");
-            GUILayout.Label($"Movement Timer: {movementTimer:F2}");
-            GUILayout.Label($"Current Follow Speed: {currentFollowSpeed:F1}");
-        }
-
-        GUILayout.EndArea();
-    }
-
+    #region Gizmos
     private void OnDrawGizmosSelected()
     {
-        if (playerCamera == null || cameraTransform == null) return;
-
+        if (!Application.isPlaying && cameraPivot)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(cameraPivot.position + Vector3.up * cameraHeightOffset, 0.2f);
+        }
+        if (firstPersonAnchor)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(firstPersonAnchor.position, 0.1f);
+        }
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(cameraTransform.position, interactionRange);
-
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(cameraTransform.position, attackRange);
-
-        Gizmos.color = Color.green;
         if (isFirstPerson)
         {
-            Vector3 start = cameraTransform.position;
-            Vector3 end = start + cameraTransform.forward * pickupRange;
-            Gizmos.DrawLine(start, end);
-            Gizmos.DrawWireSphere(end, 0.1f);
+            Camera cam = playerCamera ? playerCamera : Camera.main;
+            if (cam)
+            {
+                Gizmos.DrawLine(cam.transform.position, cam.transform.position + cam.transform.forward * pickupRange);
+                Gizmos.DrawWireSphere(cam.transform.position + cam.transform.forward * pickupRange, 0.15f);
+            }
         }
         else
         {
-            Vector3 center = transform.position + Vector3.up * 1.0f;
-            Gizmos.DrawWireSphere(center, pickupRange);
+            Gizmos.DrawWireSphere(transform.position + Vector3.up * 1.1f, pickupRange);
         }
     }
     #endregion
-
-    #region Helper Methods
-    private float ClampVertical(float value) => Mathf.Clamp(value, -80f, 80f);
-
-    private void SafeSetCursor(CursorLockMode mode, bool visible)
-    {
-        if (Cursor.lockState != mode)
-            Cursor.lockState = mode;
-        if (Cursor.visible != visible)
-            Cursor.visible = visible;
-    }
-
-    private IEnumerator ActivateLeftOrbitNextFrame()
-    {
-        yield return null;
-        if (leftMouseCameraActive)
-        {
-            SafeSetCursor(CursorLockMode.None, false);
-            leftOrbitEnterFrame = Time.frameCount;
-        }
-        pendingLeftOrbitActivation = false;
-    }
-    #endregion
-}
-
-// Interfaces unchanged
-public interface IInteractable
-{
-    void Interact();
-}
-
-public interface IDamageable
-{
-    void TakeDamage(int amount);
 }
