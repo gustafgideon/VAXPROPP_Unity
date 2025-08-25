@@ -163,10 +163,10 @@ MonoBehaviour:
   lockCursorInFP: 1
   hideCursorInFP: 1
   enableHeadBob: 1
-  bobFreqWalk: 2.2
-  bobFreqRun: 3.4
+  bobFreqWalk: 8
+  bobFreqRun: 10
   bobAmpHorizontal: 0.025
-  bobAmpVertical: 0.035
+  bobAmpVertical: 0.05
   bobReturnSpeed: 6
   useEyeCloseTransition: 1
   eyeCloseTotalDuration: 0.2
@@ -175,7 +175,7 @@ MonoBehaviour:
   walkSpeed: 5
   runSpeed: 10
   acceleration: 40
-  deceleration: 18
+  deceleration: 4.93
   airControlPercent: 0.45
   gravity: -28
   jumpForce: 10
@@ -192,7 +192,7 @@ MonoBehaviour:
   forwardThreshold: 0.2
   strafeThreshold: 0.2
   animator: {fileID: 6972640204651235396}
-  speedBlendAcceleration: 0.7
+  speedBlendAcceleration: 6
   turnDirectionSensitivity: 3
   strafeDetectionSpeed: 0.3
   animParamSpeed: Speed
