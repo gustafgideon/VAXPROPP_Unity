@@ -173,12 +173,12 @@ MonoBehaviour:
   eyeCloseColor: {r: 0, g: 0, b: 0, a: 1}
   eyeCloseFadeInPortion: 0.15
   walkSpeed: 4
-  runSpeed: 8
-  acceleration: 40
+  runSpeed: 10
+  acceleration: 30
   deceleration: 30
   airControlPercent: 0.45
   gravity: -28
-  jumpForce: 10
+  jumpForce: 13
   extraFallGravityMultiplier: 1.5
   allowRotateToMovementWhenNotMouselooking: 1
   rotateToMovementSpeed: 540
