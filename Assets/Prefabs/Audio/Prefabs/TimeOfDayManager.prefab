@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &467054706506059915
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5179207331692107604}
+  - component: {fileID: 8917744189867873644}
+  m_Layer: 0
+  m_Name: TimeOfDayManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5179207331692107604
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 467054706506059915}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 7.72463, y: 0.89985, z: -8.66026}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8917744189867873644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 467054706506059915}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5df500fa3fdcb7e47a362e97c0b83d8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  timeOfDayParameterName: TimeOfDay
+  dayLabel: Day
+  nightLabel: Night
+  dayDurationInSeconds: 300
+  useRealTime: 0
+  dayStartTime: 0.25
+  nightStartTime: 0.75
+  controlVisuals: 1
+  sunLight: {fileID: 0}
+  skyboxMaterial: {fileID: 0}
+  transitionDuration: 30
+  daySettings:
+    sunColor: {r: 1, g: 1, b: 1, a: 1}
+    sunIntensity: 1
+    sunRotation: {x: 50, y: -30, z: 0}
+    skyboxExposure: 1
+    skyboxTint: {r: 1, g: 1, b: 1, a: 1}
+    fogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    fogDensity: 0.01
+    ambientSkyColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    ambientEquatorColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    ambientGroundColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  nightSettings:
+    sunColor: {r: 1, g: 1, b: 1, a: 1}
+    sunIntensity: 1
+    sunRotation: {x: 50, y: -30, z: 0}
+    skyboxExposure: 1
+    skyboxTint: {r: 1, g: 1, b: 1, a: 1}
+    fogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    fogDensity: 0.01
+    ambientSkyColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    ambientEquatorColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    ambientGroundColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
