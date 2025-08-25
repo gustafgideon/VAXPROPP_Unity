@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 308bb69e939ba4d1ba7166861fa6fe59
+guid: b7a8da14b9c8c4139a6b085858a91b46
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -31,11 +31,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Crouched Walk
+      name: Right Sideways Walk
       takeName: mixamo.com
       internalID: -203655887218126122
       firstFrame: 0
-      lastFrame: 31
+      lastFrame: 28
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
