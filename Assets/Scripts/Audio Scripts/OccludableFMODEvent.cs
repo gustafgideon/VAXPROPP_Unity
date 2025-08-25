@@ -7,76 +7,96 @@ public class OccludableFMODEvent : MonoBehaviour
 {
     [Header("Occlusion Parameters")]
     [SerializeField] private string occlusionParameterName = "Occlusion";
-    [SerializeField] private string volumeParameterName = "Volume";
-    [SerializeField] private bool useBuiltInLowpass = true;
-    [SerializeField] private string lowpassParameterName = "Lowpass";
     
     [Header("Occlusion Settings")]
     [Range(0f, 1f)]
-    [SerializeField] private float maxOcclusionStrength = 1f;
+    [SerializeField] private float maxOcclusionStrength = 0.8f;
     [SerializeField] private float transitionSpeed = 2f;
     [SerializeField] private AnimationCurve occlusionCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
     
     [Header("Volume Control")]
-    [SerializeField] private bool affectVolume = true;
-    [Range(0f, 1f)]
-    [SerializeField] private float minVolumeWhenOccluded = 0.2f;
+    [SerializeField] private bool useUnityVolumeControl = true;
+    [SerializeField] private bool useFMODParameterControl = true; // Enable both!
+    [Range(0.1f, 1f)]
+    [SerializeField] private float minVolumeWhenOccluded = 0.25f;
     
-    [Header("Low-pass Filter")]
-    [SerializeField] private bool affectLowpass = true;
-    [Range(0f, 1f)]
-    [SerializeField] private float maxLowpassAmount = 0.8f;
+    [Header("Event Management")]
+    [SerializeField] private bool autoRestartStoppedEvents = true;
     
     [Header("Debug")]
-    [SerializeField] private bool showDebugInfo = false;
+    [SerializeField] private bool showDebugInfo = true; // Enable by default for testing
     
     private StudioEventEmitter eventEmitter;
-    private EventInstance eventInstance;
     private float currentOcclusionValue = 0f;
     private float targetOcclusionValue = 0f;
-    private bool hasOcclusionParameter = false;
-    private bool hasVolumeParameter = false;
-    private bool hasLowpassParameter = false;
+    private float baseVolume = 1f;
+    private bool isInitialized = false;
     
     public float CurrentOcclusionValue => currentOcclusionValue;
     
-    private void Start()
+    private void Awake()
     {
         eventEmitter = GetComponent<StudioEventEmitter>();
-        
-        // Register with the occlusion manager
-        if (SoundOcclusionManager.Instance != null)
+    }
+    
+    private void Start()
+    {
+        StartCoroutine(InitializeWhenReady());
+    }
+    
+    private System.Collections.IEnumerator InitializeWhenReady()
+    {
+        // Ensure event is playing
+        if (!eventEmitter.IsPlaying())
         {
-            SoundOcclusionManager.Instance.RegisterSound(this);
+            eventEmitter.Play();
         }
         
-        // Check for parameters when the event starts
+        // Wait for the event to be valid
+        int attempts = 0;
+        while (!eventEmitter.EventInstance.isValid() && attempts < 100)
+        {
+            yield return new WaitForEndOfFrame();
+            attempts++;
+        }
+        
         if (eventEmitter.EventInstance.isValid())
         {
-            eventEmitter.EventInstance.getDescription(out EventDescription eventDescription);
-            CheckForParameters(eventDescription);
+            eventEmitter.EventInstance.getVolume(out baseVolume);
+            
+            // Test if the parameter exists
+            FMOD.RESULT result = eventEmitter.EventInstance.getParameterByName(occlusionParameterName, out float currentValue);
+            bool hasParameter = result == FMOD.RESULT.OK;
+            
+            if (showDebugInfo)
+            {
+                Debug.Log($"{gameObject.name} - Initialized:");
+                Debug.Log($"  Event valid: {eventEmitter.EventInstance.isValid()}");
+                Debug.Log($"  Base volume: {baseVolume}");
+                Debug.Log($"  Has '{occlusionParameterName}' parameter: {hasParameter}");
+                if (hasParameter)
+                {
+                    Debug.Log($"  Current {occlusionParameterName} value: {currentValue}");
+                }
+            }
+            
+            isInitialized = true;
+            
+            // Register with occlusion manager
+            if (SoundOcclusionManager.Instance != null)
+            {
+                SoundOcclusionManager.Instance.RegisterSound(this);
+            }
         }
         else
         {
-            // If event isn't valid yet, try checking parameters when it becomes available
-            StartCoroutine(WaitForEventAndCheckParameters());
+            Debug.LogError($"{gameObject.name} - Failed to initialize FMOD event after {attempts} attempts");
         }
-    }
-    
-    private System.Collections.IEnumerator WaitForEventAndCheckParameters()
-    {
-        while (!eventEmitter.EventInstance.isValid())
-        {
-            yield return new WaitForEndOfFrame();
-        }
-        
-        eventEmitter.EventInstance.getDescription(out EventDescription eventDescription);
-        CheckForParameters(eventDescription);
     }
     
     private void OnEnable()
     {
-        if (SoundOcclusionManager.Instance != null)
+        if (isInitialized && SoundOcclusionManager.Instance != null)
         {
             SoundOcclusionManager.Instance.RegisterSound(this);
         }
@@ -92,6 +112,18 @@ public class OccludableFMODEvent : MonoBehaviour
     
     private void Update()
     {
+        if (!isInitialized) return;
+        
+        // Check if event stopped
+        if (autoRestartStoppedEvents && !eventEmitter.IsPlaying())
+        {
+            if (showDebugInfo)
+            {
+                Debug.LogWarning($"{gameObject.name} - Event stopped, restarting...");
+            }
+            eventEmitter.Play();
+        }
+        
         // Smooth transition to target occlusion value
         if (Mathf.Abs(currentOcclusionValue - targetOcclusionValue) > 0.01f)
         {
@@ -99,88 +131,96 @@ public class OccludableFMODEvent : MonoBehaviour
                 Time.deltaTime * transitionSpeed);
             
             ApplyOcclusionEffects();
-            
-            if (showDebugInfo)
-            {
-                Debug.Log($"{gameObject.name} - Occlusion: {currentOcclusionValue:F2}");
-            }
-        }
-    }
-    
-    private void CheckForParameters(EventDescription eventDescription)
-    {
-        // Check for occlusion parameter
-        var result = eventDescription.getParameterDescriptionByName(occlusionParameterName, out FMOD.Studio.PARAMETER_DESCRIPTION paramDesc);
-        hasOcclusionParameter = result == FMOD.RESULT.OK;
-        
-        // Check for volume parameter
-        result = eventDescription.getParameterDescriptionByName(volumeParameterName, out paramDesc);
-        hasVolumeParameter = result == FMOD.RESULT.OK;
-        
-        // Check for lowpass parameter
-        result = eventDescription.getParameterDescriptionByName(lowpassParameterName, out paramDesc);
-        hasLowpassParameter = result == FMOD.RESULT.OK;
-        
-        if (showDebugInfo)
-        {
-            Debug.Log($"{gameObject.name} - Has Occlusion: {hasOcclusionParameter}, Has Volume: {hasVolumeParameter}, Has Lowpass: {hasLowpassParameter}");
         }
     }
     
     public void SetOcclusionValue(float occlusionValue)
     {
-        targetOcclusionValue = Mathf.Clamp01(occlusionValue) * maxOcclusionStrength;
+        float newTarget = Mathf.Clamp01(occlusionValue) * maxOcclusionStrength;
+        
+        if (showDebugInfo && Mathf.Abs(newTarget - targetOcclusionValue) > 0.05f)
+        {
+            Debug.Log($"{gameObject.name} - Occlusion target changed: {targetOcclusionValue:F2} -> {newTarget:F2}");
+        }
+        
+        targetOcclusionValue = newTarget;
     }
     
     private void ApplyOcclusionEffects()
     {
-        if (!eventEmitter.IsPlaying()) return;
+        if (!isInitialized || eventEmitter == null || !eventEmitter.IsPlaying()) return;
         
         EventInstance instance = eventEmitter.EventInstance;
         if (!instance.isValid()) return;
         
         float curveValue = occlusionCurve.Evaluate(currentOcclusionValue);
         
-        // Apply custom occlusion parameter
-        if (hasOcclusionParameter)
+        if (showDebugInfo)
         {
-            instance.setParameterByName(occlusionParameterName, curveValue);
+            Debug.Log($"{gameObject.name} - Applying occlusion: {currentOcclusionValue:F2} -> curve: {curveValue:F2}");
         }
         
-        // Apply volume reduction
-        if (affectVolume && hasVolumeParameter)
+        // Apply Unity volume control
+        if (useUnityVolumeControl)
         {
             float volumeMultiplier = Mathf.Lerp(1f, minVolumeWhenOccluded, curveValue);
-            instance.setParameterByName(volumeParameterName, volumeMultiplier);
+            float finalVolume = baseVolume * volumeMultiplier;
+            finalVolume = Mathf.Max(finalVolume, 0.05f); // Safety minimum
+            
+            FMOD.RESULT volumeResult = instance.setVolume(finalVolume);
+            
+            if (showDebugInfo)
+            {
+                Debug.Log($"  Unity Volume: {finalVolume:F3} (base: {baseVolume:F2} * mult: {volumeMultiplier:F2}) Result: {volumeResult}");
+            }
         }
         
-        // Apply low-pass filter
-        if (affectLowpass)
+        // Apply FMOD parameter
+        if (useFMODParameterControl)
         {
-            if (hasLowpassParameter)
+            FMOD.RESULT paramResult = instance.setParameterByName(occlusionParameterName, curveValue);
+            
+            if (showDebugInfo)
             {
-                float lowpassAmount = curveValue * maxLowpassAmount;
-                instance.setParameterByName(lowpassParameterName, lowpassAmount);
-            }
-            else if (useBuiltInLowpass)
-            {
-                // Use FMOD's built-in lowpass if no custom parameter exists
-                // Note: This requires the event to have a built-in lowpass effect
-                float lowpassFreq = Mathf.Lerp(22000f, 1000f, curveValue * maxLowpassAmount);
-                var lowpassResult = instance.setParameterByName("lpf_cutoff", lowpassFreq);
+                Debug.Log($"  FMOD Parameter '{occlusionParameterName}': {curveValue:F3} Result: {paramResult}");
                 
-                // If built-in lowpass doesn't exist, you might want to add a custom one in FMOD Studio
-                if (lowpassResult != FMOD.RESULT.OK && showDebugInfo)
+                if (paramResult != FMOD.RESULT.OK)
                 {
-                    Debug.LogWarning($"{gameObject.name} - Built-in lowpass parameter not found. Add a lowpass effect in FMOD Studio or create a custom '{lowpassParameterName}' parameter.");
+                    Debug.LogWarning($"  Parameter '{occlusionParameterName}' failed: {paramResult}");
+                }
+            }
+            
+            // Verify the parameter was set
+            if (paramResult == FMOD.RESULT.OK)
+            {
+                instance.getParameterByName(occlusionParameterName, out float verifyValue);
+                if (showDebugInfo && Mathf.Abs(verifyValue - curveValue) > 0.01f)
+                {
+                    Debug.LogWarning($"  Parameter verification failed: set {curveValue:F3}, got {verifyValue:F3}");
                 }
             }
         }
     }
     
-    private void OnValidate()
+    // Manual test functions
+    [ContextMenu("Test 50% Occlusion")]
+    public void Test50Occlusion()
     {
-        if (eventEmitter == null)
-            eventEmitter = GetComponent<StudioEventEmitter>();
+        SetOcclusionValue(0.5f);
+        Debug.Log($"Testing 50% occlusion on {gameObject.name}");
+    }
+    
+    [ContextMenu("Test Full Occlusion")]
+    public void TestFullOcclusion()
+    {
+        SetOcclusionValue(1f);
+        Debug.Log($"Testing full occlusion on {gameObject.name}");
+    }
+    
+    [ContextMenu("Clear Occlusion")]
+    public void ClearOcclusion()
+    {
+        SetOcclusionValue(0f);
+        Debug.Log($"Clearing occlusion on {gameObject.name}");
     }
 }
