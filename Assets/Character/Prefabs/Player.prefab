@@ -222,9 +222,9 @@ MonoBehaviour:
   holdHeightOffset: 0
   holdLerpSpeed: 14
   rotateHeldObjectToCamera: 1
-  throwMinForce: 20
-  throwMaxForce: 500
-  throwChargeTime: 10
+  throwMinForce: 10
+  throwMaxForce: 50
+  throwChargeTime: 2
   throwChargeCurve:
     serializedVersion: 2
     m_Curve:

@@ -6,18 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Prefabs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Prefabs/AmbiancceTrigger.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Prefabs/AmbiancceTrigger.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Prefabs/AmbianceManager.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Prefabs/AmbianceManager.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Prefabs/CPljud.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Prefabs/CPljud.prefab.meta" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Audio Scripts/AmbianceManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Audio Scripts/AmbianceManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ProjectSettings/Packages/com.unity.probuilder/Settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/Packages/com.unity.probuilder/Settings.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,6 +21,8 @@
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Audio Scripts/TimeOfDayManager.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/PlayerController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/RainController.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeOfDayDebugger.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/VisualTimeOfDayManager.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -134,7 +126,7 @@
       <workItem from="1755751992165" duration="6874000" />
       <workItem from="1755770699184" duration="797000" />
       <workItem from="1755853641039" duration="4672000" />
-      <workItem from="1756110820467" duration="7369000" />
+      <workItem from="1756110820467" duration="13335000" />
     </task>
     <servers />
   </component>
