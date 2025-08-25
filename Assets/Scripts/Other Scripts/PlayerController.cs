@@ -89,20 +89,29 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float strafeThreshold = 0.2f;
     #endregion
 
-    #region Inspector - Auto Forward
-    [Header("Auto Forward (Both Mouse Buttons)")]
-    [SerializeField] private bool enableBothButtonsForward = true;
-    [SerializeField] private float bothButtonsForwardDeadZone = 0.2f;
-    #endregion
-
     #region Inspector - Animation
     [Header("Animation")]
     [SerializeField] private Animator animator;
     [SerializeField] private float speedBlendAcceleration = 8f;
+    [SerializeField] private float turnDirectionSensitivity = 3f;
+    [Tooltip("Speed threshold to determine if player is strafing vs turning")]
+    [SerializeField] private float strafeDetectionSpeed = 0.3f;
+    
+    // Animator parameter names
+    [Header("Animator Parameters")]
     [SerializeField] private string animParamSpeed = "Speed";
+    [SerializeField] private string animParamHorizontal = "Horizontal";
+    [SerializeField] private string animParamVertical = "Vertical";
+    [SerializeField] private string animParamTurnDirection = "TurnDirection";
     [SerializeField] private string animParamIsGrounded = "IsGrounded";
     [SerializeField] private string animParamIsRunning = "IsRunning";
+    [SerializeField] private string animParamIsStrafing = "IsStrafing";
+    [SerializeField] private string animParamIsBackwardStrafing = "IsBackwardStrafing";
     [SerializeField] private string animParamJump = "Jump";
+    [SerializeField] private string animParamPickup = "Pickup";
+    [SerializeField] private string animParamDrop = "Drop";
+    [SerializeField] private string animParamThrow = "Throw";
+    [SerializeField] private string animParamInteract = "Interact";
     #endregion
 
     #region Inspector - View Toggle
@@ -116,6 +125,7 @@ public class PlayerController : MonoBehaviour
     [Header("Pickup / Throw")]
     [SerializeField] private string pickupActionName = "Pickup";
     [SerializeField] private string throwActionName = "Throw";
+    [SerializeField] private string interactActionName = "Interact";
     [SerializeField] private float pickupRange = 3f;
     [SerializeField] private LayerMask pickupMask = ~0;
     [SerializeField] private float holdDistance = 1.6f;
@@ -141,6 +151,7 @@ public class PlayerController : MonoBehaviour
     private InputAction switchViewAction;
     private InputAction pickupAction;
     private InputAction throwAction;
+    private InputAction interactAction;
     private Vector2 moveInput;
     private Vector2 lookDelta;
     #endregion
@@ -161,9 +172,9 @@ public class PlayerController : MonoBehaviour
     private float currentDistance;
     private bool rightMouseHeld;
     private bool leftMouseHeld;
-    private bool bothButtonsForward;
     private bool isFirstPerson;
     private bool isTransitioningView;
+    private float movementReferenceYaw;
     #endregion
 
     #region Runtime - Head Bob
@@ -182,6 +193,15 @@ public class PlayerController : MonoBehaviour
     private bool isHoldingObject;
     private bool isChargingThrow;
     private float throwChargeTimer;
+    #endregion
+
+    #region Runtime - Animation Values
+    private float animHorizontal;
+    private float animVertical;
+    private float animTurnDirection;
+    private bool animIsStrafing;
+    private bool animIsBackwardStrafing;
+    private float previousYaw;
     #endregion
 
     #region Constants
@@ -208,6 +228,8 @@ public class PlayerController : MonoBehaviour
             pickupAction = actions[pickupActionName];
         if (!string.IsNullOrEmpty(throwActionName) && actions.FindAction(throwActionName) != null)
             throwAction = actions[throwActionName];
+        if (!string.IsNullOrEmpty(interactActionName) && actions.FindAction(interactActionName) != null)
+            interactAction = actions[interactActionName];
 
         targetDistance = distance;
         currentDistance = distance;
@@ -220,6 +242,9 @@ public class PlayerController : MonoBehaviour
         Vector3 localForward = Quaternion.Euler(0, -cameraYaw, 0) * playerCamera.transform.forward;
         cameraPitch = Mathf.Asin(localForward.y) * Mathf.Rad2Deg;
         cameraPitch = Mathf.Clamp(cameraPitch, minPitch, maxPitch);
+
+        movementReferenceYaw = transform.eulerAngles.y;
+        previousYaw = transform.eulerAngles.y;
 
         isFirstPerson = startInFirstPerson;
         if (isFirstPerson)
@@ -245,6 +270,7 @@ public class PlayerController : MonoBehaviour
         switchViewAction?.Enable();
         pickupAction?.Enable();
         throwAction?.Enable();
+        interactAction?.Enable();
 
         if (switchViewAction != null) switchViewAction.performed += OnSwitchView;
         if (pickupAction != null) pickupAction.performed += OnPickupPressed;
@@ -253,6 +279,7 @@ public class PlayerController : MonoBehaviour
             throwAction.started += OnThrowStarted;
             throwAction.canceled += OnThrowCanceled;
         }
+        if (interactAction != null) interactAction.performed += OnInteractPressed;
     }
 
     private void OnDisable()
@@ -264,6 +291,7 @@ public class PlayerController : MonoBehaviour
         switchViewAction?.Disable();
         pickupAction?.Disable();
         throwAction?.Disable();
+        interactAction?.Disable();
 
         if (switchViewAction != null) switchViewAction.performed -= OnSwitchView;
         if (pickupAction != null) pickupAction.performed -= OnPickupPressed;
@@ -272,6 +300,7 @@ public class PlayerController : MonoBehaviour
             throwAction.started -= OnThrowStarted;
             throwAction.canceled -= OnThrowCanceled;
         }
+        if (interactAction != null) interactAction.performed -= OnInteractPressed;
     }
 
     private void Update()
@@ -300,7 +329,8 @@ public class PlayerController : MonoBehaviour
         ReadMouseButtons();
         ReadLookInput();
         ReadRunJump();
-        HandleBothButtonsForward();
+        UpdateCursorVisibility();
+        UpdateMovementReference();
     }
 
     private void ReadMovementInput() => moveInput = moveAction.ReadValue<Vector2>();
@@ -323,15 +353,46 @@ public class PlayerController : MonoBehaviour
             jumpQueued = true;
     }
 
-    private void HandleBothButtonsForward()
+    private void UpdateMovementReference()
     {
-        bothButtonsForward = enableBothButtonsForward && leftMouseHeld && rightMouseHeld && moveInput.y < bothButtonsForwardDeadZone;
-        if (bothButtonsForward) moveInput.y = 1f;
+        if (isFirstPerson)
+        {
+            movementReferenceYaw = cameraYaw;
+        }
+        else
+        {
+            if (rightMouseHeld)
+            {
+                movementReferenceYaw = cameraYaw;
+            }
+            else
+            {
+                movementReferenceYaw = transform.eulerAngles.y;
+            }
+        }
+    }
+
+    private void UpdateCursorVisibility()
+    {
+        if (isFirstPerson)
+        {
+            return;
+        }
+
+        bool shouldHideCursor = leftMouseHeld || rightMouseHeld;
+        Cursor.visible = !shouldHideCursor;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     private void OnSwitchView(InputAction.CallbackContext ctx)
     {
         if (!isTransitioningView) ToggleView();
+    }
+
+    private void OnInteractPressed(InputAction.CallbackContext ctx)
+    {
+        TriggerAnimatorAction(animParamInteract);
+        // Add your interaction logic here
     }
     #endregion
 
@@ -344,10 +405,10 @@ public class PlayerController : MonoBehaviour
         isGrounded = controller.isGrounded;
         if (isGrounded && velocity.y < 0f) velocity.y = -2f;
 
-        Vector3 camForward = playerCamera.transform.forward; camForward.y = 0f; camForward.Normalize();
-        Vector3 camRight = playerCamera.transform.right;   camRight.y = 0f; camRight.Normalize();
+        Vector3 refForward = Quaternion.Euler(0, movementReferenceYaw, 0) * Vector3.forward;
+        Vector3 refRight = Quaternion.Euler(0, movementReferenceYaw, 0) * Vector3.right;
 
-        Vector3 inputDir = (camForward * moveInput.y + camRight * moveInput.x);
+        Vector3 inputDir = (refForward * moveInput.y + refRight * moveInput.x);
         if (inputDir.sqrMagnitude > 1f) inputDir.Normalize();
 
         float targetSpeed = (isRunning ? runSpeed : walkSpeed) * inputDir.magnitude;
@@ -369,7 +430,7 @@ public class PlayerController : MonoBehaviour
         {
             velocity.y = jumpForce;
             jumpQueued = false;
-            animator?.SetTrigger(animParamJump);
+            TriggerAnimatorAction(animParamJump);
         }
 
         float g = gravity;
@@ -383,17 +444,14 @@ public class PlayerController : MonoBehaviour
         HandleCharacterRotation(inputDir, dt);
     }
 
-    // UPDATED turning logic
     private void HandleCharacterRotation(Vector3 desiredDir, float dt)
     {
-        // First Person: always follow camera yaw
         if (isFirstPerson)
         {
             transform.rotation = Quaternion.Euler(0f, cameraYaw, 0f);
             return;
         }
 
-        // RMB: strong camera-driven turning
         if (rightMouseHeld)
         {
             float newYaw = Mathf.MoveTowardsAngle(
@@ -414,14 +472,12 @@ public class PlayerController : MonoBehaviour
         bool hasBackward = forward < -forwardThreshold;
         bool hasStrafe = Mathf.Abs(strafe) > strafeThreshold;
 
-        // Decide if rotation should occur based on config:
         bool shouldRotate = true;
 
         if (rotateOnlyWhenMovingForward)
         {
             if (!hasForward)
             {
-                // If not forward, maybe allow backward?
                 if (hasBackward && allowBackwardTurn) shouldRotate = true;
                 else if (hasStrafe && allowPureStrafeTurn) shouldRotate = true;
                 else shouldRotate = false;
@@ -429,7 +485,6 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // rotateOnlyWhenMovingForward == false
             if (hasBackward && !allowBackwardTurn) shouldRotate = false;
             if (hasStrafe && !hasForward && !hasBackward && !allowPureStrafeTurn) shouldRotate = false;
         }
@@ -437,8 +492,6 @@ public class PlayerController : MonoBehaviour
         if (!shouldRotate || desiredDir.sqrMagnitude < 0.0001f)
             return;
 
-        // Determine target direction:
-        // For forward+strafe, we want the diagonal direction (already in desiredDir).
         Vector3 flat = desiredDir;
         flat.y = 0f;
         if (flat.sqrMagnitude < 0.0001f) return;
@@ -449,14 +502,12 @@ public class PlayerController : MonoBehaviour
 
         float turningSpeed = rotateToMovementSpeed;
 
-        // Slow down when doing diagonals (forward + strafe)
         bool diagonal = hasForward && hasStrafe;
         if (diagonal)
             turningSpeed *= forwardDiagonalTurnSpeedMultiplier;
 
         float maxStep = turningSpeed * dt;
 
-        // Optional extra damping for diagonals
         if (diagonal && diagonalExtraDampDegrees > 0f)
         {
             float diff = Mathf.Abs(Mathf.DeltaAngle(currentYaw, targetYaw));
@@ -671,20 +722,89 @@ public class PlayerController : MonoBehaviour
     private void UpdateAnimation(float dt)
     {
         if (!animator) return;
+
+        // Calculate all animation values
+        CalculateAnimationValues(dt);
+        
+        // Set all animator parameters
+        SetAnimatorParameters();
+    }
+
+    private void CalculateAnimationValues(float dt)
+    {
+        // Speed calculation (overall movement speed normalized)
         Vector3 horiz = new Vector3(velocity.x, 0f, velocity.z);
-        float target = Mathf.Clamp01(horiz.magnitude / runSpeed);
-        animSpeedValue = Mathf.MoveTowards(animSpeedValue, target, speedBlendAcceleration * dt);
+        float targetSpeed = Mathf.Clamp01(horiz.magnitude / runSpeed);
+        animSpeedValue = Mathf.MoveTowards(animSpeedValue, targetSpeed, speedBlendAcceleration * dt);
+
+        // Calculate movement relative to character's forward direction
+        Vector3 localVelocity = transform.InverseTransformDirection(horiz);
+        
+        // Horizontal and Vertical (relative to character facing)
+        float targetHorizontal = Mathf.Clamp(localVelocity.x / runSpeed, -1f, 1f);
+        float targetVertical = Mathf.Clamp(localVelocity.z / runSpeed, -1f, 1f);
+        
+        animHorizontal = Mathf.MoveTowards(animHorizontal, targetHorizontal, speedBlendAcceleration * dt);
+        animVertical = Mathf.MoveTowards(animVertical, targetVertical, speedBlendAcceleration * dt);
+
+        // Turn Direction (how fast character is rotating)
+        float currentYaw = transform.eulerAngles.y;
+        float yawDelta = Mathf.DeltaAngle(previousYaw, currentYaw);
+        float targetTurnDirection = Mathf.Clamp(yawDelta / (Time.deltaTime * 180f), -1f, 1f);
+        animTurnDirection = Mathf.MoveTowards(animTurnDirection, targetTurnDirection, turnDirectionSensitivity * dt);
+        previousYaw = currentYaw;
+
+        // Strafe detection
+        bool isMoving = animSpeedValue > strafeDetectionSpeed;
+        bool hasHorizontalMovement = Mathf.Abs(animHorizontal) > 0.1f;
+        bool hasForwardMovement = animVertical > 0.1f;
+        bool hasBackwardMovement = animVertical < -0.1f;
+
+        // IsStrafing: moving sideways with minimal forward/backward movement
+        animIsStrafing = isMoving && hasHorizontalMovement && Mathf.Abs(animVertical) < 0.3f;
+        
+        // IsBackwardStrafing: moving backward with or without strafe
+        animIsBackwardStrafing = isMoving && hasBackwardMovement;
+    }
+
+    private void SetAnimatorParameters()
+    {
+        // Set float parameters
         animator.SetFloat(animParamSpeed, animSpeedValue);
+        animator.SetFloat(animParamHorizontal, animHorizontal);
+        animator.SetFloat(animParamVertical, animVertical);
+        animator.SetFloat(animParamTurnDirection, animTurnDirection);
+        
+        // Set bool parameters
         animator.SetBool(animParamIsGrounded, isGrounded);
         animator.SetBool(animParamIsRunning, isRunning && animSpeedValue > 0.01f);
+        animator.SetBool(animParamIsStrafing, animIsStrafing);
+        animator.SetBool(animParamIsBackwardStrafing, animIsBackwardStrafing);
+    }
+
+    // Helper method to trigger animator actions
+    private void TriggerAnimatorAction(string parameterName)
+    {
+        if (animator && !string.IsNullOrEmpty(parameterName))
+        {
+            animator.SetTrigger(parameterName);
+        }
     }
     #endregion
 
     #region Pickup / Throw
     private void OnPickupPressed(InputAction.CallbackContext ctx)
     {
-        if (isHoldingObject) DropHeld();
-        else TryPickup();
+        if (isHoldingObject) 
+        {
+            DropHeld();
+            TriggerAnimatorAction(animParamDrop);
+        }
+        else 
+        {
+            TryPickup();
+            TriggerAnimatorAction(animParamPickup);
+        }
     }
 
     private void OnThrowStarted(InputAction.CallbackContext ctx)
@@ -703,6 +823,7 @@ public class PlayerController : MonoBehaviour
     {
         if (!isChargingThrow || !isHoldingObject) return;
         ReleaseThrow();
+        TriggerAnimatorAction(animParamThrow);
     }
 
     private void UpdatePickupThrow(float dt)
@@ -884,8 +1005,48 @@ public class PlayerController : MonoBehaviour
     }
     private void ApplyCursorStateTP()
     {
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        // Cursor state is now handled by UpdateCursorVisibility()
+    }
+    #endregion
+
+    #region Public Methods for External Access
+    /// <summary>
+    /// Manually trigger jump animation (useful for external scripts)
+    /// </summary>
+    public void TriggerJumpAnimation() => TriggerAnimatorAction(animParamJump);
+    
+    /// <summary>
+    /// Manually trigger pickup animation
+    /// </summary>
+    public void TriggerPickupAnimation() => TriggerAnimatorAction(animParamPickup);
+    
+    /// <summary>
+    /// Manually trigger drop animation
+    /// </summary>
+    public void TriggerDropAnimation() => TriggerAnimatorAction(animParamDrop);
+    
+    /// <summary>
+    /// Manually trigger throw animation
+    /// </summary>
+    public void TriggerThrowAnimation() => TriggerAnimatorAction(animParamThrow);
+    
+    /// <summary>
+    /// Manually trigger interact animation
+    /// </summary>
+    public void TriggerInteractAnimation() => TriggerAnimatorAction(animParamInteract);
+
+    /// <summary>
+    /// Get current animation values for debugging
+    /// </summary>
+    public void GetAnimationValues(out float speed, out float horizontal, out float vertical, 
+        out float turnDirection, out bool isStrafing, out bool isBackwardStrafing)
+    {
+        speed = animSpeedValue;
+        horizontal = animHorizontal;
+        vertical = animVertical;
+        turnDirection = animTurnDirection;
+        isStrafing = animIsStrafing;
+        isBackwardStrafing = animIsBackwardStrafing;
     }
     #endregion
 
