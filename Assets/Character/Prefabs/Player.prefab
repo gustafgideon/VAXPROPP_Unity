@@ -175,7 +175,7 @@ MonoBehaviour:
   walkSpeed: 5
   runSpeed: 10
   acceleration: 40
-  deceleration: 4.93
+  deceleration: 30
   airControlPercent: 0.45
   gravity: -28
   jumpForce: 10
