@@ -172,8 +172,8 @@ MonoBehaviour:
   eyeCloseTotalDuration: 0.2
   eyeCloseColor: {r: 0, g: 0, b: 0, a: 1}
   eyeCloseFadeInPortion: 0.15
-  walkSpeed: 5
-  runSpeed: 10
+  walkSpeed: 4
+  runSpeed: 8
   acceleration: 40
   deceleration: 30
   airControlPercent: 0.45

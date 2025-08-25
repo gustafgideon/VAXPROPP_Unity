@@ -732,18 +732,29 @@ public class PlayerController : MonoBehaviour
 
     private void CalculateAnimationValues(float dt)
     {
-        // Speed calculation (overall movement speed normalized)
+        // Speed calculation
         Vector3 horiz = new Vector3(velocity.x, 0f, velocity.z);
         float targetSpeed = Mathf.Clamp01(horiz.magnitude / runSpeed);
         animSpeedValue = Mathf.MoveTowards(animSpeedValue, targetSpeed, speedBlendAcceleration * dt);
 
         // Calculate movement relative to character's forward direction
         Vector3 localVelocity = transform.InverseTransformDirection(horiz);
-        
-        // Horizontal and Vertical (relative to character facing)
+    
+        // Simple approach: normalize by runSpeed but ensure minimum values for walking
         float targetHorizontal = Mathf.Clamp(localVelocity.x / runSpeed, -1f, 1f);
         float targetVertical = Mathf.Clamp(localVelocity.z / runSpeed, -1f, 1f);
-        
+    
+        // Ensure walking gets at least a minimum animation value
+        float minWalkingValue = 0.7f; // Adjust this value based on your blend tree
+        if (!isRunning && horiz.magnitude > 0.1f)
+        {
+            // Scale values to ensure walking reaches minimum threshold
+            if (Mathf.Abs(targetHorizontal) > 0.1f)
+                targetHorizontal = Mathf.Sign(targetHorizontal) * Mathf.Max(Mathf.Abs(targetHorizontal), minWalkingValue);
+            if (Mathf.Abs(targetVertical) > 0.1f)
+                targetVertical = Mathf.Sign(targetVertical) * Mathf.Max(Mathf.Abs(targetVertical), minWalkingValue);
+        }
+    
         animHorizontal = Mathf.MoveTowards(animHorizontal, targetHorizontal, speedBlendAcceleration * dt);
         animVertical = Mathf.MoveTowards(animVertical, targetVertical, speedBlendAcceleration * dt);
 
