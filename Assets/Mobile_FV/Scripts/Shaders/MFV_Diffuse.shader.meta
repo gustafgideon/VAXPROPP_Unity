@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 2f28a3d2d8b46e8408dda56cc3bc0b02
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scripts/Shaders/MFV_Diffuse.shader
+  uploadId: 462734

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 7b22b43e17d5f974bb464a6da2e6efb7
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scripts/Tools/MobileFV_SwitchMesh.cs
+  uploadId: 462734

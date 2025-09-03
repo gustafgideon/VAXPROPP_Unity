@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 606cdd46df2e45545b62b8600aa77638
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scripts/Tools/MobileFV_ResetTransform.cs
+  uploadId: 462734

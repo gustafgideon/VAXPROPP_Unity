@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 3f36a482db9afa241bca12a6548b7556
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Prefabs/Misc/SpiralTree.prefab
+  uploadId: 462734

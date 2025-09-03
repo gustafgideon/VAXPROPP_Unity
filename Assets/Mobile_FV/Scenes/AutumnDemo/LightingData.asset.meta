@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e01324471abb5f84c998f55915f0fea0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scenes/AutumnDemo/LightingData.asset
+  uploadId: 462734

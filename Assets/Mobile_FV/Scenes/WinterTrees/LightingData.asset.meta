@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: abf9526717f52b44ba21bcd4b595fab6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scenes/WinterTrees/LightingData.asset
+  uploadId: 462734

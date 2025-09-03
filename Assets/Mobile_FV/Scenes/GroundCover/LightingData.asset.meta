@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: bb9ed71ab6c9e6d46b254d1dc822ff6d
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scenes/GroundCover/LightingData.asset
+  uploadId: 462734

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 6260b3cdaf4668c45bf71dfc72da643c
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Resources/_Tree_single.prefab
+  uploadId: 462734

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: ac71b632bccf6f248b3a4647aa344244
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scripts/Tools/MobileFV_Prefabber.cs
+  uploadId: 462734

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: a7ed53d194cf76c4992bc9926e27661e
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scripts/Shaders/MFV_SpecRim.shader
+  uploadId: 462734

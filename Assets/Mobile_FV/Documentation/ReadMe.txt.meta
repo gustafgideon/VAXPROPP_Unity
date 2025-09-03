@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 07ce8534a20b28e4fbb73aa3d7e7c751
+timeCreated: 1459788671
+licenseType: Store
+TextScriptImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Documentation/ReadMe.txt
+  uploadId: 462734

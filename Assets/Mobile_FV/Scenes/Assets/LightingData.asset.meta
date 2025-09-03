@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 85eb3a2f410ed664aa4844df1650eefc
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scenes/Assets/LightingData.asset
+  uploadId: 462734

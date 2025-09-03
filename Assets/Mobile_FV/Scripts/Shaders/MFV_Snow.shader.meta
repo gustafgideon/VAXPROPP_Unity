@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 86fa0b786fe19624ead4a584c75e6d3b
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scripts/Shaders/MFV_Snow.shader
+  uploadId: 462734

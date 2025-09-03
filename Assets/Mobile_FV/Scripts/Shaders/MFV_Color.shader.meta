@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 411cb9fac12983e4db3b58199db66c20
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scripts/Shaders/MFV_Color.shader
+  uploadId: 462734

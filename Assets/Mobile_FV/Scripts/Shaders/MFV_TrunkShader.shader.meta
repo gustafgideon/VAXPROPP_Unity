@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: da030caae14f02340b0ac5ce2168a6f6
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 183315
+  packageName: Mobile ForestVision
+  packageVersion: 1.4
+  assetPath: Assets/Mobile_FV/Scripts/Shaders/MFV_TrunkShader.shader
+  uploadId: 462734
