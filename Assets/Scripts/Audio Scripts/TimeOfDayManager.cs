@@ -122,7 +122,7 @@ public class TimeOfDayManager : MonoBehaviour
         transitionStartValue = currentParameterValue;
         transitionTargetValue = newTimeOfDay == TimeOfDay.Day ? 0f : 1f;
         
-        Debug.Log($"Starting transition from {currentTimeOfDay} to {newTimeOfDay}");
+        //Debug.Log($"Starting transition from {currentTimeOfDay} to {newTimeOfDay}");
         
         // Fire the transition started event immediately (but NOT OnTimeOfDayChanged)
         OnTransitionStarted?.Invoke(newTimeOfDay);
