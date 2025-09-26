@@ -7,8 +7,6 @@
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Gustaf Scene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Gustaf Scene.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Audio Scripts/TimeOfDayManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Audio Scripts/TimeOfDayManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/VisualAmbianceManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/VisualAmbianceManager.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,8 +20,8 @@
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Audio Scripts/TimeOfDayManager.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/PlayerController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/RainController.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeManager.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeOfDayDebugger.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/VisualTimeOfDayManager.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -129,7 +127,7 @@
       <workItem from="1755853641039" duration="4672000" />
       <workItem from="1756110820467" duration="13335000" />
       <workItem from="1756909800650" duration="2000" />
-      <workItem from="1758879850731" duration="5280000" />
+      <workItem from="1758879850731" duration="9529000" />
     </task>
     <servers />
   </component>
