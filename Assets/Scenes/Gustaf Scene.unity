@@ -40691,7 +40691,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 309616745694788549, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
       propertyPath: m_LocalPosition.x
@@ -88076,6 +88076,32 @@ MonoBehaviour:
     m_NumAlphaKeys: 2
   globalLight: {fileID: 545497711}
   fullDayLengthMinutes: 1
+  timeOfDayParameterName: TimeOfDay
+  transitionDurationInSeconds: 10
+  transitionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!4 &1348079233
 Transform:
   m_ObjectHideFlags: 0
@@ -89741,7 +89767,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7261188126495076947, guid: ea3d5f723fc8be04aa6b4cef1cb08db7, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
