@@ -6,13 +6,13 @@ using UnityEngine;
 public class TimeManager : MonoBehaviour
 {
     [Header("Time Speed Settings")]
-    [SerializeField] private float timeSpeedMultiplier = 1.0f;
+    [SerializeField] [Range(0.1f, 100.0f)] private float timeSpeedMultiplier = 1.0f;
 
     [Header("Time Phase Hours")]
-    [SerializeField] private int sunriseHour = 6;
-    [SerializeField] private int dayHour = 8;
-    [SerializeField] private int sunsetHour = 18;
-    [SerializeField] private int nightHour = 22;
+    [SerializeField] [Range(0, 23)] private int sunriseHour = 6;
+    [SerializeField] [Range(0, 23)] private int dayHour = 8;
+    [SerializeField] [Range(0, 23)] private int sunsetHour = 18;
+    [SerializeField] [Range(0, 23)] private int nightHour = 22;
 
     [Header("Skybox Textures")]
     [SerializeField] private Texture2D skyboxNight;
