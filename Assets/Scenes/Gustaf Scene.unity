@@ -88075,6 +88075,7 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   globalLight: {fileID: 545497711}
+  fullDayLengthMinutes: 1
 --- !u!4 &1348079233
 Transform:
   m_ObjectHideFlags: 0
