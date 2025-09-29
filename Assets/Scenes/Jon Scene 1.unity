@@ -40851,7 +40851,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 11
   m_Type: 1
-  m_Color: {r: 0.23921569, g: 0.2901961, b: 0.6509804, a: 1}
+  m_Color: {r: 0.21960784, g: 0.14901961, b: 0.40392157, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
@@ -87988,8 +87988,8 @@ MonoBehaviour:
   skyboxDusk: {fileID: 2800000, guid: 846cce7d90ad21b4b80fcb937193081e, type: 3}
   gradientNightToDawn:
     serializedVersion: 2
-    key0: {r: 1, g: 1, b: 1, a: 1}
-    key1: {r: 1, g: 1, b: 1, a: 1}
+    key0: {r: 0.21877557, g: 0.1473389, b: 0.4056604, a: 1}
+    key1: {r: 0.8584906, g: 0.57920015, b: 0.47378963, a: 1}
     key2: {r: 0, g: 0, b: 0, a: 0}
     key3: {r: 0, g: 0, b: 0, a: 0}
     key4: {r: 0, g: 0, b: 0, a: 0}
@@ -88018,8 +88018,8 @@ MonoBehaviour:
     m_NumAlphaKeys: 2
   gradientDawnToDay:
     serializedVersion: 2
-    key0: {r: 1, g: 1, b: 1, a: 1}
-    key1: {r: 1, g: 1, b: 1, a: 1}
+    key0: {r: 0.85882354, g: 0.5803922, b: 0.4745098, a: 1}
+    key1: {r: 1, g: 0.7931401, b: 0.6273585, a: 1}
     key2: {r: 0, g: 0, b: 0, a: 0}
     key3: {r: 0, g: 0, b: 0, a: 0}
     key4: {r: 0, g: 0, b: 0, a: 0}
@@ -88048,8 +88048,8 @@ MonoBehaviour:
     m_NumAlphaKeys: 2
   gradientDayToDusk:
     serializedVersion: 2
-    key0: {r: 1, g: 1, b: 1, a: 1}
-    key1: {r: 1, g: 1, b: 1, a: 1}
+    key0: {r: 1, g: 0.7921569, b: 0.627451, a: 1}
+    key1: {r: 1, g: 0.498413, b: 0.3254717, a: 1}
     key2: {r: 0, g: 0, b: 0, a: 0}
     key3: {r: 0, g: 0, b: 0, a: 0}
     key4: {r: 0, g: 0, b: 0, a: 0}
@@ -88078,8 +88078,8 @@ MonoBehaviour:
     m_NumAlphaKeys: 2
   gradientDuskToNight:
     serializedVersion: 2
-    key0: {r: 1, g: 1, b: 1, a: 1}
-    key1: {r: 1, g: 1, b: 1, a: 1}
+    key0: {r: 1, g: 0.5019608, b: 0.3254902, a: 1}
+    key1: {r: 0.21960784, g: 0.14901961, b: 0.40392157, a: 1}
     key2: {r: 0, g: 0, b: 0, a: 0}
     key3: {r: 0, g: 0, b: 0, a: 0}
     key4: {r: 0, g: 0, b: 0, a: 0}
@@ -88107,7 +88107,7 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   globalLight: {fileID: 545497711}
-  fullDayLengthMinutes: 2
+  fullDayLengthMinutes: 3
   transitionDuration: 10
   timeOfDayParameterName: TimeOfDay
 --- !u!4 &1348079233
