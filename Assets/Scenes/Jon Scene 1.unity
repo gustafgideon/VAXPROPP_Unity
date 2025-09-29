@@ -88107,7 +88107,8 @@ MonoBehaviour:
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
   globalLight: {fileID: 545497711}
-  fullDayLengthMinutes: 1
+  fullDayLengthMinutes: 2
+  transitionDuration: 10
   timeOfDayParameterName: TimeOfDay
 --- !u!4 &1348079233
 Transform:
@@ -105884,11 +105885,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 20.91
+      value: 9.939
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 129.57
+      value: 195.96
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.w

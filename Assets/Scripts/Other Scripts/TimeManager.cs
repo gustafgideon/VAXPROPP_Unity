@@ -23,152 +23,189 @@ public class TimeManager : MonoBehaviour
     [Tooltip("How many real-time minutes one full 24h in-game day should take.")]
     [SerializeField] private float fullDayLengthMinutes = 4f;
 
+    [Header("Skybox & Light Transition Settings")]
+    [SerializeField] private float transitionDuration = 10f;
+
     [Header("FMOD Settings")]
     [SerializeField] private string timeOfDayParameterName = "TimeOfDay";
 
     private int minutes;
-    public int Minutes
-    {
-        get => minutes;
-        set { minutes = value; OnMinutesChange(value); }
-    }
-
-    private int hours = 5; // start at 05:00 for dawn
-    public int Hours
-    {
-        get => hours;
-        set { hours = value; OnHoursChange(value); }
-    }
-
-    private int days;
-    public int Days
-    {
-        get => days;
-        set => days = value;
-    }
-
+    private int hours = 5; // start at dawn
     private float tempSecond;
 
     private enum DayState { Night, Dawn, Day, Dusk }
-    private DayState currentState = DayState.Night;
+    private DayState currentState;
+
+    private Coroutine skyboxCoroutine;
+    private Coroutine lightCoroutine;
 
     private void Start()
     {
-        // Set initial FMOD parameter based on starting time
-        SetTimeOfDayParameter(DayState.Night);
+        // Determine the correct initial state
+        currentState = GetCurrentDayState(hours);
+        SetState(currentState);
+
+        // Set FMOD and visuals immediately
+        SetTimeOfDayParameter(currentState);
+        RenderSettings.skybox.SetTexture("_Texture1", GetSkyboxForState(currentState));
+        RenderSettings.skybox.SetFloat("_Blend", 0f);
+        globalLight.color = GetGradientColorForState(currentState, 1f);
+        RenderSettings.fogColor = globalLight.color;
+
+        UpdateSunRotation();
     }
 
     private void Update()
     {
         tempSecond += Time.deltaTime;
-
-        // How many seconds one in-game minute should take based on total cycle length
         float secondsPerGameMinute = (fullDayLengthMinutes * 60f) / 1440f;
 
         if (tempSecond >= secondsPerGameMinute)
         {
-            Minutes += 1;
-            tempSecond = 0;
-        }
-    }
-
-    private void OnMinutesChange(int value)
-    {
-        if (value >= 60)
-        {
-            Hours++;
-            minutes = 0;
-        }
-        if (Hours >= 24)
-        {
-            Hours = 0;
-            Days++;
-            Debug.Log($"🌍 New Day: {Days}");
+            tempSecond = 0f;
+            AddMinute();
         }
 
         UpdateSunRotation();
+        UpdateState();
     }
 
-    private void OnHoursChange(int value)
+    private void AddMinute()
     {
-        // Dawn start (05:00)
-        if (value == 5)
+        minutes++;
+        if (minutes >= 60)
         {
-            SetState(DayState.Dawn);
-            StartCoroutine(LerpSkybox(skyboxNight, skyboxDawn, 10f));
-            StartCoroutine(LerpLight(gradientNightToDawn, 10f));
-            SetTimeOfDayParameter(DayState.Dawn);
+            minutes = 0;
+            hours = (hours + 1) % 24;
         }
-        // Day start (06:00)
-        else if (value == 6)
+    }
+
+    private DayState GetCurrentDayState(int hour)
+    {
+        if (hour >= 5 && hour < 7)        return DayState.Dawn;
+        else if (hour >= 7 && hour < 18)  return DayState.Day;
+        else if (hour >= 18 && hour < 21) return DayState.Dusk;
+        else                               return DayState.Night;
+    }
+
+    private void UpdateState()
+    {
+        DayState newState = GetCurrentDayState(hours);
+
+        if (newState != currentState)
         {
-            SetState(DayState.Day);
-            StartCoroutine(LerpSkybox(skyboxDawn, skyboxDay, 10f));
-            StartCoroutine(LerpLight(gradientDawnToDay, 10f));
-            SetTimeOfDayParameter(DayState.Day);
-        }
-        // Dusk start (18:00)
-        else if (value == 18)
-        {
-            SetState(DayState.Dusk);
-            StartCoroutine(LerpSkybox(skyboxDay, skyboxDusk, 10f));
-            StartCoroutine(LerpLight(gradientDayToDusk, 10f));
-            SetTimeOfDayParameter(DayState.Dusk);
-        }
-        // Night start (19:00)
-        else if (value == 19)
-        {
-            SetState(DayState.Night);
-            StartCoroutine(LerpSkybox(skyboxDusk, skyboxNight, 10f));
-            StartCoroutine(LerpLight(gradientDuskToNight, 10f));
-            SetTimeOfDayParameter(DayState.Night);
+            SetState(newState);
+
+            // Start smooth skybox & light transitions
+            StartLerpSkybox(GetSkyboxForState(newState), transitionDuration);
+            StartLerpLight(GetGradientForState(newState), transitionDuration);
+
+            // Update FMOD parameter
+            SetTimeOfDayParameter(newState);
         }
     }
 
     private void SetState(DayState newState)
     {
-        if (currentState != newState)
+        currentState = newState;
+        Debug.Log($"☀️ Time of day changed: {currentState} at {hours:00}:{minutes:00}");
+    }
+
+    private Texture2D GetSkyboxForState(DayState state)
+    {
+        return state switch
         {
-            currentState = newState;
-            Debug.Log($"☀️ Time of day changed: {currentState} at {Hours:00}:{Minutes:00}");
-        }
+            DayState.Dawn => skyboxDawn,
+            DayState.Day => skyboxDay,
+            DayState.Dusk => skyboxDusk,
+            DayState.Night => skyboxNight,
+            _ => skyboxNight
+        };
+    }
+
+    private Gradient GetGradientForState(DayState state)
+    {
+        return state switch
+        {
+            DayState.Dawn => gradientNightToDawn,
+            DayState.Day => gradientDawnToDay,
+            DayState.Dusk => gradientDayToDusk,
+            DayState.Night => gradientDuskToNight,
+            _ => gradientDuskToNight
+        };
+    }
+
+    private Color GetGradientColorForState(DayState state, float t)
+    {
+        return GetGradientForState(state).Evaluate(t);
     }
 
     private void UpdateSunRotation()
     {
-        float totalMinutes = Hours * 60f + Minutes;
-        float dayProgress = totalMinutes / 1440f; // 0–1 through the day
-
-        // 0° = midnight, 180° = noon
+        float totalMinutes = hours * 60f + minutes;
+        float dayProgress = totalMinutes / 1440f;
         float sunAngle = dayProgress * 360f;
 
         globalLight.transform.rotation = Quaternion.Euler(30f, sunAngle - 90f, 0f);
     }
 
-    private IEnumerator LerpSkybox(Texture2D a, Texture2D b, float time)
+    #region Skybox & Light Lerp
+    private void StartLerpSkybox(Texture2D target, float duration)
     {
-        RenderSettings.skybox.SetTexture("_Texture1", a);
-        RenderSettings.skybox.SetTexture("_Texture2", b);
-        RenderSettings.skybox.SetFloat("_Blend", 0);
-        for (float i = 0; i < time; i += Time.deltaTime)
-        {
-            RenderSettings.skybox.SetFloat("_Blend", i / time);
-            yield return null;
-        }
-        RenderSettings.skybox.SetTexture("_Texture1", b);
+        if (skyboxCoroutine != null) StopCoroutine(skyboxCoroutine);
+        skyboxCoroutine = StartCoroutine(LerpSkybox(target, duration));
     }
 
-    private IEnumerator LerpLight(Gradient lightGradient, float time)
+    private IEnumerator LerpSkybox(Texture2D target, float duration)
     {
-        for (float i = 0; i < time; i += Time.deltaTime)
+        Material skyMat = RenderSettings.skybox;
+        Texture2D from = skyMat.GetTexture("_Texture1") as Texture2D;
+
+        skyMat.SetTexture("_Texture1", from);
+        skyMat.SetTexture("_Texture2", target);
+        skyMat.SetFloat("_Blend", 0f);
+
+        float t = 0f;
+        while (t < duration)
         {
-            globalLight.color = lightGradient.Evaluate(i / time);
+            t += Time.deltaTime;
+            skyMat.SetFloat("_Blend", Mathf.Clamp01(t / duration));
+            yield return null;
+        }
+
+        // finalize
+        skyMat.SetTexture("_Texture1", target);
+        skyMat.SetFloat("_Blend", 0f);
+        skyboxCoroutine = null;
+    }
+
+    private void StartLerpLight(Gradient gradient, float duration)
+    {
+        if (lightCoroutine != null) StopCoroutine(lightCoroutine);
+        lightCoroutine = StartCoroutine(LerpLight(gradient, duration));
+    }
+
+    private IEnumerator LerpLight(Gradient gradient, float duration)
+    {
+        float t = 0f;
+        Color startColor = globalLight.color;
+
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float lerp = Mathf.Clamp01(t / duration);
+            globalLight.color = Color.Lerp(startColor, gradient.Evaluate(1f), lerp);
             RenderSettings.fogColor = globalLight.color;
             yield return null;
         }
-    }
 
-    // 🎧 FMOD – Set discrete labeled parameter as float
+        globalLight.color = gradient.Evaluate(1f);
+        RenderSettings.fogColor = globalLight.color;
+        lightCoroutine = null;
+    }
+    #endregion
+
+    #region FMOD
     private void SetTimeOfDayParameter(DayState state)
     {
         float value = state switch
@@ -183,4 +220,5 @@ public class TimeManager : MonoBehaviour
         RuntimeManager.StudioSystem.setParameterByName(timeOfDayParameterName, value);
         Debug.Log($"🎧 FMOD parameter '{timeOfDayParameterName}' set to {state} ({value})");
     }
+    #endregion
 }
