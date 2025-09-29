@@ -6,17 +6,56 @@
   <component name="ChangeListManager">
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood2.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood2.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood3.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood3.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood4.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood4.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood5.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood5.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood6.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Diabolical Games/Destructible Objects/Materials/Wood6.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Free_Rocks/Standard Assets/Effects/TessellationShaders/Materials/TesselatedBumpSpecular.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Free_Rocks/Standard Assets/Effects/TessellationShaders/Materials/TesselatedBumpSpecular.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Free_Rocks/_material/ground.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Free_Rocks/_material/ground.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/IgniteCoders/Simple Water Shader/Resources/WaterReflection.renderTexture" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/IgniteCoders/Simple Water Shader/Resources/WaterReflection.renderTexture" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrel PBR/Materials/ground_material.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrel PBR/Materials/ground_material.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Ground.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Ground.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/BlueBarrel.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/BlueBarrel.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/GreenBarrel.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/GreenBarrel.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/LGreenDirtyBarrel.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/LGreenDirtyBarrel.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/RedBarrel.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/RedBarrel.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/SteelBarrel.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/SteelBarrel.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/YellowBarrel.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Materials/YellowBarrel.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Mobile_FV/Materials/Autumn/Autumn1_Snow.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Mobile_FV/Materials/Autumn/Autumn1_Snow.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Mobile_FV/Materials/Autumn/Autumn2.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Mobile_FV/Materials/Autumn/Autumn2.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Mobile_FV/Materials/Autumn/Autumn2_Snow.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Mobile_FV/Materials/Autumn/Autumn2_Snow.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Mobile_FV/Materials/Spring/Spring1_Snow.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Mobile_FV/Materials/Spring/Spring1_Snow.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.strings.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.strings.bank" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Audio/Prefabs/AmbianceManager.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Audio/Prefabs/AmbianceManager.prefab" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 1.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 1.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Audio Scripts/AmbianceManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Audio Scripts/AmbianceManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Audio Scripts/TimeOfDayManager.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Audio Scripts/TimeOfDayManager.cs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeOfDayDebugger.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeOfDayDebugger.cs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/VisualAmbianceManager.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/VisualAmbianceManager.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/2_10.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/2_10.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/4_10.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/4_10.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/6_10.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/6_10.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/8_10.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/8_10.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/Full.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/SkySeries Freebie/ExampleScenes/SceneObjects/Full.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Yuetility-Studios/YueDestructible/Models/Materials/BottleMaterial.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Yuetility-Studios/YueDestructible/Models/Materials/BottleMaterial.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Yuetility-Studios/YueDestructible/Models/Materials/DemoBlack.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Yuetility-Studios/YueDestructible/Models/Materials/DemoBlack.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Yuetility-Studios/YueDestructible/Models/Materials/ProbkaMaterial.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Yuetility-Studios/YueDestructible/Models/Materials/ProbkaMaterial.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/Materials/floor.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/Materials/floor.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_cane.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_cane.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_cattail.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_cattail.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_chamomile.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_chamomile.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_field_bell.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_field_bell.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_flower_01.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_flower_01.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_flower_02.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_flower_02.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_flower_2.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_flower_2.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_forget-me-not.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_forget-me-not.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_grass.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_grass.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_grass_1.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_grass_1.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_lily.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_lily.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_long_grass.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_long_grass.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_onion.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_onion.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_poppy.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_poppy.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_sage.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_sage.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_wild_wheat.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/coniferous_forest/textures/plants/Materials/poly_wild_wheat.mat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,11 +66,9 @@
     <setting file="file://$PROJECT_DIR$/Assets/GlitchSystem/Scripts/MaterialGlitch.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Audio Scripts/AmbianceManager.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Audio Scripts/PhysicsAudioBehaviour.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Audio Scripts/TimeOfDayManager.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/PlayerController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/RainController.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeManager.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeOfDayDebugger.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/WeatherSystemManager.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />

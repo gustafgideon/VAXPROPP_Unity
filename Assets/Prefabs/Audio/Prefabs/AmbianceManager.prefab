@@ -114,7 +114,7 @@ MonoBehaviour:
       Data2: 1114112257
       Data3: 1506505096
       Data4: -576447551
-    Path: event:/AMB/TimeOfDayAmbiance/AMB_Forest
+    Path: event:/AMB/NestedAMBEvents/AMB_Forest
   Event: 
   EventPlayTrigger: 0
   EventStopTrigger: 0
@@ -175,7 +175,4 @@ MonoBehaviour:
   forestAmbianceEmitter: {fileID: 8788483779575935490}
   factoryAmbianceEmitter: {fileID: 3284282817277353809}
   fadeTime: 2
-  respondToTimeOfDay: 1
-  timeOfDayParameterName: TimeOfDay
-  useGlobalParameter: 1
   debugLogging: 1
