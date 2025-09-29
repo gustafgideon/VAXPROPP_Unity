@@ -8,11 +8,11 @@ public class WeatherSystemManager : MonoBehaviour
     public ParticleSystem rainParticles;
     [Range(0f, 1f)] public float rainIntensity = 0.5f;
     public Transform player;
-
+    
     [Header("FMOD Audio")]
     public EventReference rainLoopEvent;
     public EventReference windEvent;
-    public EventReference thunderEvent;
+    public EventReference thunderEvent; 
     public string rainParameterName = "RainIntensity";
     public string windParameterName = "WindStrength";
 
@@ -71,40 +71,50 @@ public class WeatherSystemManager : MonoBehaviour
         UpdateWindAudio();
         HandleImpactZones();
         HandleThunder();
+        
+        if (player == null || rainParticles == null)
+            return;
+
+        // Position the rain particles above the player
+        Vector3 rainOffset = new Vector3(0f, 10f, 0f); // 10 units above player
+        rainParticles.transform.position = player.position + rainOffset;
     }
 
     void UpdateRainParticles()
     {
         if (rainParticles == null) return;
 
-        // Update emission based on intensity
         var emission = rainParticles.emission;
+
+        // Adjust particle rate: light drizzle less visible, heavy rain stronger
+        float particleRate = Mathf.Lerp(50f, 800f, rainIntensity); 
+        emission.rateOverTime = particleRate;
+
         if (rainIntensity > 0f)
         {
-            emission.rateOverTime = Mathf.Lerp(100f, 800f, rainIntensity);
             if (!rainParticles.isPlaying) rainParticles.Play();
         }
         else
         {
-            emission.rateOverTime = 0f;
             if (rainParticles.isPlaying) rainParticles.Stop();
         }
-
-        // Center particles on player
-        if (player != null)
-            rainParticles.transform.position = player.position;
     }
 
     void UpdateRainAudio()
     {
-        if (!isRainValid) return;
-        rainLoopInstance.setVolume(rainIntensity);
-        RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
+        if (!isRainValid || player == null) return;
+
+        // Make light rain audible: sqrt curve for smoother perception
+        float audioVolume = Mathf.Clamp01(Mathf.Pow(rainIntensity, 0.5f));
+
+        rainLoopInstance.setVolume(audioVolume);
+        RuntimeManager.StudioSystem.setParameterByName(rainParameterName, audioVolume);
     }
 
     void UpdateWindAudio()
     {
         if (!isWindValid) return;
+
         windInstance.setVolume(windStrength);
         RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
     }
@@ -118,7 +128,6 @@ public class WeatherSystemManager : MonoBehaviour
         if (impactTimer < interval) return;
         impactTimer = 0f;
 
-        // Random impact zone
         RainImpactZone zone = impactZones[Random.Range(0, impactZones.Length)];
 
         Vector3 randomOffset = new Vector3(
@@ -129,11 +138,10 @@ public class WeatherSystemManager : MonoBehaviour
 
         Vector3 hitPosition = zone.center + randomOffset;
 
-        // Optional: raycast downward to surface
-        if (Physics.Raycast(hitPosition + Vector3.up * 10f, Vector3.down, out RaycastHit hit, 20f))
-            hitPosition.y = hit.point.y;
+        // Optional: raycast downward
+        /*if (Physics.Raycast(hitPosition + Vector3.up * 10f, Vector3.down, out RaycastHit hit, 20f))
+            hitPosition.y = hit.point.y;*/
 
-        // Play surface-specific FMOD hit
         switch (zone.surfaceTag)
         {
             case "Water":
@@ -152,10 +160,9 @@ public class WeatherSystemManager : MonoBehaviour
     {
         if (Random.value < thunderChancePerSecond * Time.deltaTime)
         {
-            // Random distance for thunder
             float distance = Random.Range(thunderDistanceMin, thunderDistanceMax);
             Vector3 direction = Random.onUnitSphere;
-            direction.y = 0f; // horizontal plane
+            direction.y = 0f;
             Vector3 thunderPos = player.position + direction.normalized * distance;
 
             RuntimeManager.PlayOneShot(thunderEvent, thunderPos);
@@ -167,6 +174,7 @@ public class WeatherSystemManager : MonoBehaviour
     {
         public string surfaceTag; // "Water", "Foliage", "Metal"
         public Vector3 center;
-        public Vector3 size = new Vector3(5f, 0f, 5f); // horizontal spread
+        public Vector3 size = new Vector3(5f, 0f, 5f);
     }
 }
+
