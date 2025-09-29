@@ -6,27 +6,25 @@ public class TimeManager : MonoBehaviour
 {
     [Header("Skyboxes")]
     [SerializeField] private Texture2D skyboxNight;
-    [SerializeField] private Texture2D skyboxSunrise;
+    [SerializeField] private Texture2D skyboxDawn;
     [SerializeField] private Texture2D skyboxDay;
-    [SerializeField] private Texture2D skyboxSunset;
+    [SerializeField] private Texture2D skyboxDusk;
 
     [Header("Light Gradients")]
-    [SerializeField] private Gradient graddientNightToSunrise;
-    [SerializeField] private Gradient graddientSunriseToDay;
-    [SerializeField] private Gradient graddientDayToSunset;
-    [SerializeField] private Gradient graddientSunsetToNight;
+    [SerializeField] private Gradient gradientNightToDawn;
+    [SerializeField] private Gradient gradientDawnToDay;
+    [SerializeField] private Gradient gradientDayToDusk;
+    [SerializeField] private Gradient gradientDuskToNight;
 
     [Header("Sun Light")]
     [SerializeField] private Light globalLight;
 
     [Header("Time Settings")]
     [Tooltip("How many real-time minutes one full 24h in-game day should take.")]
-    [SerializeField] public float fullDayLengthMinutes = 4f;
+    [SerializeField] private float fullDayLengthMinutes = 4f;
 
     [Header("FMOD Settings")]
     [SerializeField] private string timeOfDayParameterName = "TimeOfDay";
-    [SerializeField] private float transitionDurationInSeconds = 5f; // smooth transition time
-    [SerializeField] private AnimationCurve transitionCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     private int minutes;
     public int Minutes
@@ -35,7 +33,7 @@ public class TimeManager : MonoBehaviour
         set { minutes = value; OnMinutesChange(value); }
     }
 
-    private int hours = 5; // start at 05:00 for sunrise soon
+    private int hours = 5; // start at 05:00 for dawn
     public int Hours
     {
         get => hours;
@@ -51,24 +49,13 @@ public class TimeManager : MonoBehaviour
 
     private float tempSecond;
 
-    private enum DayState { Night, Sunrise, Day, Sunset }
+    private enum DayState { Night, Dawn, Day, Dusk }
     private DayState currentState = DayState.Night;
-
-    public enum TimeOfDay { Day, Night }
-    private TimeOfDay currentTimeOfDay = TimeOfDay.Night;
-    private TimeOfDay targetTimeOfDay = TimeOfDay.Night;
-
-    // FMOD transition values
-    private bool isTransitioning = false;
-    private float transitionStartTime;
-    private float transitionStartValue;
-    private float transitionTargetValue;
-    private float currentParameterValue = 1f; // start night = 1
 
     private void Start()
     {
         // Set initial FMOD parameter based on starting time
-        SetGlobalParameter(currentParameterValue);
+        SetTimeOfDayParameter(DayState.Night);
     }
 
     private void Update()
@@ -83,8 +70,6 @@ public class TimeManager : MonoBehaviour
             Minutes += 1;
             tempSecond = 0;
         }
-
-        UpdateTransition(); // smoothly update FMOD parameter each frame
     }
 
     private void OnMinutesChange(int value)
@@ -106,35 +91,37 @@ public class TimeManager : MonoBehaviour
 
     private void OnHoursChange(int value)
     {
-        // Sunrise start (05:00)
+        // Dawn start (05:00)
         if (value == 5)
         {
-            SetState(DayState.Sunrise);
-            StartCoroutine(LerpSkybox(skyboxNight, skyboxSunrise, 10f));
-            StartCoroutine(LerpLight(graddientNightToSunrise, 10f));
+            SetState(DayState.Dawn);
+            StartCoroutine(LerpSkybox(skyboxNight, skyboxDawn, 10f));
+            StartCoroutine(LerpLight(gradientNightToDawn, 10f));
+            SetTimeOfDayParameter(DayState.Dawn);
         }
         // Day start (06:00)
         else if (value == 6)
         {
             SetState(DayState.Day);
-            StartCoroutine(LerpSkybox(skyboxSunrise, skyboxDay, 10f));
-            StartCoroutine(LerpLight(graddientSunriseToDay, 10f));
-            StartTimeOfDayTransition(TimeOfDay.Day); // 🎧 Trigger FMOD transition to day
+            StartCoroutine(LerpSkybox(skyboxDawn, skyboxDay, 10f));
+            StartCoroutine(LerpLight(gradientDawnToDay, 10f));
+            SetTimeOfDayParameter(DayState.Day);
         }
-        // Sunset start (18:00)
+        // Dusk start (18:00)
         else if (value == 18)
         {
-            SetState(DayState.Sunset);
-            StartCoroutine(LerpSkybox(skyboxDay, skyboxSunset, 10f));
-            StartCoroutine(LerpLight(graddientDayToSunset, 10f));
+            SetState(DayState.Dusk);
+            StartCoroutine(LerpSkybox(skyboxDay, skyboxDusk, 10f));
+            StartCoroutine(LerpLight(gradientDayToDusk, 10f));
+            SetTimeOfDayParameter(DayState.Dusk);
         }
         // Night start (19:00)
         else if (value == 19)
         {
             SetState(DayState.Night);
-            StartCoroutine(LerpSkybox(skyboxSunset, skyboxNight, 10f));
-            StartCoroutine(LerpLight(graddientSunsetToNight, 10f));
-            StartTimeOfDayTransition(TimeOfDay.Night); // 🎧 Trigger FMOD transition to night
+            StartCoroutine(LerpSkybox(skyboxDusk, skyboxNight, 10f));
+            StartCoroutine(LerpLight(gradientDuskToNight, 10f));
+            SetTimeOfDayParameter(DayState.Night);
         }
     }
 
@@ -155,8 +142,6 @@ public class TimeManager : MonoBehaviour
         // 0° = midnight, 180° = noon
         float sunAngle = dayProgress * 360f;
 
-        // Rotate around Y for east-west movement (shadows sweep horizontally)
-        // Optional: tilt a little on X to simulate Earth's tilt (~20-30°)
         globalLight.transform.rotation = Quaternion.Euler(30f, sunAngle - 90f, 0f);
     }
 
@@ -183,43 +168,19 @@ public class TimeManager : MonoBehaviour
         }
     }
 
-    // 🎧 FMOD – Trigger transition
-    private void StartTimeOfDayTransition(TimeOfDay newTimeOfDay)
+    // 🎧 FMOD – Set discrete labeled parameter as float
+    private void SetTimeOfDayParameter(DayState state)
     {
-        if (isTransitioning || newTimeOfDay == targetTimeOfDay) return;
-
-        targetTimeOfDay = newTimeOfDay;
-        isTransitioning = true;
-        transitionStartTime = Time.time;
-        transitionStartValue = currentParameterValue;
-        transitionTargetValue = newTimeOfDay == TimeOfDay.Day ? 0f : 1f;
-
-        Debug.Log($"🎧 Starting TimeOfDay transition: {currentTimeOfDay} → {newTimeOfDay}");
-    }
-
-    // 🎧 FMOD – Update transition each frame
-    private void UpdateTransition()
-    {
-        if (!isTransitioning) return;
-
-        float elapsed = Time.time - transitionStartTime;
-        float progress = Mathf.Clamp01(elapsed / transitionDurationInSeconds);
-        float curveValue = transitionCurve.Evaluate(progress);
-        currentParameterValue = Mathf.Lerp(transitionStartValue, transitionTargetValue, curveValue);
-
-        SetGlobalParameter(currentParameterValue);
-
-        if (progress >= 1f)
+        float value = state switch
         {
-            isTransitioning = false;
-            currentTimeOfDay = targetTimeOfDay;
-            Debug.Log($"🎧 TimeOfDay transition complete: {currentTimeOfDay}");
-        }
-    }
+            DayState.Dawn  => 0f,
+            DayState.Day   => 1f,
+            DayState.Dusk  => 2f,
+            DayState.Night => 3f,
+            _ => 0f
+        };
 
-    private void SetGlobalParameter(float value)
-    {
         RuntimeManager.StudioSystem.setParameterByName(timeOfDayParameterName, value);
-        Debug.Log($"🎧 FMOD parameter '{timeOfDayParameterName}' set to {value:F2}");
+        Debug.Log($"🎧 FMOD parameter '{timeOfDayParameterName}' set to {state} ({value})");
     }
 }

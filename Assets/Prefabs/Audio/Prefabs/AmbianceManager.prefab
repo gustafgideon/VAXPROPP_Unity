@@ -110,11 +110,11 @@ MonoBehaviour:
   CollisionTag: 
   EventReference:
     Guid:
-      Data1: 493986151
-      Data2: 1084767537
-      Data3: 1707093942
-      Data4: 1430228069
-    Path: event:/AMB/AMB_Forest
+      Data1: 1250711924
+      Data2: 1114112257
+      Data3: 1506505096
+      Data4: -576447551
+    Path: event:/AMB/TimeOfDayAmbiance/AMB_Forest
   Event: 
   EventPlayTrigger: 0
   EventStopTrigger: 0
@@ -175,3 +175,7 @@ MonoBehaviour:
   forestAmbianceEmitter: {fileID: 8788483779575935490}
   factoryAmbianceEmitter: {fileID: 3284282817277353809}
   fadeTime: 2
+  respondToTimeOfDay: 1
+  timeOfDayParameterName: TimeOfDay
+  useGlobalParameter: 1
+  debugLogging: 1
