@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Foliage
   - Water
+  - Wood
   layers:
   - Default
   - TransparentFX

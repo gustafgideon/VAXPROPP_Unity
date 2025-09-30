@@ -71126,7 +71126,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1507636620937791836, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
       propertyPath: m_TagString
-      value: Foliage
+      value: Water
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -92570,8 +92570,8 @@ MonoBehaviour:
   rainIntensity: 0
   player: {fileID: 1224646343}
   rainRadius: 8
-  raysPerFrame: 5
-  impactRate: 0.05
+  raysPerFrame: 1
+  impactRate: 2
   rainLoopEvent:
     Guid:
       Data1: 1736692442
