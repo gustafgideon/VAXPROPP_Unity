@@ -27645,7 +27645,7 @@ GameObject:
   - component: {fileID: 265401919}
   m_Layer: 0
   m_Name: Terrain
-  m_TagString: Untagged
+  m_TagString: Foliage
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 2147483647
@@ -71124,10 +71124,17 @@ PrefabInstance:
       propertyPath: m_Name
       value: WaterBlock_50m (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1507636620937791836, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1507636620937791836, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1868127989}
   m_SourcePrefab: {fileID: 100100000, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
 --- !u!43 &1029947725
 Mesh:
@@ -91289,6 +91296,11 @@ Mesh:
     offset: 0
     size: 0
     path: 
+--- !u!1 &1626565419 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1507636620937791836, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
+  m_PrefabInstance: {fileID: 1025318572}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1633781329
 GameObject:
   m_ObjectHideFlags: 0
@@ -92536,7 +92548,7 @@ Transform:
   m_GameObject: {fileID: 1667675733}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 18.34367, y: -8.931709, z: 7.92511}
+  m_LocalPosition: {x: 18.19, y: 4.09, z: -55.35}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -92557,6 +92569,9 @@ MonoBehaviour:
   rainParticles: {fileID: 1957531141}
   rainIntensity: 0
   player: {fileID: 1224646343}
+  rainRadius: 8
+  raysPerFrame: 5
+  impactRate: 0.05
   rainLoopEvent:
     Guid:
       Data1: 1736692442
@@ -92578,10 +92593,15 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  rainImpactEvent:
+    Guid:
+      Data1: 408595158
+      Data2: 1130464333
+      Data3: 1902397370
+      Data4: -1268885141
+    Path: event:/AMB/WeatherSystem/Weather_Rain_ImpactZone
   rainParameterName: RainIntensity
   windParameterName: WindStrength
-  impactZones: []
-  impactRate: 0.05
   windStrength: 0
   thunderChancePerSecond: 0.02
   thunderDistanceMin: 30
@@ -99519,6 +99539,27 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1507636620937791777, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
   m_PrefabInstance: {fileID: 1025318572}
   m_PrefabAsset: {fileID: 0}
+--- !u!65 &1868127989
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1626565419}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 50.000023, y: 0, z: 50.00001}
+  m_Center: {x: -0.000030517578, y: 0, z: 0}
 --- !u!43 &1870831457
 Mesh:
   m_ObjectHideFlags: 0
@@ -110765,11 +110806,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 9.939
+      value: 20.17
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 195.96
+      value: 130.5
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.w

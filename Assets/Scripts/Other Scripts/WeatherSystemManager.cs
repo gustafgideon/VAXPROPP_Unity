@@ -8,11 +8,16 @@ public class WeatherSystemManager : MonoBehaviour
     public ParticleSystem rainParticles;
     [Range(0f, 1f)] public float rainIntensity = 0.5f;
     public Transform player;
-    
+    public float rainRadius = 8f;        // radius around player where rain hits
+    public int raysPerFrame = 5;         // max number of rays per impact burst
+    public float impactRate = 0.1f;      // seconds between impact bursts
+    private float impactTimer = 0f;
+
     [Header("FMOD Audio")]
     public EventReference rainLoopEvent;
     public EventReference windEvent;
-    public EventReference thunderEvent; 
+    public EventReference thunderEvent;
+    public EventReference rainImpactEvent; // One-shot for impact sounds
     public string rainParameterName = "RainIntensity";
     public string windParameterName = "WindStrength";
 
@@ -20,17 +25,11 @@ public class WeatherSystemManager : MonoBehaviour
     private EventInstance windInstance;
     private bool isRainValid, isWindValid;
 
-    [Header("Impact Zones")]
-    public RainImpactZone[] impactZones;
-    public float impactRate = 0.05f; // frequency of surface hits
-    private float impactTimer = 0f;
-
     [Header("Wind Settings")]
     [Range(0f, 1f)] public float windStrength = 0.3f;
-    //public Vector3 windDirection = Vector3.forward;
 
     [Header("Thunder Settings")]
-    public float thunderChancePerSecond = 0.02f; // chance per second
+    public float thunderChancePerSecond = 0.02f;
     public float thunderDistanceMin = 30f;
     public float thunderDistanceMax = 200f;
 
@@ -44,7 +43,7 @@ public class WeatherSystemManager : MonoBehaviour
 
     void SetupAudio()
     {
-        // Rain
+        // Rain loop
         rainLoopInstance = RuntimeManager.CreateInstance(rainLoopEvent);
         if (rainLoopInstance.isValid())
         {
@@ -53,7 +52,7 @@ public class WeatherSystemManager : MonoBehaviour
             RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
         }
 
-        // Wind
+        // Wind loop
         windInstance = RuntimeManager.CreateInstance(windEvent);
         if (windInstance.isValid())
         {
@@ -65,96 +64,85 @@ public class WeatherSystemManager : MonoBehaviour
 
     void Update()
     {
+        if (player == null || rainParticles == null) return;
+
         UpdateRainParticles();
         UpdateRainAudio();
         UpdateWindAudio();
-        HandleImpactZones();
+        HandleRainImpacts();
         HandleThunder();
-        
-        if (player == null || rainParticles == null)
-            return;
 
-        // Position the rain particles above the player
-        Vector3 rainOffset = new Vector3(0f, 10f, 0f); // 10 units above player
-        rainParticles.transform.position = player.position + rainOffset;
+        // Keep rain particles above the player
+        rainParticles.transform.position = player.position + Vector3.up * 10f;
     }
 
     void UpdateRainParticles()
     {
-        if (rainParticles == null) return;
-
         var emission = rainParticles.emission;
+        emission.rateOverTime = Mathf.Lerp(50f, 800f, rainIntensity);
 
-        // Adjust particle rate: light drizzle less visible, heavy rain stronger
-        float particleRate = Mathf.Lerp(50f, 800f, rainIntensity); 
-        emission.rateOverTime = particleRate;
-
-        if (rainIntensity > 0f)
-        {
-            if (!rainParticles.isPlaying) rainParticles.Play();
-        }
-        else
-        {
-            if (rainParticles.isPlaying) rainParticles.Stop();
-        }
+        if (rainIntensity > 0f && !rainParticles.isPlaying) rainParticles.Play();
+        else if (rainIntensity == 0f && rainParticles.isPlaying) rainParticles.Stop();
     }
 
     void UpdateRainAudio()
     {
-        if (!isRainValid || player == null) return;
-
-        
-        RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
+        if (isRainValid)
+            RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
     }
 
     void UpdateWindAudio()
     {
-        if (!isWindValid) return;
-
-        // Send strength
-        RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
-
-        // Send direction as degrees (-180 to 180)
-       /* float angle = Mathf.Atan2(windDirection.x, windDirection.z) * Mathf.Rad2Deg;
-        RuntimeManager.StudioSystem.setParameterByName("Direction", angle);*/
+        if (isWindValid)
+            RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
     }
-    
 
-    
-    void HandleImpactZones()
+    void HandleRainImpacts()
     {
-        if (rainIntensity <= 0f || impactZones.Length == 0) return;
+        if (rainIntensity <= 0f || player == null) return;
 
+        // Limit bursts based on impactRate
         impactTimer += Time.deltaTime;
-        float interval = impactRate / Mathf.Max(rainIntensity, 0.1f);
-        if (impactTimer < interval) return;
+        if (impactTimer < impactRate) return;
         impactTimer = 0f;
 
-        RainImpactZone zone = impactZones[Random.Range(0, impactZones.Length)];
+        // Number of rays scales with rain intensity
+        int raysThisBurst = Mathf.CeilToInt(raysPerFrame * rainIntensity);
 
-        Vector3 randomOffset = new Vector3(
-            Random.Range(-zone.size.x * 0.5f, zone.size.x * 0.5f),
-            0f,
-            Random.Range(-zone.size.z * 0.5f, zone.size.z * 0.5f)
-        );
-
-        Vector3 hitPosition = zone.center + randomOffset;
-
-        // Optional: raycast downward
-        /*if (Physics.Raycast(hitPosition + Vector3.up * 10f, Vector3.down, out RaycastHit hit, 20f))
-            hitPosition.y = hit.point.y;*/
-
-        switch (zone.surfaceTag)
+        for (int i = 0; i < raysThisBurst; i++)
         {
-            case "Water":
-                RuntimeManager.PlayOneShot("event:/Rain/Hit_Water", hitPosition);
-                break;
-            case "Foliage":
-                RuntimeManager.PlayOneShot("event:/Rain/Hit_Foliage", hitPosition);
-                break;
-            case "Metal":
-                RuntimeManager.PlayOneShot("event:/Rain/Hit_Metal", hitPosition);
-                break;
+            // Random point around the player within rainRadius
+            Vector2 randomCircle = Random.insideUnitCircle * rainRadius;
+            Vector3 origin = player.position + new Vector3(randomCircle.x, 10f, randomCircle.y);
+
+            // Raycast down
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 50f))
+            {
+                Debug.DrawLine(origin, hit.point, Color.red, 5f);
+
+                // Determine surface type for FMOD parameter
+                float surfaceParam = 0f;
+                if (hit.collider.CompareTag("Foliage")) surfaceParam = 1f;
+                else if (hit.collider.CompareTag("Metal")) surfaceParam = 2f;
+                else if (hit.collider.CompareTag("Water")) surfaceParam = 3f;
+
+                // Play 3D impact sound
+                if (!rainImpactEvent.IsNull)
+                {
+                    EventInstance instance = RuntimeManager.CreateInstance(rainImpactEvent);
+                    if (instance.isValid())
+                    {
+                        instance.setParameterByName("RainSurfaceType", surfaceParam);
+                        instance.set3DAttributes(RuntimeUtils.To3DAttributes(hit.point));
+                        instance.start();
+                        instance.release();
+                    }
+                }
+            }
+            else
+            {
+                Debug.DrawLine(origin, origin + Vector3.down * 50f, Color.blue, 5f);
+            }
         }
     }
 
@@ -166,17 +154,15 @@ public class WeatherSystemManager : MonoBehaviour
             Vector3 direction = Random.onUnitSphere;
             direction.y = 0f;
             Vector3 thunderPos = player.position + direction.normalized * distance;
-
             RuntimeManager.PlayOneShot(thunderEvent, thunderPos);
         }
     }
 
-    [System.Serializable]
-    public class RainImpactZone
+    // Draw rain radius in Scene view
+    void OnDrawGizmosSelected()
     {
-        public string surfaceTag; // "Water", "Foliage", "Metal"
-        public Vector3 center;
-        public Vector3 size = new Vector3(5f, 0f, 5f);
+        if (player == null) return;
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(player.position, rainRadius);
     }
 }
-
