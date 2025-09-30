@@ -27,7 +27,7 @@ public class WeatherSystemManager : MonoBehaviour
 
     [Header("Wind Settings")]
     [Range(0f, 1f)] public float windStrength = 0.3f;
-    public Vector3 windDirection = Vector3.forward;
+    //public Vector3 windDirection = Vector3.forward;
 
     [Header("Thunder Settings")]
     public float thunderChancePerSecond = 0.02f; // chance per second
@@ -50,7 +50,6 @@ public class WeatherSystemManager : MonoBehaviour
         {
             isRainValid = true;
             rainLoopInstance.start();
-            rainLoopInstance.setVolume(0f);
             RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
         }
 
@@ -104,21 +103,24 @@ public class WeatherSystemManager : MonoBehaviour
     {
         if (!isRainValid || player == null) return;
 
-        // Make light rain audible: sqrt curve for smoother perception
-        float audioVolume = Mathf.Clamp01(Mathf.Pow(rainIntensity, 0.5f));
-
-        rainLoopInstance.setVolume(audioVolume);
-        RuntimeManager.StudioSystem.setParameterByName(rainParameterName, audioVolume);
+        
+        RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
     }
 
     void UpdateWindAudio()
     {
         if (!isWindValid) return;
 
-        windInstance.setVolume(windStrength);
+        // Send strength
         RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
-    }
 
+        // Send direction as degrees (-180 to 180)
+       /* float angle = Mathf.Atan2(windDirection.x, windDirection.z) * Mathf.Rad2Deg;
+        RuntimeManager.StudioSystem.setParameterByName("Direction", angle);*/
+    }
+    
+
+    
     void HandleImpactZones()
     {
         if (rainIntensity <= 0f || impactZones.Length == 0) return;
