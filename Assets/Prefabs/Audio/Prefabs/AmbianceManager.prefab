@@ -114,7 +114,7 @@ MonoBehaviour:
       Data2: 1114112257
       Data3: 1506505096
       Data4: -576447551
-    Path: event:/AMB/NestedAMBEvents/AMB_Forest
+    Path: event:/AMB/AMBNested_Events/AMB_Forest
   Event: 
   EventPlayTrigger: 0
   EventStopTrigger: 0
