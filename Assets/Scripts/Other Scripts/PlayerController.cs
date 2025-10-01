@@ -35,6 +35,11 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float fpMaxPitch = 80f;
     [SerializeField] private bool lockCursorInFP = true;
     [SerializeField] private bool hideCursorInFP = true;
+
+    [Tooltip("Hide the player model's renderers while in first person")]
+    [SerializeField] private bool hideModelInFirstPerson = true;
+    [Tooltip("Delay (seconds) after entering first person before hiding the model")]
+    [SerializeField] private float firstPersonHideDelay = 0.12f;
     #endregion
 
     #region Inspector - Head Bob (FP)
@@ -204,6 +209,12 @@ public class PlayerController : MonoBehaviour
     private float previousYaw;
     #endregion
 
+    #region Runtime - Model Visibility
+    // Cached renderers to hide/show when entering/exiting first person
+    private Renderer[] modelRenderers;
+    private Coroutine hideModelCoroutine;
+    #endregion
+
     #region Constants
     private const float EPS = 0.0001f;
     #endregion
@@ -216,6 +227,9 @@ public class PlayerController : MonoBehaviour
         if (!playerCamera) playerCamera = Camera.main;
         if (!cameraPivot) cameraPivot = transform;
         if (!animator) animator = GetComponentInChildren<Animator>();
+
+        // Cache all renderers under this GameObject to control visibility in FP
+        modelRenderers = GetComponentsInChildren<Renderer>(true);
 
         var actions = playerInput.actions;
         moveAction = actions["Move"];
@@ -251,10 +265,18 @@ public class PlayerController : MonoBehaviour
         {
             cameraPitch = Mathf.Clamp(cameraPitch, fpMinPitch, fpMaxPitch);
             ApplyCursorStateFP();
+
+            if (hideModelInFirstPerson)
+            {
+                // Start a hide coroutine after the configured delay
+                hideModelCoroutine = StartCoroutine(HideModelAfterDelay(firstPersonHideDelay));
+            }
         }
         else
         {
             ApplyCursorStateTP();
+            // Ensure model visible at start if not FP
+            SetModelVisible(true);
         }
 
         if (useEyeCloseTransition) CreateEyeCloseOverlay();
@@ -642,6 +664,10 @@ public class PlayerController : MonoBehaviour
         isTransitioningView = false;
         ApplyCursorStateTP();
         cameraPitch = Mathf.Clamp(cameraPitch, minPitch, maxPitch);
+
+        // Ensure model is visible when switching back to TP
+        StopHideCoroutine();
+        SetModelVisible(true);
     }
 
     private IEnumerator ThirdPersonToFirstPerson()
@@ -650,6 +676,9 @@ public class PlayerController : MonoBehaviour
         {
             isFirstPerson = true;
             ApplyCursorStateFP();
+
+            if (hideModelInFirstPerson)
+                hideModelCoroutine = StartCoroutine(HideModelAfterDelay(firstPersonHideDelay));
             yield break;
         }
         isTransitioningView = true;
@@ -676,6 +705,12 @@ public class PlayerController : MonoBehaviour
         isFirstPerson = true;
         isTransitioningView = false;
         cameraPitch = Mathf.Clamp(cameraPitch, fpMinPitch, fpMaxPitch);
+
+        // Start delayed hide of the model
+        if (hideModelInFirstPerson)
+        {
+            hideModelCoroutine = StartCoroutine(HideModelAfterDelay(firstPersonHideDelay));
+        }
     }
 
     private IEnumerator EyeCloseToThirdPerson()
@@ -704,6 +739,10 @@ public class PlayerController : MonoBehaviour
         ApplyCursorStateTP();
         cameraYaw = transform.eulerAngles.y;
         cameraPitch = Mathf.Clamp(cameraPitch, minPitch, maxPitch);
+
+        // Make sure model is visible again when returning to TP
+        StopHideCoroutine();
+        SetModelVisible(true);
 
         t = 0f;
         while (t < fadeOutDur)
@@ -857,8 +896,9 @@ public class PlayerController : MonoBehaviour
         heldRb = heldObject.GetComponent<Rigidbody>();
         if (heldRb)
         {
+            // Make the held object kinematic while held to avoid physics fighting transform updates
             heldRb.useGravity = false;
-            heldRb.isKinematic = false;
+            heldRb.isKinematic = true;
             heldRb.linearVelocity = Vector3.zero;
             heldRb.angularVelocity = Vector3.zero;
         }
@@ -924,13 +964,9 @@ public class PlayerController : MonoBehaviour
 
         if (heldRb)
         {
-#if UNITY_600_OR_NEWER
+            // zero out any residual velocity (object is kinematic while held, but keep for safety)
             heldRb.linearVelocity = Vector3.zero;
             heldRb.angularVelocity = Vector3.zero;
-#else
-            heldRb.linearVelocity = Vector3.zero;
-            heldRb.angularVelocity = Vector3.zero;
-#endif
         }
     }
 
@@ -1017,6 +1053,33 @@ public class PlayerController : MonoBehaviour
     private void ApplyCursorStateTP()
     {
         // Cursor state is now handled by UpdateCursorVisibility()
+    }
+    #endregion
+
+    #region Model Visibility Helpers
+    private IEnumerator HideModelAfterDelay(float delay)
+    {
+        if (delay > 0f)
+            yield return new WaitForSeconds(delay);
+        SetModelVisible(false);
+    }
+
+    private void StopHideCoroutine()
+    {
+        if (hideModelCoroutine != null)
+        {
+            StopCoroutine(hideModelCoroutine);
+            hideModelCoroutine = null;
+        }
+    }
+
+    private void SetModelVisible(bool visible)
+    {
+        if (modelRenderers == null || modelRenderers.Length == 0) return;
+        foreach (var r in modelRenderers)
+        {
+            if (r) r.enabled = visible;
+        }
     }
     #endregion
 
