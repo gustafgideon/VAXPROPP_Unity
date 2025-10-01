@@ -125,7 +125,7 @@ public class WeatherSystemManager : MonoBehaviour
                 if (hit.collider.CompareTag("Foliage")) surfaceParam = 1f;
                 else if (hit.collider.CompareTag("Metal")) surfaceParam = 2f;
                 else if (hit.collider.CompareTag("Water")) surfaceParam = 3f;
-
+                else if (hit.collider.CompareTag("Wood")) surfaceParam = 4f;
                 // Play 3D impact sound
                 if (!rainImpactEvent.IsNull)
                 {
