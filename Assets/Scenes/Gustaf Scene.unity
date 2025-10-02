@@ -40887,6 +40887,11 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 6819050879593883618, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
   m_PrefabInstance: {fileID: 3689455767964182751}
   m_PrefabAsset: {fileID: 0}
+--- !u!20 &531065490 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 4492152658129111061, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+  m_PrefabInstance: {fileID: 3689455767964182751}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &531065491
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40896,9 +40901,48 @@ MonoBehaviour:
   m_GameObject: {fileID: 531065489}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e50e8b0f8ad0400e8205bac6725894e, type: 3}
+  m_Script: {fileID: 11500000, guid: f607aecd1098b49369102efd691cd8f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  presets:
+  - name: Normal
+    resolutionScale: 0.14
+    filterMode: 0
+    postProcessMaterial: {fileID: 0}
+    stretchX: 1
+    stretchY: 1
+    rotation: 0
+    uvTiling: {x: 1, y: 1}
+    uvOffset: {x: 0, y: 0}
+    tint: {r: 1, g: 1, b: 1, a: 1}
+  targetCamera: {fileID: 531065490}
+  overlayImage: {fileID: 826419060}
+  transitionDuration: 0.65
+  transitionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  defaultPresetName: Normal
 --- !u!1 &545497710
 GameObject:
   m_ObjectHideFlags: 0
@@ -65657,7 +65701,7 @@ GameObject:
   - component: {fileID: 826419061}
   - component: {fileID: 826419060}
   m_Layer: 5
-  m_Name: RawImage
+  m_Name: VisionRawImage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -93698,7 +93742,7 @@ GameObject:
   - component: {fileID: 1688820117}
   - component: {fileID: 1688820116}
   m_Layer: 5
-  m_Name: PixelCanvas
+  m_Name: VisionCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -106609,6 +106653,26 @@ PrefabInstance:
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: distance
+      value: 4.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: maxDistance
+      value: 4.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: minDistance
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: eyeCloseFadeInPortion
+      value: 0.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: eyeCloseTotalDuration
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 6806600987177336883, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_RenderPostProcessing
