@@ -106435,6 +106435,26 @@ PrefabInstance:
       propertyPath: minDistance
       value: 2.1
       objectReference: {fileID: 0}
+    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: presets.Array.data[0].tint.a
+      value: 0.98039216
+      objectReference: {fileID: 0}
+    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: presets.Array.data[0].stretchX
+      value: 1.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: presets.Array.data[0].stretchY
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: presets.Array.data[0].filterMode
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: presets.Array.data[0].resolutionScale
+      value: 0.185
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
