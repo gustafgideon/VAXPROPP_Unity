@@ -71356,6 +71356,7 @@ PrefabInstance:
     m_RemovedComponents:
     - {fileID: 2783138989755118426, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
     - {fileID: 1048909360576099711, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
+    - {fileID: 79096560874549502, guid: 7097ba7ba649e1f41bba232312bdcbd8, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -105836,55 +105837,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 05865ca97340dd441b06af6f778c2832, type: 3}
---- !u!1 &2090176996 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 120805247324170805, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-  m_PrefabInstance: {fileID: 3689455767964182751}
-  m_PrefabAsset: {fileID: 0}
---- !u!54 &2090177002
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2090176996}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!114 &2090177003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2090176996}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6240dce60067042a08cb359b47f7f983, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  splashEffect: {fileID: 1865789814}
-  wadeEffect: {fileID: 1441117239}
-  instantiateWadeAsPrefab: 0
-  wadeSurfaceOffset: 0.05
-  waterTag: Water
 --- !u!1 &2091271264
 GameObject:
   m_ObjectHideFlags: 0
@@ -106702,14 +106654,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
-    - target: {fileID: 4128754689390353992, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: m_SortingOrder
-      value: 100
-      objectReference: {fileID: 0}
-    - target: {fileID: 4492152658129111061, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: field of view
-      value: 83
-      objectReference: {fileID: 0}
+    - target: {fileID: 2814412425116880205, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: wadeEffect
+      value: 
+      objectReference: {fileID: 1441117239}
+    - target: {fileID: 2814412425116880205, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: splashEffect
+      value: 
+      objectReference: {fileID: 1865789814}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -106750,48 +106702,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: distance
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: maxDistance
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: minDistance
-      value: 2.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: presets.Array.data[0].tint.a
-      value: 0.98039216
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: presets.Array.data[0].stretchX
-      value: 1.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: presets.Array.data[0].stretchY
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: presets.Array.data[0].filterMode
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: presets.Array.data[0].resolutionScale
-      value: 0.19
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 120805247324170805, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      insertIndex: 1
-      addedObject: {fileID: 2090177002}
-    - targetCorrespondingSourceObject: {fileID: 120805247324170805, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2090177003}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
 --- !u!1001 &4350707814499708178
 PrefabInstance:

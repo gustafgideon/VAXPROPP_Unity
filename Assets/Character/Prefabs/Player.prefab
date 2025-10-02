@@ -41,9 +41,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5944023254701551784}
+  - component: {fileID: 5023486583303480043}
   - component: {fileID: 2422266723297528772}
   - component: {fileID: 8137753191953159468}
   - component: {fileID: 6453010615568738857}
+  - component: {fileID: 2814412425116880205}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -70,6 +72,33 @@ Transform:
   - {fileID: 2320691866140973593}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!54 &5023486583303480043
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 120805247324170805}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!143 &2422266723297528772
 CharacterController:
   m_ObjectHideFlags: 0
@@ -139,9 +168,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cameraPivot: {fileID: 9031883901656568056}
   playerCamera: {fileID: 4492152658129111061}
-  distance: 4.5
-  minDistance: 2
-  maxDistance: 4.5
+  distance: 3
+  minDistance: 2.1
+  maxDistance: 3
   zoomSensitivity: 2.5
   orbitSensitivityX: 1500
   orbitSensitivityY: 1500
@@ -175,7 +204,7 @@ MonoBehaviour:
   eyeCloseColor: {r: 0, g: 0, b: 0, a: 1}
   eyeCloseFadeInPortion: 0.12
   walkSpeed: 3.6
-  runSpeed: 7
+  runSpeed: 6
   acceleration: 30
   deceleration: 10
   airControlPercent: 0.45
@@ -254,6 +283,23 @@ MonoBehaviour:
   throwPowerBar: {fileID: 0}
   showThrowBarWhileCharging: 1
   forwardThrowUpwardFactor: 0.15
+--- !u!114 &2814412425116880205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 120805247324170805}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6240dce60067042a08cb359b47f7f983, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  splashEffect: {fileID: 0}
+  wadeEffect: {fileID: 0}
+  instantiateWadeAsPrefab: 0
+  wadeSurfaceOffset: 0.05
+  waterTag: Water
 --- !u!1 &224406766821213526
 GameObject:
   m_ObjectHideFlags: 0
@@ -1378,7 +1424,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_TargetDisplay: 0
 --- !u!114 &2437323529730489137
 MonoBehaviour:
@@ -2222,7 +2268,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 83
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -2312,15 +2358,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   presets:
   - name: Normal
-    resolutionScale: 0.18
+    resolutionScale: 0.19
     filterMode: 0
     postProcessMaterial: {fileID: 0}
-    stretchX: 1
+    stretchX: 1.2
     stretchY: 1
     rotation: 0
     uvTiling: {x: 1, y: 1}
     uvOffset: {x: 0, y: 0}
-    tint: {r: 1, g: 1, b: 1, a: 1}
+    tint: {r: 1, g: 1, b: 1, a: 0.98039216}
   targetCamera: {fileID: 4492152658129111061}
   overlayImage: {fileID: 7181340146267067817}
   transitionDuration: 0.65

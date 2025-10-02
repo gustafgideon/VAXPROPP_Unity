@@ -11,8 +11,7 @@ GameObject:
   - component: {fileID: 1507636620937791777}
   - component: {fileID: 1507636620937791838}
   - component: {fileID: 1507636620937791839}
-  - component: {fileID: 2783138989755118426}
-  - component: {fileID: 1048909360576099711}
+  - component: {fileID: 79096560874549502}
   m_Layer: 4
   m_Name: WaterBlock_50m
   m_TagString: Water
@@ -88,8 +87,8 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &2783138989755118426
-MeshCollider:
+--- !u!65 &79096560874549502
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -106,20 +105,6 @@ MeshCollider:
   m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 1
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 4300000, guid: 3da23cdf512599b42881988944f3918c, type: 2}
---- !u!114 &1048909360576099711
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1507636620937791836}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bea48561465b14b7181db65df9d23331, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  debugRadius: 0.5
+  serializedVersion: 3
+  m_Size: {x: 50.000023, y: 0, z: 50.00001}
+  m_Center: {x: -0.000030517578, y: 0, z: 0}
