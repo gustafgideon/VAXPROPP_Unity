@@ -106375,6 +106375,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 4128754689390353992, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: m_SortingOrder
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 4492152658129111061, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: field of view
+      value: 83
+      objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -106414,6 +106422,18 @@ PrefabInstance:
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: distance
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: maxDistance
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: minDistance
+      value: 2.1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
