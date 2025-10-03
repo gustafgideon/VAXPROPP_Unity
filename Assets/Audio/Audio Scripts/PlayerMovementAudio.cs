@@ -38,6 +38,7 @@ public class PlayerMovementAudio : MonoBehaviour
                 case "Grass": return "Grass";
                 case "Dirt": return "Dirt";
                 case "Wood": return "Wood";
+                case "Concrete": return "Concrete";
             }
 
             // Priority 2: Check if it’s terrain
@@ -70,7 +71,8 @@ public class PlayerMovementAudio : MonoBehaviour
                     case 0: return "Grass";
                     case 1: return "Dirt";
                     case 2: return "Wood";
-                    default: return "Concrete";
+                    case 3: return "Concrete";
+                    default: return "Player";
                 }
             }
         }

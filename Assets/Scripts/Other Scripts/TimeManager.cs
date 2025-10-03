@@ -59,6 +59,7 @@ public class TimeManager : MonoBehaviour
         SetState(currentState);
 
         UpdateSkyboxTextures();
+        UpdateTimeOfDayLerp();
         UpdateLightImmediate();
         UpdateSunRotation();
     }
@@ -76,6 +77,8 @@ public class TimeManager : MonoBehaviour
 
         UpdateSunRotation();
         UpdateState();
+
+        UpdateTimeOfDayLerp();
         UpdateSkyboxBlend();
         UpdateLightBlend();
     }
@@ -106,7 +109,7 @@ public class TimeManager : MonoBehaviour
             SetState(newState);
 
             StartLerpLight(GetNormalGradientForState(newState), transitionDuration);
-            UpdateSkyboxTextures(); // <- important for shader
+            UpdateSkyboxTextures();
             SetTimeOfDayParameter(newState);
         }
     }
@@ -124,8 +127,45 @@ public class TimeManager : MonoBehaviour
         if (RenderSettings.skybox == null) return;
 
         Material skyMat = RenderSettings.skybox;
+
+        // Normal sky textures
         skyMat.SetTexture("_Texture1", GetBaseSkyForState(currentState));
-        skyMat.SetTexture("_Texture2", GetOvercastSkyForState(currentState));
+        skyMat.SetTexture("_Texture2", GetNextBaseSkyForLerp(currentState));
+
+        // Exposure
+        skyMat.SetFloat("_Exposure1", 1f); // tweak if needed
+        skyMat.SetFloat("_Exposure2", 1f);
+
+        // Overcast texture
+        skyMat.SetTexture("_OvercastTexture", GetOvercastSkyForState(currentState));
+    }
+
+
+    private void UpdateTimeOfDayLerp()
+    {
+        if (RenderSettings.skybox == null) return;
+
+        float lerp = 0f;
+        float hourFraction = hours + minutes / 60f;
+
+        switch (currentState)
+        {
+            case DayState.Dawn:
+                lerp = Mathf.InverseLerp(5f, 7f, hourFraction);
+                break;
+            case DayState.Day:
+                lerp = Mathf.InverseLerp(7f, 18f, hourFraction);
+                break;
+            case DayState.Dusk:
+                lerp = Mathf.InverseLerp(18f, 21f, hourFraction);
+                break;
+            case DayState.Night:
+                float hourForNight = hours >= 21 ? hours : hours + 24f; // wrap around midnight
+                lerp = Mathf.InverseLerp(21f, 29f, hourForNight + minutes / 60f);
+                break;
+        }
+
+        RenderSettings.skybox.SetFloat("_TimeOfDayLerp", lerp);
     }
 
     private void UpdateSkyboxBlend()
@@ -144,6 +184,18 @@ public class TimeManager : MonoBehaviour
             DayState.Day => skyboxDay,
             DayState.Dusk => skyboxDusk,
             DayState.Night => skyboxNight,
+            _ => skyboxNight
+        };
+    }
+
+    private Texture2D GetNextBaseSkyForLerp(DayState state)
+    {
+        return state switch
+        {
+            DayState.Night => skyboxDawn,
+            DayState.Dawn => skyboxDay,
+            DayState.Day => skyboxDusk,
+            DayState.Dusk => skyboxNight,
             _ => skyboxNight
         };
     }

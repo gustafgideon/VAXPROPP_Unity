@@ -41466,6 +41466,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3150835355122854291, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: exitAmbiance
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3150835355122854291, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: useOnTriggerExit
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3766797728569517965, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
       propertyPath: m_Size.x
       value: 77.407166
@@ -70105,7 +70113,7 @@ GameObject:
   - component: {fileID: 947963997}
   m_Layer: 0
   m_Name: StairPad2
-  m_TagString: Untagged
+  m_TagString: Concrete
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -94524,7 +94532,7 @@ MonoBehaviour:
       Data2: 1279445097
       Data3: 1757279154
       Data4: 531760065
-    Path: event:/AMB/WeatherSystem/WeatherRainLoop
+    Path: event:/AMB/WeatherSystem/RainLoopEvents/WeatherRainLoop
   windEvent:
     Guid:
       Data1: 57825607
@@ -111499,11 +111507,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2699528001781777693, guid: ff44e9e35822a3644ae9a9f0a942a773, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.861086
+      value: -5.26
       objectReference: {fileID: 0}
     - target: {fileID: 2699528001781777693, guid: ff44e9e35822a3644ae9a9f0a942a773, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 10.54648
+      value: 10.16
       objectReference: {fileID: 0}
     - target: {fileID: 2699528001781777693, guid: ff44e9e35822a3644ae9a9f0a942a773, type: 3}
       propertyPath: m_LocalPosition.z
