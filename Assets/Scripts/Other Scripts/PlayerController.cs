@@ -64,6 +64,8 @@ public class PlayerController : MonoBehaviour
     [Header("Movement")]
     [SerializeField] private float walkSpeed = 4.2f;
     [SerializeField] private float runSpeed = 7.5f;
+    [Tooltip("Maximum speed allowed while moving backwards. Must be less than walkSpeed.")]
+    [SerializeField] private float backwardSpeed = 3.0f;
     [SerializeField] private float acceleration = 14f;
     [SerializeField] private float deceleration = 18f;
     [SerializeField] private float airControlPercent = 0.45f;
@@ -232,18 +234,22 @@ public class PlayerController : MonoBehaviour
         modelRenderers = GetComponentsInChildren<Renderer>(true);
 
         var actions = playerInput.actions;
-        moveAction = actions["Move"];
-        lookAction = actions["Look"];
-        jumpAction = actions["Jump"];
-        runAction = actions["Run"];
-        if (!string.IsNullOrEmpty(switchViewActionName) && actions.FindAction(switchViewActionName) != null)
-            switchViewAction = actions[switchViewActionName];
-        if (!string.IsNullOrEmpty(pickupActionName) && actions.FindAction(pickupActionName) != null)
-            pickupAction = actions[pickupActionName];
-        if (!string.IsNullOrEmpty(throwActionName) && actions.FindAction(throwActionName) != null)
-            throwAction = actions[throwActionName];
-        if (!string.IsNullOrEmpty(interactActionName) && actions.FindAction(interactActionName) != null)
-            interactAction = actions[interactActionName];
+        // Use safe lookup to avoid exceptions if actions are missing in the InputActionAsset
+        if (actions != null)
+        {
+            if (actions.FindAction("Move") != null) moveAction = actions["Move"];
+            if (actions.FindAction("Look") != null) lookAction = actions["Look"];
+            if (actions.FindAction("Jump") != null) jumpAction = actions["Jump"];
+            if (actions.FindAction("Run") != null) runAction = actions["Run"];
+            if (!string.IsNullOrEmpty(switchViewActionName) && actions.FindAction(switchViewActionName) != null)
+                switchViewAction = actions[switchViewActionName];
+            if (!string.IsNullOrEmpty(pickupActionName) && actions.FindAction(pickupActionName) != null)
+                pickupAction = actions[pickupActionName];
+            if (!string.IsNullOrEmpty(throwActionName) && actions.FindAction(throwActionName) != null)
+                throwAction = actions[throwActionName];
+            if (!string.IsNullOrEmpty(interactActionName) && actions.FindAction(interactActionName) != null)
+                interactAction = actions[interactActionName];
+        }
 
         targetDistance = distance;
         currentDistance = distance;
@@ -281,6 +287,13 @@ public class PlayerController : MonoBehaviour
 
         if (useEyeCloseTransition) CreateEyeCloseOverlay();
         if (throwPowerBar) throwPowerBar.gameObject.SetActive(false);
+
+        // Safety: ensure backwardSpeed is sensible relative to walkSpeed
+        if (backwardSpeed >= walkSpeed)
+        {
+            backwardSpeed = Mathf.Max(0.01f, walkSpeed * 0.9f);
+            Debug.LogWarning($"PlayerController: backwardSpeed was >= walkSpeed. It has been clamped to {backwardSpeed:F2} to ensure backward movement is slower than forward walking.");
+        }
     }
 
     private void OnEnable()
@@ -355,7 +368,7 @@ public class PlayerController : MonoBehaviour
         UpdateMovementReference();
     }
 
-    private void ReadMovementInput() => moveInput = moveAction.ReadValue<Vector2>();
+    private void ReadMovementInput() => moveInput = moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
 
     private void ReadMouseButtons()
     {
@@ -366,12 +379,12 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void ReadLookInput() => lookDelta = lookAction.ReadValue<Vector2>();
+    private void ReadLookInput() => lookDelta = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
 
     private void ReadRunJump()
     {
-        isRunning = runAction.ReadValue<float>() > 0.5f;
-        if (jumpAction.triggered && !jumpQueued && isGrounded)
+        isRunning = runAction != null && runAction.ReadValue<float>() > 0.5f;
+        if (jumpAction != null && jumpAction.triggered && !jumpQueued && isGrounded)
             jumpQueued = true;
     }
 
@@ -433,7 +446,27 @@ public class PlayerController : MonoBehaviour
         Vector3 inputDir = (refForward * moveInput.y + refRight * moveInput.x);
         if (inputDir.sqrMagnitude > 1f) inputDir.Normalize();
 
-        float targetSpeed = (isRunning ? runSpeed : walkSpeed) * inputDir.magnitude;
+        // Determine movement direction relative to forward input (in input space)
+        bool movingForward = moveInput.y > forwardThreshold;
+        bool movingBackward = moveInput.y < -forwardThreshold;
+
+        // Prevent running when moving backward (explicit requirement).
+        bool effectiveRunning = isRunning && movingForward;
+
+        float inputMagnitude = inputDir.magnitude;
+
+        float baseSpeed;
+        if (movingBackward)
+        {
+            // Always use backwardSpeed when moving backward (never run backwards)
+            baseSpeed = backwardSpeed;
+        }
+        else
+        {
+            baseSpeed = effectiveRunning ? runSpeed : walkSpeed;
+        }
+
+        float targetSpeed = baseSpeed * inputMagnitude;
 
         Vector3 horizVel = new Vector3(velocity.x, 0f, velocity.z);
         float currentSpeed = horizVel.magnitude;

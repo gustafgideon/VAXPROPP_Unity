@@ -25,24 +25,35 @@ public class AmbianceManager : MonoBehaviour
 
     private StudioEventEmitter emitter;
     private StudioEventEmitter currentlyPlaying;
+    private GameObject player;
 
+    
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(this);
+            Destroy(gameObject); // Destroy the entire GameObject, not just component
+            return;
         }
-        else
+    
+        Instance = this;
+        DontDestroyOnLoad(gameObject); // Apply to GameObject, not component
+    }
+    
+    private void Start()
+    {
+        // Cache player reference once
+        player = GameObject.FindWithTag("Player");
+    
+        if (player == null && debugLogging)
         {
-            Instance = this;
+            Debug.LogWarning("⚠️ AmbianceManager: No player found!");
         }
-        DontDestroyOnLoad(this);
     }
 
     private void Update()
     {
-        // Follow the player if there is one
-        GameObject player = GameObject.FindWithTag("Player");
+        // Follow cached player reference
         if (player != null)
         {
             transform.position = player.transform.position;

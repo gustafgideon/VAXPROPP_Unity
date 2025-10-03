@@ -107219,6 +107219,10 @@ PrefabInstance:
       value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: backwardSpeed
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: diagonalExtraDampDegrees
       value: 1.9
       objectReference: {fileID: 0}
