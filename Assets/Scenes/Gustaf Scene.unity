@@ -107198,56 +107198,7 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: gravity
-      value: -12
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: runSpeed
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: jumpForce
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: walkSpeed
-      value: 2.6
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: deceleration
-      value: 15
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: backwardSpeed
-      value: 1.4
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: forceAAndDAsStrafe
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: rotateToMovementSpeed
-      value: 720
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: diagonalExtraDampDegrees
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: characterMouseLookYawSpeed
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: forwardDiagonalTurnSpeedMultiplier
-      value: 0.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
-      propertyPath: allowRotateToMovementWhenNotMouselooking
-      value: 1
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 7176742697443208307, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

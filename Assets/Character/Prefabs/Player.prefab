@@ -203,9 +203,9 @@ MonoBehaviour:
   eyeCloseTotalDuration: 0.6
   eyeCloseColor: {r: 0, g: 0, b: 0, a: 1}
   eyeCloseFadeInPortion: 0.12
-  walkSpeed: 2.6
-  runSpeed: 5
-  backwardSpeed: 1.4
+  walkSpeed: 1.2
+  runSpeed: 2.2
+  backwardSpeed: 0.7
   acceleration: 30
   deceleration: 15
   airControlPercent: 0.45
@@ -240,6 +240,8 @@ MonoBehaviour:
   animParamDrop: Drop
   animParamThrow: Throw
   animParamInteract: Interact
+  animParamIsFalling: IsFalling
+  animParamLand: Land
   switchViewActionName: SwitchView
   tpToFpTransitionDuration: 0.5
   tpToFpVerticalArc: 0.4

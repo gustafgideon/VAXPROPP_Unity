@@ -121,6 +121,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private string animParamDrop = "Drop";
     [SerializeField] private string animParamThrow = "Throw";
     [SerializeField] private string animParamInteract = "Interact";
+    [SerializeField] private string animParamIsFalling = "IsFalling";
+    [SerializeField] private string animParamLand = "Land";
     #endregion
 
     #region Inspector - View Toggle
@@ -478,6 +480,23 @@ public class PlayerController : MonoBehaviour
         velocity.y += g * dt;
 
         controller.Move(velocity * dt);
+        controller.Move(velocity * dt);
+        isGrounded = controller.isGrounded;
+        if (isGrounded && velocity.y < 0f) velocity.y = -2f;
+
+// Animator: falling/landing detection (minimal, only sets parameters)
+        if (animator)
+        {
+            // Consider the player "falling" when airborne and vertical velocity is negative beyond a small threshold.
+            bool nowFalling = !isGrounded && velocity.y < -0.1f;
+            animator.SetBool(animParamIsFalling, nowFalling);
+
+            // If we were not grounded last frame but are grounded now => landed this frame
+            if (!wasGrounded && isGrounded)
+            {
+                TriggerAnimatorAction(animParamLand);
+            }
+        }
         isGrounded = controller.isGrounded;
         if (isGrounded && velocity.y < 0f) velocity.y = -2f;
 
