@@ -2720,11 +2720,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerAudio: {fileID: 11400000, guid: bf2230818dad30a469ed1d2012b3f270, type: 2}
-  playerFeet: {fileID: 4428851560239054765}
-  rayDistance: 1.5
+  playerFoot: {fileID: 4428851560239054765}
+  playerHand: {fileID: 4133335356112340805}
+  rayDistance: 1
   surfaceLayerMask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 65
 --- !u!137 &6227706201886142797
 SkinnedMeshRenderer:
   m_ObjectHideFlags: 0
