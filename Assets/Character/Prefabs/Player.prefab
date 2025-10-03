@@ -203,27 +203,28 @@ MonoBehaviour:
   eyeCloseTotalDuration: 0.6
   eyeCloseColor: {r: 0, g: 0, b: 0, a: 1}
   eyeCloseFadeInPortion: 0.12
-  walkSpeed: 3.6
-  runSpeed: 6
+  walkSpeed: 2.6
+  runSpeed: 5
+  backwardSpeed: 1.4
   acceleration: 30
-  deceleration: 10
+  deceleration: 15
   airControlPercent: 0.45
-  gravity: -24
-  jumpForce: 7
+  gravity: -12
+  jumpForce: 4
   extraFallGravityMultiplier: 1.5
   allowRotateToMovementWhenNotMouselooking: 1
-  rotateToMovementSpeed: 540
-  forceAAndDAsStrafe: 1
-  characterMouseLookYawSpeed: 720
+  rotateToMovementSpeed: 720
+  forceAAndDAsStrafe: 0
+  characterMouseLookYawSpeed: 520
   rotateOnlyWhenMovingForward: 1
   allowBackwardTurn: 0
   allowPureStrafeTurn: 0
   forwardDiagonalTurnSpeedMultiplier: 0.2
-  diagonalExtraDampDegrees: 0
+  diagonalExtraDampDegrees: 1
   forwardThreshold: 0.2
   strafeThreshold: 0.2
   animator: {fileID: 6972640204651235396}
-  speedBlendAcceleration: 6
+  speedBlendAcceleration: 7
   turnDirectionSensitivity: 3
   strafeDetectionSpeed: 0.3
   animParamSpeed: Speed
@@ -2211,7 +2212,6 @@ GameObject:
   - component: {fileID: 4492152658129111061}
   - component: {fileID: 6096714064682944214}
   - component: {fileID: 6806600987177336883}
-  - component: {fileID: 7176742697443208307}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -2344,57 +2344,6 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
---- !u!114 &7176742697443208307
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6819050879593883618}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f607aecd1098b49369102efd691cd8f4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  presets:
-  - name: Normal
-    resolutionScale: 0.19
-    filterMode: 0
-    postProcessMaterial: {fileID: 0}
-    stretchX: 1.2
-    stretchY: 1
-    rotation: 0
-    uvTiling: {x: 1, y: 1}
-    uvOffset: {x: 0, y: 0}
-    tint: {r: 1, g: 1, b: 1, a: 0.98039216}
-  targetCamera: {fileID: 4492152658129111061}
-  overlayImage: {fileID: 7181340146267067817}
-  transitionDuration: 0.65
-  transitionCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  defaultPresetName: Normal
 --- !u!1 &6829883068478655486
 GameObject:
   m_ObjectHideFlags: 0
