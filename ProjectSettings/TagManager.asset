@@ -10,7 +10,7 @@ TagManager:
   - Stone
   - Concrete
   - WaterWade
-  - Stairs_Concrete
+  - Concrete_Stair
   layers:
   - Default
   - TransparentFX

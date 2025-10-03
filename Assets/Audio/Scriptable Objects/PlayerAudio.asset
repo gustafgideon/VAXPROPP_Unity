@@ -40,3 +40,10 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
+  playerWalkStair:
+    Guid:
+      Data1: 381423103
+      Data2: 1199103676
+      Data3: -97543746
+      Data4: 1421951051
+    Path: event:/Player/PlayerMovement/Player_Walk_Stairs

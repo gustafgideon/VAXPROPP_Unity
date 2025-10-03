@@ -8,80 +8,10 @@
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/PlayerAudio.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/PlayerAudio.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/PlayerMovementAudio.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/PlayerMovementAudio.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted1.mtl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted1.mtl.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted1.obj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted1.obj.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted1.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted1.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted2.mtl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted2.mtl.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted2.obj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted2.obj.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted2.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted2.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted3.mtl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted3.mtl.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted3.obj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted3.obj.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted3.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/CorruptedMeshes/Corrupted3.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_01.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_01.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_02.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_02.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_03.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_03.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_04.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_04.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_05.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_05.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_06.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_06.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_07.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_07.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_08.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_08.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_09.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Materials/Glitch_09.mat.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Prefabs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Prefabs/Frame.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Prefabs/Frame.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Prefabs/GlitchTest.prefab" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Prefabs/GlitchTest.prefab.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Scripts.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Scripts/MaterialGlitch.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Scripts/MaterialGlitch.cs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Scripts/TerminalDataFrame.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Scripts/TerminalDataFrame.cs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Scripts/TerminalSlamGlitch.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Scripts/TerminalSlamGlitch.cs.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.08.29.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.08.29.png.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.08.42.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.08.42.png.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.08.58.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.08.58.png.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.09.35.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.09.35.png.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.10.07.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.10.07.png.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.10.25.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.10.25.png.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.12.43.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.12.43.png.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.14.22.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.14.22.png.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.14.32.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/GlitchSystem/Textures/Skärmavbild 2025-08-15 kl. 12.14.32.png.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Scriptable Objects/PlayerAudio.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Scriptable Objects/PlayerAudio.asset" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.strings.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.strings.bank" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 1.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 1.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox.shader" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox.shader" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ProjectSettings/TagManager.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/TagManager.asset" afterDir="false" />
     </list>
