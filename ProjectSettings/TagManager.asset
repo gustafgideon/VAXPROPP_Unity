@@ -7,6 +7,10 @@ TagManager:
   - Foliage
   - Water
   - Wood
+  - Stone
+  - Concrete
+  - WaterWade
+  - Stairs_Concrete
   layers:
   - Default
   - TransparentFX
