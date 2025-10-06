@@ -8,9 +8,8 @@
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/PlayerAudio.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/PlayerAudio.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/PlayerMovementAudio.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/PlayerMovementAudio.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Scriptable Objects/PlayerAudio.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Scriptable Objects/PlayerAudio.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Character/Animations/Locomotion Pack/Walking.anim" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Character/Animations/Locomotion Pack/Walking.anim" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.strings.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.strings.bank" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 1.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 1.unity" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ProjectSettings/TagManager.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/TagManager.asset" afterDir="false" />
@@ -140,6 +139,8 @@
       <workItem from="1759423636332" duration="6737000" />
       <workItem from="1759466805906" duration="4251000" />
       <workItem from="1759485888722" duration="945000" />
+      <workItem from="1759740578290" duration="2704000" />
+      <workItem from="1759753056160" duration="3645000" />
     </task>
     <servers />
   </component>

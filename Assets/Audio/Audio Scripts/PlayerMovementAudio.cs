@@ -37,6 +37,8 @@ public class PlayerMovementAudio : MonoBehaviour
         playerAudio.PlayerWalkAudio(playerFoot, surface, stairDirection);
 
         Debug.Log($"Footstep: {surface}, StairDirection: {stairDirection}");
+        
+        Debug.Log("Footstep triggered by: " + GetComponent<Animator>().GetCurrentAnimatorClipInfo(0)[0].clip.name);
     }
 
     // Raycast to detect surface
@@ -53,6 +55,8 @@ public class PlayerMovementAudio : MonoBehaviour
                 case "Dirt": return "Dirt";
                 case "Wood": return "Wood";
                 case "Concrete": return "Concrete";
+                case "Sand": return "Sand";
+                case"Stone": return "Stone";
                 case "Concrete_Stair": return "Concrete_Stair";
                 case "Wood_Stair": return "Wood_Stair";
             }
@@ -86,6 +90,7 @@ public class PlayerMovementAudio : MonoBehaviour
                     case 1: return "Dirt";
                     case 2: return "Wood";
                     case 3: return "Concrete";
+                    case 4: return "Sand";
                     default: return "Player";
                 }
             }

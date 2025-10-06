@@ -11,6 +11,7 @@ TagManager:
   - Concrete
   - WaterWade
   - Concrete_Stair
+  - Sand
   layers:
   - Default
   - TransparentFX
