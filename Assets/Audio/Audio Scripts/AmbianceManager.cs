@@ -18,7 +18,7 @@ public class AmbianceManager : MonoBehaviour
     [SerializeField] private StudioEventEmitter factoryAmbianceEmitter;
 
     [Header("Fade Settings")]
-    [SerializeField] private float fadeTime = 2f;
+    [SerializeField] private float defaultFadeTime = 2f;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogging = true;
@@ -27,49 +27,36 @@ public class AmbianceManager : MonoBehaviour
     private StudioEventEmitter currentlyPlaying;
     private GameObject player;
 
-    
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Destroy(gameObject); // Destroy the entire GameObject, not just component
+            Destroy(gameObject);
             return;
         }
-    
         Instance = this;
-        DontDestroyOnLoad(gameObject); // Apply to GameObject, not component
+        DontDestroyOnLoad(gameObject);
     }
-    
+
     private void Start()
     {
-        // Cache player reference once
         player = GameObject.FindWithTag("Player");
-    
-        if (player == null && debugLogging)
-        {
-            Debug.LogWarning("⚠️ AmbianceManager: No player found!");
-        }
+        if (!player && debugLogging)
+            Debug.LogWarning("AmbianceManager: No player found!");
     }
 
     private void Update()
     {
-        // Follow cached player reference
         if (player != null)
-        {
             transform.position = player.transform.position;
-        }
     }
 
     private void GetLocation(Location location)
     {
         switch (location)
         {
-            case Location.Forest:
-                emitter = forestAmbianceEmitter;
-                break;
-            case Location.Factory:
-                emitter = factoryAmbianceEmitter;
-                break;
+            case Location.Forest: emitter = forestAmbianceEmitter; break;
+            case Location.Factory: emitter = factoryAmbianceEmitter; break;
         }
     }
 
@@ -78,67 +65,125 @@ public class AmbianceManager : MonoBehaviour
     public void ChangeAmbiance(Location newLocation)
     {
         GetLocation(newLocation);
+        if (emitter == null)
+        {
+            if (debugLogging) Debug.LogWarning($"AmbianceManager: No emitter for {newLocation}");
+            return;
+        }
+
+        if (!emitter.IsActive)
+        {
+            emitter.Play();
+            emitter.EventInstance.setVolume(0f);
+        }
 
         if (currentlyPlaying != null && currentlyPlaying != emitter)
-        {
-            StartCoroutine(CrossFade(currentlyPlaying, emitter));
-        }
-        else
-        {
-            StartCoroutine(FadeIn(emitter));
-        }
+            StartCoroutine(CrossFade(currentlyPlaying, emitter, defaultFadeTime));
+        else if (currentlyPlaying != emitter)
+            StartCoroutine(FadeIn(emitter, defaultFadeTime));
 
         currentlyPlaying = emitter;
+
+        if (debugLogging) Debug.Log($"AmbianceManager: Changed ambiance to {newLocation}");
     }
 
     public void PlayAudio(Location location)
     {
         GetLocation(location);
-        if (!emitter.IsActive)
+        if (emitter != null && !emitter.IsActive)
         {
             emitter.Play();
             currentlyPlaying = emitter;
-            if (debugLogging) Debug.Log($"🎵 Started playing {location} ambiance");
+            if (debugLogging) Debug.Log($"PlayAudio: {location}");
         }
     }
 
     public void StopAudio(Location location)
     {
         GetLocation(location);
-        if (emitter.IsActive)
+        if (emitter != null && emitter.IsActive)
         {
             emitter.Stop();
-            if (currentlyPlaying == emitter)
-                currentlyPlaying = null;
-            if (debugLogging) Debug.Log($"🛑 Stopped {location} ambiance");
+            if (currentlyPlaying == emitter) currentlyPlaying = null;
+            if (debugLogging) Debug.Log($"StopAudio: {location}");
         }
     }
 
+    // Event-local parameter
     public void SetParameter(Location location, string parameterName, float parameterValue)
     {
+        if (string.IsNullOrEmpty(parameterName)) return;
         GetLocation(location);
-        if (emitter.IsActive)
-            emitter.SetParameter(parameterName, parameterValue);
+        if (emitter == null) return;
+
+        if (!emitter.IsActive)
+            emitter.Play();
+
+        emitter.SetParameter(parameterName, parameterValue);
+
+        if (debugLogging) Debug.Log($"Event Parameter {parameterName}->{parameterValue} on {location}");
+    }
+
+    // GLOBAL parameter
+    public void SetGlobalParameter(string parameterName, float value, bool log = true)
+    {
+        if (string.IsNullOrEmpty(parameterName)) return;
+        RuntimeManager.StudioSystem.setParameterByName(parameterName, value);
+        if (debugLogging && log) Debug.Log($"Global Parameter {parameterName} -> {value}");
+    }
+
+    public void SetGlobalParameterFade(string parameterName, float from, float to, float time)
+    {
+        StartCoroutine(FadeGlobalParameter(parameterName, from, to, time));
+    }
+
+    private IEnumerator FadeGlobalParameter(string parameterName, float from, float to, float time)
+    {
+        if (time <= 0f)
+        {
+            SetGlobalParameter(parameterName, to);
+            yield break;
+        }
+
+        float t = 0f;
+        while (t < time)
+        {
+            t += Time.deltaTime;
+            float v = Mathf.Lerp(from, to, t / time);
+            RuntimeManager.StudioSystem.setParameterByName(parameterName, v);
+            yield return null;
+        }
+        RuntimeManager.StudioSystem.setParameterByName(parameterName, to);
+        if (debugLogging) Debug.Log($"Global Parameter (faded) {parameterName} -> {to}");
+    }
+
+    public void DebugReadGlobalParameter(string parameterName)
+    {
+        if (!debugLogging) return;
+        if (RuntimeManager.StudioSystem.getParameterDescriptionByName(parameterName, out var desc) == FMOD.RESULT.OK)
+        {
+            RuntimeManager.StudioSystem.getParameterByID(desc.id, out float value, out float finalValue);
+            Debug.Log($"[ParamDebug] {parameterName} Raw:{value} Final:{finalValue}");
+        }
     }
 
     #endregion
 
     #region Fade Logic
 
-    private IEnumerator CrossFade(StudioEventEmitter oldEmitter, StudioEventEmitter newEmitter)
+    private IEnumerator CrossFade(StudioEventEmitter oldEmitter, StudioEventEmitter newEmitter, float duration)
     {
-        if (!newEmitter.IsActive)
-            newEmitter.Play();
+        if (!newEmitter.IsActive) newEmitter.Play();
+        newEmitter.EventInstance.setVolume(0f);
+        oldEmitter.EventInstance.setVolume(1f);
 
-        float timer = 0f;
-        while (timer < fadeTime)
+        float t = 0f;
+        while (t < duration)
         {
-            timer += Time.deltaTime;
-            float progress = timer / fadeTime;
-
-            oldEmitter.EventInstance.setVolume(1f - progress);
-            newEmitter.EventInstance.setVolume(progress);
-
+            t += Time.deltaTime;
+            float p = t / duration;
+            oldEmitter.EventInstance.setVolume(1f - p);
+            newEmitter.EventInstance.setVolume(p);
             yield return null;
         }
 
@@ -147,31 +192,23 @@ public class AmbianceManager : MonoBehaviour
         oldEmitter.Stop();
     }
 
-    private IEnumerator FadeIn(StudioEventEmitter targetEmitter)
+    private IEnumerator FadeIn(StudioEventEmitter targetEmitter, float duration)
     {
         if (!targetEmitter.IsActive)
-            targetEmitter.Play();
-
-        float timer = 0f;
-        while (timer < fadeTime)
         {
-            timer += Time.deltaTime;
-            targetEmitter.EventInstance.setVolume(timer / fadeTime);
-            yield return null;
+            targetEmitter.Play();
+            targetEmitter.EventInstance.setVolume(0f);
         }
 
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            targetEmitter.EventInstance.setVolume(t / duration);
+            yield return null;
+        }
         targetEmitter.EventInstance.setVolume(1f);
     }
-
-    #endregion
-
-    #region Test Methods
-
-    [ContextMenu("Test Forest Ambiance")]
-    public void TestForest() => ChangeAmbiance(Location.Forest);
-
-    [ContextMenu("Test Factory Ambiance")]
-    public void TestFactory() => ChangeAmbiance(Location.Factory);
 
     #endregion
 }
