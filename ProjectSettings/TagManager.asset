@@ -12,6 +12,7 @@ TagManager:
   - WaterWade
   - Concrete_Stair
   - Sand
+  - Metal
   layers:
   - Default
   - TransparentFX
