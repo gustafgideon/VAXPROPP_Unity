@@ -6,8 +6,9 @@ using System.Collections.Generic;
 [System.Serializable]
 public class RainOcclusionSetting
 {
-    public string tag;
-    public float occlusionValue = 1.0f;
+    public string layerName;
+    public float occlusionEQ = 1.0f;      // EQ adjustment (e.g., 0 = muffled, 1 = bright)
+    public float occlusionVolume = 1.0f;  // Volume adjustment (e.g., 0 = silent, 1 = full)
 }
 public class WeatherSystemManager : MonoBehaviour
 {
@@ -23,8 +24,8 @@ public class WeatherSystemManager : MonoBehaviour
     [Header("Rain Impact Target Settings")]
     public List<string> impactTags; // List of tags to check for impacts (set in inspector)
     
+    [Header("Rain Occlusion Settings")]
     public List<RainOcclusionSetting> rainOcclusionSettings = new List<RainOcclusionSetting>();
-    public float defaultOcclusionValue = 1.0f;
 
     [Header("FMOD Audio")]
     public EventReference rainLoopEvent;
@@ -33,11 +34,16 @@ public class WeatherSystemManager : MonoBehaviour
     public EventReference rainImpactEvent; // One-shot for impact sounds
     public string rainParameterName = "RainIntensity";
     public string windParameterName = "WindStrength";
-    public string rainOcclusionParameterName = "RainOcclusion";
+    public string rainOcclusionEQParameterName = "RainOcclusionEQ";
+    public string rainOcclusionVolumeParameterName = "RainOcclusionVolume";
 
     private EventInstance rainLoopInstance;
     private EventInstance windInstance;
     private bool isRainValid, isWindValid;
+    
+    // Store current occlusion values to pass to impact events
+    private float currentOcclusionEQ = 0f;
+    private float currentOcclusionVolume = 0f;
 
     [Header("Wind Settings")]
     [Range(0f, 1f)] public float windStrength = 0.3f;
@@ -83,7 +89,7 @@ public class WeatherSystemManager : MonoBehaviour
         UpdateRainParticles();
         UpdateRainAudio();
         UpdateWindAudio();
-        UpdateRainOcclusion(); // <-- Call occlusion check here
+        UpdateRainOcclusion(); // <-- Call occlusion check here (updates current occlusion values)
         HandleRainImpacts();
         HandleThunder();
 
@@ -169,6 +175,8 @@ public class WeatherSystemManager : MonoBehaviour
                     if (instance.isValid())
                     {
                         instance.setParameterByName("RainSurfaceType", surfaceParam);
+                        instance.setParameterByName(rainOcclusionEQParameterName, currentOcclusionEQ);
+                        instance.setParameterByName(rainOcclusionVolumeParameterName, currentOcclusionVolume);
                         instance.set3DAttributes(RuntimeUtils.To3DAttributes(hit.point));
                         instance.start();
                         instance.release();
@@ -189,7 +197,8 @@ public class WeatherSystemManager : MonoBehaviour
         Vector3 rayOrigin = player.position + Vector3.up * 1.6f; // Player head height
         float checkDistance = 3f; // How high to check for cover
 
-        float occlusionValue = 0f; // Default: no occlusion
+        float occlusionEQ = 0f;     // Default: no EQ occlusion
+        float occlusionVolume = 0f; // Default: no volume occlusion
 
         // Draw the ray for debugging (green if hit, red if not)
         RaycastHit hit;
@@ -199,15 +208,17 @@ public class WeatherSystemManager : MonoBehaviour
         {
             // Ray hit something above
             Debug.DrawLine(rayOrigin, hit.point, Color.green, 0.1f); // Short duration
-            string tag = hit.collider.tag;
-            RainOcclusionSetting setting = rainOcclusionSettings.Find(s => s.tag == tag);
+            
+            // Get the layer name of the hit object
+            int layer = hit.collider.gameObject.layer;
+            string layerName = LayerMask.LayerToName(layer);
+            
+            // Find matching occlusion setting by layer name
+            RainOcclusionSetting setting = rainOcclusionSettings.Find(s => s.layerName == layerName);
             if (setting != null)
             {
-                occlusionValue = setting.occlusionValue;
-            }
-            else
-            {
-                occlusionValue = defaultOcclusionValue;
+                occlusionEQ = setting.occlusionEQ;
+                occlusionVolume = setting.occlusionVolume;
             }
         }
         else
@@ -216,7 +227,13 @@ public class WeatherSystemManager : MonoBehaviour
             Debug.DrawLine(rayOrigin, rayOrigin + Vector3.up * checkDistance, Color.red, 0.1f); // Short duration
         }
 
-        rainLoopInstance.setParameterByName(rainOcclusionParameterName, occlusionValue);
+        // Update rain loop with both occlusion parameters
+        rainLoopInstance.setParameterByName(rainOcclusionEQParameterName, occlusionEQ);
+        rainLoopInstance.setParameterByName(rainOcclusionVolumeParameterName, occlusionVolume);
+        
+        // Store current values for impact events
+        currentOcclusionEQ = occlusionEQ;
+        currentOcclusionVolume = occlusionVolume;
     }
 
     void HandleThunder()
