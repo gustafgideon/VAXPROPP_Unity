@@ -196,7 +196,7 @@ public class WeatherSystemManager : MonoBehaviour
     {
         if (player == null || !isRainValid) return;
 
-        Vector3 rayOrigin = player.position + Vector3.up * 1.6f; // Player head height
+        Vector3 rayOrigin = player.position; // Player head height
         float checkDistance = 3f; // How high to check for cover
 
         float occlusionEQ = 0f;     // Default: no EQ occlusion
