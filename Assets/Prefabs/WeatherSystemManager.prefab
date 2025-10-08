@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2640361218043400721
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2155685151189097447}
+  - component: {fileID: 4828661247229373177}
+  m_Layer: 0
+  m_Name: WeatherSystemManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2155685151189097447
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2640361218043400721}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 18.19, y: 4.09, z: -55.350006}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4828661247229373177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2640361218043400721}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60fd9bc934fffbe49a15c9c89f5da726, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rainParticles: {fileID: 0}
+  rainIntensity: 0
+  player: {fileID: 0}
+  rainRadius: 8
+  raysPerFrame: 1
+  impactRate: 2
+  rainLoopEvent:
+    Guid:
+      Data1: 1736692442
+      Data2: 1279445097
+      Data3: 1757279154
+      Data4: 531760065
+    Path: event:/AMB/WeatherSystem/RainLoopEvents/WeatherRainLoop
+  windEvent:
+    Guid:
+      Data1: 57825607
+      Data2: 1166931283
+      Data3: 1163114917
+      Data4: -420624929
+    Path: event:/AMB/WeatherSystem/Weather_Wind
+  thunderEvent:
+    Guid:
+      Data1: -1204716419
+      Data2: 1281292602
+      Data3: 115634052
+      Data4: 1757522054
+    Path: event:/AMB/WeatherSystem/Weather_Thunder
+  rainImpactEvent:
+    Guid:
+      Data1: 408595158
+      Data2: 1130464333
+      Data3: 1902397370
+      Data4: -1268885141
+    Path: event:/AMB/WeatherSystem/Weather_Rain_ImpactZone
+  rainParameterName: RainIntensity
+  windParameterName: WindStrength
+  windStrength: 0
+  thunderChancePerSecond: 0.02
+  thunderDistanceMin: 10
+  thunderDistanceMax: 30
