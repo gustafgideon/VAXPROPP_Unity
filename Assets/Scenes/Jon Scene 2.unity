@@ -13892,10 +13892,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: SM_Barrel_01
       objectReference: {fileID: 0}
-    - target: {fileID: 3307575790675839492, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_TagString
-      value: Metal
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -27013,6 +27009,67 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 95d3b0c81e75a6b43975056ec06fc6be, type: 3}
+--- !u!1001 &242210527
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 6132351614879093432, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_Name
+      value: LGreenDirtyBarrel (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6132351614879093432, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_TagString
+      value: Metal Hollow
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 21.198591
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 11.183
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 177.27966
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9466953
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.3221303
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 37.584
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 414dc0b8495570f459248320a31fa063, type: 3}
 --- !u!1 &243916467
 GameObject:
   m_ObjectHideFlags: 0
@@ -27520,19 +27577,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 106236, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_TagString
-      value: Metal
+      value: Metal Solid
       objectReference: {fileID: 0}
     - target: {fileID: 117012, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_TagString
-      value: Metal
+      value: Metal Solid
       objectReference: {fileID: 0}
     - target: {fileID: 188630, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_TagString
-      value: Metal
+      value: Metal Solid
       objectReference: {fileID: 0}
     - target: {fileID: 192616, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_TagString
-      value: Metal
+      value: Metal Solid
       objectReference: {fileID: 0}
     - target: {fileID: 401466, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_LocalPosition.x
@@ -73673,10 +73730,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: YellowBarrel 1
       objectReference: {fileID: 0}
-    - target: {fileID: 3722899824208986021, guid: 222adc8f93f4a2e4a84ab6b4aa5ecb15, type: 3}
-      propertyPath: m_TagString
-      value: Metal
-      objectReference: {fileID: 0}
     - target: {fileID: 4098756176729564447, guid: 222adc8f93f4a2e4a84ab6b4aa5ecb15, type: 3}
       propertyPath: m_LocalPosition.x
       value: -21.799
@@ -77382,10 +77435,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: RuinedSteelBarrel
       objectReference: {fileID: 0}
-    - target: {fileID: 6554678663812022553, guid: fe1c399030d761a48b3bfd00212df4d4, type: 3}
-      propertyPath: m_TagString
-      value: Metal
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -79036,10 +79085,6 @@ PrefabInstance:
     - target: {fileID: 6132351614879093432, guid: 414dc0b8495570f459248320a31fa063, type: 3}
       propertyPath: m_Name
       value: LGreenDirtyBarrel
-      objectReference: {fileID: 0}
-    - target: {fileID: 6132351614879093432, guid: 414dc0b8495570f459248320a31fa063, type: 3}
-      propertyPath: m_TagString
-      value: Metal
       objectReference: {fileID: 0}
     - target: {fileID: 6796404494559676418, guid: 414dc0b8495570f459248320a31fa063, type: 3}
       propertyPath: m_LocalPosition.x
@@ -102944,10 +102989,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: RedBarrel 1
       objectReference: {fileID: 0}
-    - target: {fileID: 8796608534677031006, guid: d6e0d472a7d199945adee383b66c9902, type: 3}
-      propertyPath: m_TagString
-      value: Metal
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -113083,22 +113124,26 @@ PrefabInstance:
       objectReference: {fileID: 1803280382}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: impactTags.Array.size
-      value: 4
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: 'impactTags.Array.data[0]'
-      value: Metal
+      value: Metal Hollow
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: 'impactTags.Array.data[1]'
-      value: Water
+      value: Metal Solid
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: 'impactTags.Array.data[2]'
-      value: Wood
+      value: Water
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: 'impactTags.Array.data[3]'
+      value: Wood
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: 'impactTags.Array.data[4]'
       value: Foliage
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -113201,3 +113246,4 @@ SceneRoots:
   - {fileID: 44414902}
   - {fileID: 956049440}
   - {fileID: 1756443452}
+  - {fileID: 242210527}

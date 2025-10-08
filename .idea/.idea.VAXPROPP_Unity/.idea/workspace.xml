@@ -5,11 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceTrigger.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceTrigger.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrel PBR/Prefabs/SM_Barrel_01.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrel PBR/Prefabs/SM_Barrel_01.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Prefabs/LGreenDirtyBarrel.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Prefabs/LGreenDirtyBarrel.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Prefabs/RedBarrel 1.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Prefabs/RedBarrel 1.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Prefabs/RuinedSteelBarrel.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Prefabs/RuinedSteelBarrel.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Metal Barrels/Prefabs/YellowBarrel 1.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Metal Barrels/Prefabs/YellowBarrel 1.prefab" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 2.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 2.unity" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,6 +141,7 @@
       <workItem from="1759740578290" duration="2704000" />
       <workItem from="1759753056160" duration="4239000" />
       <workItem from="1759829138773" duration="5668000" />
+      <workItem from="1759932366829" duration="635000" />
     </task>
     <servers />
   </component>

@@ -164,9 +164,10 @@ public class WeatherSystemManager : MonoBehaviour
                 // Determine surface type for FMOD parameter
                 float surfaceParam = 0f;
                 if (hit.collider.CompareTag("Foliage")) surfaceParam = 1f;
-                else if (hit.collider.CompareTag("Metal")) surfaceParam = 2f;
-                else if (hit.collider.CompareTag("Water")) surfaceParam = 3f;
-                else if (hit.collider.CompareTag("Wood")) surfaceParam = 4f;
+                else if (hit.collider.CompareTag("Metal Solid")) surfaceParam = 2f;
+                else if (hit.collider.CompareTag("Metal Hollow")) surfaceParam = 3f;
+                else if (hit.collider.CompareTag("Water")) surfaceParam = 4f;
+                else if (hit.collider.CompareTag("Wood")) surfaceParam = 5f;
 
                 // Play 3D impact sound
                 if (!rainImpactEvent.IsNull)

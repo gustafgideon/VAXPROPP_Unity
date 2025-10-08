@@ -13,6 +13,9 @@ TagManager:
   - Concrete_Stair
   - Sand
   - Metal
+  - Undefined
+  - Metal Hollow
+  - Metal Solid
   layers:
   - Default
   - TransparentFX
