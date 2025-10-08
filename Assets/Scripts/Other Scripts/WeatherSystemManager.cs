@@ -4,7 +4,7 @@ using FMOD.Studio;
 using System.Collections.Generic;
 
 [System.Serializable]
-public class RainOcclusionSetting
+public class Layers
 {
     public string layerName;
     public float occlusionEQ = 1.0f;      // EQ adjustment (e.g., 0 = muffled, 1 = bright)
@@ -12,22 +12,32 @@ public class RainOcclusionSetting
 }
 public class WeatherSystemManager : MonoBehaviour
 {
-    [Header("Rain Settings")]
-    public ParticleSystem rainParticles;
-    [Range(0f, 1f)] public float rainIntensity = 0.5f;
     public Transform player;
+    public ParticleSystem rainParticles;
+    
+    [Space(10)]
+    [Header("Rain Settings")]
+    [Range(0f, 1f)] public float rainIntensity = 0.5f;
     public float rainRadius = 8f;        // radius around player where rain hits
-    public int raysPerFrame = 5;         // max number of rays per impact burst
-    public float impactRate = 0.1f;      // seconds between impact bursts
+    private int raysPerFrame = 1;         // max number of rays per impact burst
+    private float impactRate = 0.1f;      // seconds between impact bursts
     private float impactTimer = 0f;
+    public List<Layers> rainOcclusionLayers = new List<Layers>();
+    public List<string> rainImpactTags; // List of tags to check for impacts (set in inspector)
     
-    [Header("Rain Impact Target Settings")]
-    public List<string> impactTags; // List of tags to check for impacts (set in inspector)
+    [Space(10)]
+    [Header("Wind Settings")]
+    [Range(0f, 1f)] public float windStrength = 0.3f;
     
-    [Header("Rain Occlusion Settings")]
-    public List<RainOcclusionSetting> rainOcclusionSettings = new List<RainOcclusionSetting>();
-
-    [Header("FMOD Audio")]
+    [Space(10)]
+    [Header("Thunder Settings")]
+    public float thunderChancePerSecond = 0.02f;
+    public float thunderDistanceMin = 30f;
+    public float thunderDistanceMax = 200f;
+    
+    [Space(10)]
+    [Header("FMOD")]
+    [Space(10)]
     public EventReference rainLoopEvent;
     public EventReference windEvent;
     public EventReference thunderEvent;
@@ -44,14 +54,6 @@ public class WeatherSystemManager : MonoBehaviour
     // Store current occlusion values to pass to impact events
     private float currentOcclusionEQ = 0f;
     private float currentOcclusionVolume = 0f;
-
-    [Header("Wind Settings")]
-    [Range(0f, 1f)] public float windStrength = 0.3f;
-
-    [Header("Thunder Settings")]
-    public float thunderChancePerSecond = 0.02f;
-    public float thunderDistanceMin = 30f;
-    public float thunderDistanceMax = 200f;
 
     void Start()
     {
@@ -133,7 +135,7 @@ public class WeatherSystemManager : MonoBehaviour
 
         foreach (var col in colliders)
         {
-            if (impactTags.Contains(col.tag))
+            if (rainImpactTags.Contains(col.tag))
                 targetColliders.Add(col);
         }
 
@@ -157,7 +159,7 @@ public class WeatherSystemManager : MonoBehaviour
             // Raycast down
             if (Physics.Raycast(randomPoint, Vector3.down, out RaycastHit hit, 50f))
             {
-                if (!impactTags.Contains(hit.collider.tag)) continue; // Only use if the hit is on a valid tag
+                if (!rainImpactTags.Contains(hit.collider.tag)) continue; // Only use if the hit is on a valid tag
 
                 Debug.DrawLine(randomPoint, hit.point, Color.red, 5f);
 
@@ -215,7 +217,7 @@ public class WeatherSystemManager : MonoBehaviour
             string layerName = LayerMask.LayerToName(layer);
             
             // Find matching occlusion setting by layer name
-            RainOcclusionSetting setting = rainOcclusionSettings.Find(s => s.layerName == layerName);
+            Layers setting = rainOcclusionLayers.Find(s => s.layerName == layerName);
             if (setting != null)
             {
                 occlusionEQ = setting.occlusionEQ;

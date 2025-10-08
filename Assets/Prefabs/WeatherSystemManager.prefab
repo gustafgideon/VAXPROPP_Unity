@@ -25,7 +25,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2640361218043400721}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 18.19, y: 4.09, z: -55.350006}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -44,12 +44,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60fd9bc934fffbe49a15c9c89f5da726, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  player: {fileID: 0}
   rainParticles: {fileID: 0}
   rainIntensity: 0
-  player: {fileID: 0}
-  rainRadius: 8
-  raysPerFrame: 1
-  impactRate: 2
+  rainRadius: 5
+  impactTags:
+  - Metal
+  - Metal Solid
+  - Metal Hollow
+  - Wood
+  - Water
+  - Foliage
+  rainOcclusionSettings:
+  - layerName: MetalRoof1
+    occlusionEQ: 0.07
+    occlusionVolume: 0.04
+  - layerName: MetalRoof2
+    occlusionEQ: 0.5
+    occlusionVolume: 0.3
+  windStrength: 0
+  thunderChancePerSecond: 0.02
+  thunderDistanceMin: 10
+  thunderDistanceMax: 30
   rainLoopEvent:
     Guid:
       Data1: 1736692442
@@ -80,7 +96,5 @@ MonoBehaviour:
     Path: event:/AMB/WeatherSystem/Weather_Rain_ImpactZone
   rainParameterName: RainIntensity
   windParameterName: WindStrength
-  windStrength: 0
-  thunderChancePerSecond: 0.02
-  thunderDistanceMin: 10
-  thunderDistanceMax: 30
+  rainOcclusionEQParameterName: RainOcclusionEQ
+  rainOcclusionVolumeParameterName: RainOcclusionVolume
