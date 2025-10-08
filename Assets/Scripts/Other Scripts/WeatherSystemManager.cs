@@ -13,6 +13,10 @@ public class WeatherSystemManager : MonoBehaviour
     public float impactRate = 0.1f;      // seconds between impact bursts
     private float impactTimer = 0f;
 
+    [Header("Raycast Optimization")]
+    public LayerMask rainImpactLayerMask; // Assign this to the layers rain can impact in the inspector
+    private RaycastHit[] hitResults = new RaycastHit[1]; // Non-allocating array
+
     [Header("FMOD Audio")]
     public EventReference rainLoopEvent;
     public EventReference windEvent;
@@ -101,6 +105,9 @@ public class WeatherSystemManager : MonoBehaviour
     {
         if (rainIntensity <= 0f || player == null) return;
 
+        // If no layer mask is set, skip raycasting for performance
+        if (rainImpactLayerMask == 0) return;
+
         // Limit bursts based on impactRate
         impactTimer += Time.deltaTime;
         if (impactTimer < impactRate) return;
@@ -115,9 +122,11 @@ public class WeatherSystemManager : MonoBehaviour
             Vector2 randomCircle = Random.insideUnitCircle * rainRadius;
             Vector3 origin = player.position + new Vector3(randomCircle.x, 10f, randomCircle.y);
 
-            // Raycast down
-            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 50f))
+            // RaycastNonAlloc down, using the layer mask
+            int hitCount = Physics.RaycastNonAlloc(origin, Vector3.down, hitResults, 50f, rainImpactLayerMask);
+            if (hitCount > 0)
             {
+                RaycastHit hit = hitResults[0];
                 Debug.DrawLine(origin, hit.point, Color.red, 5f);
 
                 // Determine surface type for FMOD parameter
