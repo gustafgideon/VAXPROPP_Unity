@@ -1,6 +1,7 @@
 using UnityEngine;
 using FMODUnity;
 using FMOD.Studio;
+using System.Collections.Generic;
 
 public class WeatherSystemManager : MonoBehaviour
 {
@@ -12,10 +13,9 @@ public class WeatherSystemManager : MonoBehaviour
     public int raysPerFrame = 5;         // max number of rays per impact burst
     public float impactRate = 0.1f;      // seconds between impact bursts
     private float impactTimer = 0f;
-
-    [Header("Raycast Optimization")]
-    public LayerMask rainImpactLayerMask; // Assign this to the layers rain can impact in the inspector
-    private RaycastHit[] hitResults = new RaycastHit[1]; // Non-allocating array
+    
+    [Header("Rain Impact Target Settings")]
+    public List<string> impactTags; // List of tags to check for impacts (set in inspector)
 
     [Header("FMOD Audio")]
     public EventReference rainLoopEvent;
@@ -105,29 +105,44 @@ public class WeatherSystemManager : MonoBehaviour
     {
         if (rainIntensity <= 0f || player == null) return;
 
-        // If no layer mask is set, skip raycasting for performance
-        if (rainImpactLayerMask == 0) return;
-
         // Limit bursts based on impactRate
         impactTimer += Time.deltaTime;
         if (impactTimer < impactRate) return;
         impactTimer = 0f;
 
-        // Number of rays scales with rain intensity
+        // Find all colliders in radius with allowed tags
+        Collider[] colliders = Physics.OverlapSphere(player.position, rainRadius);
+        List<Collider> targetColliders = new List<Collider>();
+
+        foreach (var col in colliders)
+        {
+            if (impactTags.Contains(col.tag))
+                targetColliders.Add(col);
+        }
+
         int raysThisBurst = Mathf.CeilToInt(raysPerFrame * rainIntensity);
 
         for (int i = 0; i < raysThisBurst; i++)
         {
-            // Random point around the player within rainRadius
-            Vector2 randomCircle = Random.insideUnitCircle * rainRadius;
-            Vector3 origin = player.position + new Vector3(randomCircle.x, 10f, randomCircle.y);
+            if (targetColliders.Count == 0) break;
 
-            // RaycastNonAlloc down, using the layer mask
-            int hitCount = Physics.RaycastNonAlloc(origin, Vector3.down, hitResults, 50f, rainImpactLayerMask);
-            if (hitCount > 0)
+            // Pick a random collider
+            Collider target = targetColliders[Random.Range(0, targetColliders.Count)];
+
+            // Pick a random point on its bounds (or collider surface)
+            Bounds bounds = target.bounds;
+            Vector3 randomPoint = new Vector3(
+                Random.Range(bounds.min.x, bounds.max.x),
+                bounds.max.y + 5f, // start above
+                Random.Range(bounds.min.z, bounds.max.z)
+            );
+
+            // Raycast down
+            if (Physics.Raycast(randomPoint, Vector3.down, out RaycastHit hit, 50f))
             {
-                RaycastHit hit = hitResults[0];
-                Debug.DrawLine(origin, hit.point, Color.red, 5f);
+                if (!impactTags.Contains(hit.collider.tag)) continue; // Only use if the hit is on a valid tag
+
+                Debug.DrawLine(randomPoint, hit.point, Color.red, 5f);
 
                 // Determine surface type for FMOD parameter
                 float surfaceParam = 0f;
@@ -135,6 +150,7 @@ public class WeatherSystemManager : MonoBehaviour
                 else if (hit.collider.CompareTag("Metal")) surfaceParam = 2f;
                 else if (hit.collider.CompareTag("Water")) surfaceParam = 3f;
                 else if (hit.collider.CompareTag("Wood")) surfaceParam = 4f;
+
                 // Play 3D impact sound
                 if (!rainImpactEvent.IsNull)
                 {
@@ -150,7 +166,7 @@ public class WeatherSystemManager : MonoBehaviour
             }
             else
             {
-                Debug.DrawLine(origin, origin + Vector3.down * 50f, Color.blue, 5f);
+                Debug.DrawLine(randomPoint, randomPoint + Vector3.down * 50f, Color.blue, 5f);
             }
         }
     }
