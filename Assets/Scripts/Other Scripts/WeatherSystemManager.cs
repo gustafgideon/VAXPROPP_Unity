@@ -37,11 +37,10 @@ public class WeatherSystemManager : MonoBehaviour
     
     [Space(10)]
     [Header("FMOD")]
-    [Space(10)]
     public EventReference rainLoopEvent;
+    public EventReference rainImpactEvent; // One-shot for impact sounds
     public EventReference windEvent;
     public EventReference thunderEvent;
-    public EventReference rainImpactEvent; // One-shot for impact sounds
     public string rainParameterName = "RainIntensity";
     public string windParameterName = "WindStrength";
     public string rainOcclusionEQParameterName = "RainOcclusionEQ";
