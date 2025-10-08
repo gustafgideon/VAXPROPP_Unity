@@ -27576,16 +27576,32 @@ PrefabInstance:
       value: Struct_Pavilion_A
       objectReference: {fileID: 0}
     - target: {fileID: 106236, guid: 802fd2656e039404983843d958c03dce, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 106236, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_TagString
       value: Metal Solid
+      objectReference: {fileID: 0}
+    - target: {fileID: 117012, guid: 802fd2656e039404983843d958c03dce, type: 3}
+      propertyPath: m_Layer
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 117012, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_TagString
       value: Metal Solid
       objectReference: {fileID: 0}
     - target: {fileID: 188630, guid: 802fd2656e039404983843d958c03dce, type: 3}
+      propertyPath: m_Layer
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 188630, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_TagString
       value: Metal Solid
+      objectReference: {fileID: 0}
+    - target: {fileID: 192616, guid: 802fd2656e039404983843d958c03dce, type: 3}
+      propertyPath: m_Layer
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 192616, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_TagString
@@ -113145,6 +113161,42 @@ PrefabInstance:
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: 'impactTags.Array.data[4]'
       value: Foliage
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: rainImpactTags.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: 'rainImpactTags.Array.data[0]'
+      value: Foliage
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: 'rainImpactTags.Array.data[1]'
+      value: Metal Solid
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: 'rainImpactTags.Array.data[2]'
+      value: Metal Hollow
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: 'rainImpactTags.Array.data[3]'
+      value: Water
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: 'rainImpactTags.Array.data[4]'
+      value: Wood
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: rainOcclusionLayers.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: rainOcclusionLayers.Array.data[0].layerName
+      value: MetalRoof1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: rainOcclusionLayers.Array.data[0].occlusionEQ
+      value: 0.02
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
