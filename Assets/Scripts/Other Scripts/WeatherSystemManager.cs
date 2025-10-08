@@ -3,6 +3,12 @@ using FMODUnity;
 using FMOD.Studio;
 using System.Collections.Generic;
 
+[System.Serializable]
+public class RainOcclusionSetting
+{
+    public string tag;
+    public float occlusionValue = 1.0f;
+}
 public class WeatherSystemManager : MonoBehaviour
 {
     [Header("Rain Settings")]
@@ -16,6 +22,9 @@ public class WeatherSystemManager : MonoBehaviour
     
     [Header("Rain Impact Target Settings")]
     public List<string> impactTags; // List of tags to check for impacts (set in inspector)
+    
+    public List<RainOcclusionSetting> rainOcclusionSettings = new List<RainOcclusionSetting>();
+    public float defaultOcclusionValue = 1.0f;
 
     [Header("FMOD Audio")]
     public EventReference rainLoopEvent;
@@ -24,6 +33,7 @@ public class WeatherSystemManager : MonoBehaviour
     public EventReference rainImpactEvent; // One-shot for impact sounds
     public string rainParameterName = "RainIntensity";
     public string windParameterName = "WindStrength";
+    public string rainOcclusionParameterName = "RainOcclusion";
 
     private EventInstance rainLoopInstance;
     private EventInstance windInstance;
@@ -73,6 +83,7 @@ public class WeatherSystemManager : MonoBehaviour
         UpdateRainParticles();
         UpdateRainAudio();
         UpdateWindAudio();
+        UpdateRainOcclusion(); // <-- Call occlusion check here
         HandleRainImpacts();
         HandleThunder();
 
@@ -169,6 +180,43 @@ public class WeatherSystemManager : MonoBehaviour
                 Debug.DrawLine(randomPoint, randomPoint + Vector3.down * 50f, Color.blue, 5f);
             }
         }
+    }
+    
+    void UpdateRainOcclusion()
+    {
+        if (player == null || !isRainValid) return;
+
+        Vector3 rayOrigin = player.position + Vector3.up * 1.6f; // Player head height
+        float checkDistance = 3f; // How high to check for cover
+
+        float occlusionValue = 0f; // Default: no occlusion
+
+        // Draw the ray for debugging (green if hit, red if not)
+        RaycastHit hit;
+        bool hitSomething = Physics.Raycast(rayOrigin, Vector3.up, out hit, checkDistance);
+
+        if (hitSomething)
+        {
+            // Ray hit something above
+            Debug.DrawLine(rayOrigin, hit.point, Color.green, 0.1f); // Short duration
+            string tag = hit.collider.tag;
+            RainOcclusionSetting setting = rainOcclusionSettings.Find(s => s.tag == tag);
+            if (setting != null)
+            {
+                occlusionValue = setting.occlusionValue;
+            }
+            else
+            {
+                occlusionValue = defaultOcclusionValue;
+            }
+        }
+        else
+        {
+            // Ray did not hit anything
+            Debug.DrawLine(rayOrigin, rayOrigin + Vector3.up * checkDistance, Color.red, 0.1f); // Short duration
+        }
+
+        rainLoopInstance.setParameterByName(rainOcclusionParameterName, occlusionValue);
     }
 
     void HandleThunder()
