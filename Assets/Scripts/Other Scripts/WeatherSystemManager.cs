@@ -10,6 +10,7 @@ public class Layers
     public float occlusionEQ = 1.0f;      // EQ adjustment (e.g., 0 = muffled, 1 = bright)
     public float occlusionVolume = 1.0f;  // Volume adjustment (e.g., 0 = silent, 1 = full)
 }
+
 public class WeatherSystemManager : MonoBehaviour
 {
     public Transform player;
@@ -28,7 +29,11 @@ public class WeatherSystemManager : MonoBehaviour
     [Space(10)]
     [Header("Wind Settings")]
     [Range(0f, 1f)] public float windStrength = 0.3f;
-    
+    [Range(0f, 360f)] public float windDirection = 270f; // default: wind from West (blows East)
+    private float windParticleStrengthMultiplier = 12f;
+    private bool applyWindToParticles = true;
+    private float windParticleLerpSpeed = 3f;
+
     [Space(10)]
     [Header("Thunder Settings")]
     public float thunderChancePerSecond = 0.02f;
@@ -53,6 +58,9 @@ public class WeatherSystemManager : MonoBehaviour
     // Store current occlusion values to pass to impact events
     private float currentOcclusionEQ = 0f;
     private float currentOcclusionVolume = 0f;
+
+    // Internal state for smoothly applying wind to particles
+    private Vector3 currentAppliedWind = Vector3.zero;
 
     void Start()
     {
@@ -93,6 +101,10 @@ public class WeatherSystemManager : MonoBehaviour
         UpdateRainOcclusion(); // <-- Call occlusion check here (updates current occlusion values)
         HandleRainImpacts();
         HandleThunder();
+
+        // Apply wind to the particle system so rain looks like it's blowing
+        if (applyWindToParticles)
+            ApplyWindToParticles();
 
         // Keep rain particles above the player
         rainParticles.transform.position = player.position + Vector3.up * 10f;
@@ -250,11 +262,70 @@ public class WeatherSystemManager : MonoBehaviour
         }
     }
 
-    // Draw rain radius in Scene view
+    // Compute the horizontal blowing direction based on the inspector windFromDegrees slider.
+    // windFromDegrees is the compass heading the wind is coming FROM (0 = North/+Z, 90 = East/+X, etc).
+    // Returns a normalized horizontal vector (y == 0) pointing the direction the wind is BLOWING TO.
+    Vector3 GetBlowingDirectionHorizontal()
+    {
+        float radians = Mathf.Deg2Rad * windDirection;
+        // fromVec: unit vector pointing to the compass direction the wind is coming FROM
+        Vector3 fromVec = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians)); // 0deg -> (0,0,1) = North
+        Vector3 blowingDir = -fromVec; // invert to get blowing TO direction
+        blowingDir.y = 0f;
+        if (blowingDir.sqrMagnitude < 0.0001f) blowingDir = Vector3.right;
+        blowingDir.Normalize();
+        return blowingDir;
+    }
+
+    // Apply wind to the rain particle system so the particles visibly blow in the chosen horizontal direction.
+    void ApplyWindToParticles()
+    {
+        if (rainParticles == null) return;
+
+        // Determine horizontal blowing direction from inspector slider
+        Vector3 dir = GetBlowingDirectionHorizontal();
+
+        // Desired lateral velocity applied to particles (world space) - horizontal only
+        Vector3 desiredWind = dir * (windStrength * windParticleStrengthMultiplier);
+
+        // Smooth transitions so wind changes aren't instantaneous
+        currentAppliedWind = Vector3.Lerp(currentAppliedWind, desiredWind, Time.deltaTime * Mathf.Max(1f, windParticleLerpSpeed));
+
+        // Use velocity over lifetime module to set a constant lateral velocity
+        var vel = rainParticles.velocityOverLifetime;
+        vel.enabled = true;
+        vel.space = ParticleSystemSimulationSpace.World;
+
+        // Set per-axis constants. Keep Y component as currentAppliedWind.y (should be zero by design).
+        vel.x = new ParticleSystem.MinMaxCurve(currentAppliedWind.x);
+        vel.y = new ParticleSystem.MinMaxCurve(currentAppliedWind.y);
+        vel.z = new ParticleSystem.MinMaxCurve(currentAppliedWind.z);
+    }
+
+    // Draw rain radius and wind arrow in Scene view
     void OnDrawGizmosSelected()
     {
         if (player == null) return;
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(player.position, rainRadius);
+
+        // Draw a small arrow to indicate wind direction in the Scene view
+        Gizmos.color = Color.yellow;
+        Vector3 origin = (player != null) ? player.position + Vector3.up * 2f : transform.position + Vector3.up * 2f;
+        Vector3 dir = GetBlowingDirectionHorizontal();
+        dir = dir.normalized * 2f;
+        Gizmos.DrawLine(origin, origin + dir);
+        // draw arrow head
+        Quaternion look = dir.sqrMagnitude > 0 ? Quaternion.LookRotation(dir) : Quaternion.identity;
+        Vector3 right = look * Quaternion.Euler(0,150,0) * Vector3.forward * 0.4f;
+        Vector3 left = look * Quaternion.Euler(0,-150,0) * Vector3.forward * 0.4f;
+        Gizmos.DrawLine(origin + dir, origin + dir + right);
+        Gizmos.DrawLine(origin + dir, origin + dir + left);
+
+        // Draw the numeric label of the 'from' degrees on the gizmo for easier tuning
+        #if UNITY_EDITOR
+        UnityEditor.Handles.color = Color.yellow;
+        UnityEditor.Handles.Label(origin + dir + Vector3.up * 0.2f, $"Wind From: {windDirection:F0}° (0=N,90=E,180=S,270=W)");
+        #endif
     }
 }
