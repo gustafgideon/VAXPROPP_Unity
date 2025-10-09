@@ -16,6 +16,8 @@ TagManager:
   - Undefined
   - Metal Hollow
   - Metal Solid
+  - Rock_Water
+  - Waterfall
   layers:
   - Default
   - TransparentFX
