@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 2.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 2.unity" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,7 +136,7 @@
       <workItem from="1759753056160" duration="4239000" />
       <workItem from="1759829138773" duration="5668000" />
       <workItem from="1759932366829" duration="1360000" />
-      <workItem from="1759999133263" duration="3077000" />
+      <workItem from="1759999133263" duration="3680000" />
     </task>
     <servers />
   </component>

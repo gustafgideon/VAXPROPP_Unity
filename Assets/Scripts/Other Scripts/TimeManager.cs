@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering; // For RenderSettings.ambientMode
 using FMODUnity;
 
 public class TimeManager : MonoBehaviour
@@ -35,9 +36,9 @@ public class TimeManager : MonoBehaviour
     [SerializeField] private float fullDayLengthMinutes = 4f;
 
     [Header("Phase Transition Blend (In-Game Minutes)")]
-    [Tooltip("Duration (in GAME minutes) to blend light COLOR after a phase change.")]
+    [Tooltip("Blend duration for light COLOR after a phase change.")]
     [SerializeField] private float stateColorBlendDurationMinutes = 30f;
-    [Tooltip("Duration (in GAME minutes) to blend light INTENSITY after a phase change.")]
+    [Tooltip("Blend duration for light INTENSITY after a phase change.")]
     [SerializeField] private float stateIntensityBlendDurationMinutes = 20f;
 
     [Header("Rain / Overcast Blend Settings")]
@@ -58,47 +59,64 @@ public class TimeManager : MonoBehaviour
     );
 
     [Header("Rain Cold Tint")]
-    [Tooltip("Force a cold tint when raining, regardless of phase gradients.")]
     [SerializeField] private bool forceColdTintInRain = true;
-    [Tooltip("Cold tint target color used during rain.")]
     [SerializeField] private Color rainColdTint = new Color(0.65f, 0.72f, 0.85f, 1f); // bluish-gray
-    [Tooltip("How strongly to bias the light color toward the cold tint as rain increases.")]
     [SerializeField] private AnimationCurve rainColdTintStrengthByRain = new AnimationCurve(
         new Keyframe(0f, 0f),
         new Keyframe(0.2f, 0.5f),
         new Keyframe(1f, 1f)
     );
-    [Tooltip("Desaturation amount as rain increases (0=no extra desat, 1=grayscale).")]
     [SerializeField] private AnimationCurve rainDesaturationByRain = new AnimationCurve(
         new Keyframe(0f, 0f),
         new Keyframe(1f, 0.6f)
     );
 
-    [Header("Shadow Fade During Rain (Bidirectional)")]
-    [Tooltip("Rain intensity where shadow fading begins (toward 0).")]
+    [Header("Rain Envelope (Global Darkening)")]
+    [Tooltip("Global dim multiplier for the sun under rain (applied in addition to rainLightDarkeningCurve).")]
+    [SerializeField] private AnimationCurve rainGlobalDimCurve = new AnimationCurve(
+        new Keyframe(0f, 1f),
+        new Keyframe(0.15f, 0.92f),
+        new Keyframe(0.5f, 0.75f),
+        new Keyframe(1f, 0.6f)
+    );
+
+    [Tooltip("Ambient dimming when raining. If ambient mode is Skybox, this scales ambientIntensity; otherwise, scales ambientLight color.")]
+    [SerializeField] private AnimationCurve ambientDimByRain = new AnimationCurve(
+        new Keyframe(0f, 1f),
+        new Keyframe(1f, 0.55f)
+    );
+
+    [Tooltip("Skybox exposure multiplier under rain (darker sky).")]
+    [SerializeField] private AnimationCurve skyboxExposureByRain = new AnimationCurve(
+        new Keyframe(0f, 1f),
+        new Keyframe(1f, 0.7f)
+    );
+
+    [Tooltip("Fog density multiplier under rain (thicker fog). Requires fog enabled.")]
+    [SerializeField] private AnimationCurve fogDensityByRain = new AnimationCurve(
+        new Keyframe(0f, 1f),
+        new Keyframe(1f, 1.6f)
+    );
+
+    [Header("Shadow Fade During Rain (No Hard Disable)")]
+    [Tooltip("Rain intensity where shadow fading begins (toward min).")]
     [SerializeField] private float shadowFadeStart = 0.12f;
-    [Tooltip("Rain intensity where shadow fade target reaches 0.")]
+    [Tooltip("Rain intensity where shadow fade target reaches its minimum.")]
     [SerializeField] private float shadowFadeEnd = 0.28f;
     [Tooltip("Speed (units per second) for currentShadowFactor to chase target.")]
     [SerializeField] private float shadowFadeLerpSpeed = 2.5f;
-    [Tooltip("Below this shadowStrength (relative) we may fully disable shadows for performance.")]
-    [SerializeField] private float minShadowStrengthBeforeDisable = 0.05f;
-    [Tooltip("Rain must fall this far below shadowFadeStart before we re-enable physically disabled shadows.")]
-    [SerializeField] private float shadowDisableHysteresis = 0.03f;
-    [Tooltip("Completely disable Light.shadows after fade reaches near zero? If false, we just keep a very low strength.")]
-    [SerializeField] private bool disableShadowsCompletelyAtEnd = true;
-    [Tooltip("Intensity multiplier when shadows are fully gone (compensates perceived brightening).")]
-    [Range(0.5f, 1f)]
-    [SerializeField] private float shadowRemovalDimFactor = 0.9f;
+    [Tooltip("Minimum relative shadow factor at maximum rain (keep some soft shadowing for contrast).")]
+    [Range(0f, 1f)]
+    [SerializeField] private float minShadowFactorAtMaxRain = 0.25f;
 
     [Header("Base Light Intensity Over 24h")]
     [SerializeField] private AnimationCurve lightIntensityOverDay = new AnimationCurve(
         new Keyframe(0f,    0.05f),
-        new Keyframe(0.21f, 0.5f),   // ~05:00
-        new Keyframe(0.29f, 0.85f),  // ~07:00
-        new Keyframe(0.5f,  1.0f),   // Midday
-        new Keyframe(0.71f, 0.85f),  // ~17:00
-        new Keyframe(0.79f, 0.55f),  // ~19:00
+        new Keyframe(0.21f, 0.5f),
+        new Keyframe(0.29f, 0.85f),
+        new Keyframe(0.5f,  1.0f),
+        new Keyframe(0.71f, 0.85f),
+        new Keyframe(0.79f, 0.55f),
         new Keyframe(1f,    0.05f)
     );
 
@@ -112,6 +130,7 @@ public class TimeManager : MonoBehaviour
     [SerializeField] private bool debugDayStateChanges = true;
     [SerializeField] private bool debugShadowTransitions = false;
     [SerializeField] private bool debugPhaseBlend = false;
+    [SerializeField] private bool debugEnvelope = false;
 
     private int minutes;
     private int hours = 5; // start at dawn
@@ -120,29 +139,38 @@ public class TimeManager : MonoBehaviour
     private enum DayState { Night, Dawn, Day, Dusk }
     private DayState currentState;
 
-    // For transition blending
+    // Phase blending
     private DayState previousState;
-    private float stateStartTotalMinutes;            // In-game minute stamp when current state started
+    private float stateStartTotalMinutes;
     private Color previousPhaseColor;
     private float previousPhaseIntensity;
 
-    // Shadow management
-    private LightShadows originalShadowType;
+    // Shadows (no hard disable)
     private float originalShadowStrength = 1f;
-    private float currentShadowFactor = 1f;    // 1 = full shadows, 0 = none (faded)
-    private bool shadowsPhysicallyDisabled = false;
+    private float currentShadowFactor = 1f; // 1 = full, minShadowFactorAtMaxRain at max rain
+
+    // Skybox exposure and ambient originals
+    private float originalAmbientIntensity = 1f;
+    private Color originalAmbientLight;
+    private bool hasSkyboxExposureProps = false;
+    private float baseFogDensity = 0.01f; // will be sampled at Start
 
     private void Start()
     {
         if (globalLight == null)
         {
             Debug.LogWarning("TimeManager: No globalLight assigned.");
-            enabled = false;
-            return;
+            enabled = false; return;
         }
 
-        originalShadowType = globalLight.shadows;
         originalShadowStrength = globalLight.shadowStrength;
+
+        // Cache ambient baselines
+        originalAmbientIntensity = RenderSettings.ambientIntensity;
+        originalAmbientLight = RenderSettings.ambientLight;
+
+        // Cache fog baseline if enabled
+        if (RenderSettings.fog) baseFogDensity = RenderSettings.fogDensity;
 
         currentState = GetCurrentDayState(hours);
         previousState = currentState;
@@ -151,14 +179,14 @@ public class TimeManager : MonoBehaviour
         previousPhaseIntensity = globalLight.intensity;
 
         if (debugDayStateChanges)
-            Debug.Log($"[TimeManager] Initial day state: {currentState} at {hours:00}:{minutes:00}");
+            Debug.Log($"[TimeManager] Initial state: {currentState} at {hours:00}:{minutes:00}");
 
         UpdateSkyboxTextures();
+        DetectSkyboxExposureProps();
         UpdateTimeOfDayLerp();
-        UpdateLightingContinuous(); // initializes light color/intensity properly
+        UpdateLightingContinuous();
         UpdateSunRotation();
 
-        // Capture a correct initial snapshot after first proper lighting calc
         previousPhaseColor = globalLight.color;
         previousPhaseIntensity = globalLight.intensity;
     }
@@ -167,11 +195,13 @@ public class TimeManager : MonoBehaviour
     {
         AdvanceTime();
         UpdateSunRotation();
-        UpdateState();        // Might trigger new blend
+        UpdateState();
 
         UpdateTimeOfDayLerp();
         UpdateSkyboxBlend();
         UpdateLightingContinuous();
+        UpdateSkyboxExposure(); // envelope affects skybox exposure too
+        UpdateAmbientAndFogEnvelope(); // envelope affects ambient + fog
     }
 
     private void AdvanceTime()
@@ -208,16 +238,15 @@ public class TimeManager : MonoBehaviour
             previousState = currentState;
             currentState = newState;
 
-            // Snapshot BEFORE we recalc new color (we still have old state's last color/intensity)
+            // Snapshot old phase values before recalculating
             previousPhaseColor = globalLight.color;
             previousPhaseIntensity = globalLight.intensity;
-
             stateStartTotalMinutes = GetTotalMinutes();
 
             if (debugDayStateChanges)
             {
                 float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-                Debug.Log($"[TimeManager] Day state changed {previousState} -> {currentState} at {hours:00}:{minutes:00} (rain={rain:0.00})");
+                Debug.Log($"[TimeManager] Day state {previousState} -> {currentState} at {hours:00}:{minutes:00} (rain={rain:0.00})");
             }
 
             UpdateSkyboxTextures();
@@ -233,29 +262,37 @@ public class TimeManager : MonoBehaviour
         var mat = RenderSettings.skybox;
         mat.SetTexture("_Texture1", GetBaseSkyForState(currentState));
         mat.SetTexture("_Texture2", GetNextBaseSkyForLerp(currentState));
-        mat.SetFloat("_Exposure1", 1f);
-        mat.SetFloat("_Exposure2", 1f);
+        // Exposure now controlled in UpdateSkyboxExposure()
         mat.SetTexture("_OvercastTexture", GetOvercastSkyForState(currentState));
+    }
+
+    private void DetectSkyboxExposureProps()
+    {
+        if (RenderSettings.skybox == null) return;
+        var mat = RenderSettings.skybox;
+        hasSkyboxExposureProps = mat.HasProperty("_Exposure1") && mat.HasProperty("_Exposure2");
+    }
+
+    private void UpdateSkyboxExposure()
+    {
+        if (RenderSettings.skybox == null || !hasSkyboxExposureProps) return;
+        float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
+        float expo = Mathf.Clamp(skyboxExposureByRain.Evaluate(rain), 0.05f, 2f);
+        RenderSettings.skybox.SetFloat("_Exposure1", expo);
+        RenderSettings.skybox.SetFloat("_Exposure2", expo);
     }
 
     private void UpdateTimeOfDayLerp()
     {
         if (RenderSettings.skybox == null) return;
-
         float hourFraction = hours + minutes / 60f;
         float lerp = 0f;
 
         switch (currentState)
         {
-            case DayState.Dawn:
-                lerp = Mathf.InverseLerp(5f, 7f, hourFraction);
-                break;
-            case DayState.Day:
-                lerp = Mathf.InverseLerp(7f, 18f, hourFraction);
-                break;
-            case DayState.Dusk:
-                lerp = Mathf.InverseLerp(18f, 21f, hourFraction);
-                break;
+            case DayState.Dawn: lerp = Mathf.InverseLerp(5f, 7f, hourFraction); break;
+            case DayState.Day:  lerp = Mathf.InverseLerp(7f, 18f, hourFraction); break;
+            case DayState.Dusk: lerp = Mathf.InverseLerp(18f, 21f, hourFraction); break;
             case DayState.Night:
                 float wrapped = hours >= 21 ? hourFraction : hourFraction + 24f;
                 lerp = Mathf.InverseLerp(21f, 29f, wrapped);
@@ -275,7 +312,7 @@ public class TimeManager : MonoBehaviour
     private Texture2D GetBaseSkyForState(DayState s) => s switch
     {
         DayState.Dawn => skyboxDawn,
-        DayState.Day => skyboxDay,
+        DayState.Day  => skyboxDay,
         DayState.Dusk => skyboxDusk,
         DayState.Night => skyboxNight,
         _ => skyboxNight
@@ -284,16 +321,16 @@ public class TimeManager : MonoBehaviour
     private Texture2D GetNextBaseSkyForLerp(DayState s) => s switch
     {
         DayState.Night => skyboxDawn,
-        DayState.Dawn => skyboxDay,
-        DayState.Day => skyboxDusk,
-        DayState.Dusk => skyboxNight,
+        DayState.Dawn  => skyboxDay,
+        DayState.Day   => skyboxDusk,
+        DayState.Dusk  => skyboxNight,
         _ => skyboxNight
     };
 
     private Texture2D GetOvercastSkyForState(DayState s) => s switch
     {
         DayState.Dawn => overcastDawn,
-        DayState.Day => overcastDay,
+        DayState.Day  => overcastDay,
         DayState.Dusk => overcastDusk,
         DayState.Night => overcastNight,
         _ => overcastNight
@@ -301,7 +338,7 @@ public class TimeManager : MonoBehaviour
 
     #endregion
 
-    #region Lighting & Shadows
+    #region Lighting, Envelope, Shadows
 
     private void UpdateLightingContinuous()
     {
@@ -309,14 +346,14 @@ public class TimeManager : MonoBehaviour
 
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
 
-        // Raw target color from gradients (WITHOUT phase blend)
+        // Raw target color from gradients (pre-phase-blend)
         float segmentProgress = GetSegmentProgress();
         Color normalColor = GetNormalGradientForState(currentState).Evaluate(segmentProgress);
         Color overcastColor = GetOvercastGradientForState(currentState).Evaluate(segmentProgress);
         float overcastBlend = overcastBlendCurve.Evaluate(rain);
         Color targetPhaseColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
 
-        // Force a cold tint under rain, regardless of warm gradients
+        // Force cold, desaturated tint in rain
         if (forceColdTintInRain && rain > 0f)
         {
             float coldStrength = Mathf.Clamp01(rainColdTintStrengthByRain.Evaluate(rain));
@@ -326,94 +363,94 @@ public class TimeManager : MonoBehaviour
             targetPhaseColor = Desaturate(targetPhaseColor, desat);
         }
 
-        // Raw target intensity (WITHOUT phase blend)
+        // Raw target intensity (pre-phase-blend)
         float dayProgress = GetDayProgress();
         float baseIntensity = lightIntensityOverDay.Evaluate(dayProgress);
         float rainMultiplier = rainLightDarkeningCurve.Evaluate(rain);
         float targetPhaseIntensity = baseIntensity * rainMultiplier;
 
-        // Compute phase blend alphas (0..1) in in-game minutes
+        // Phase blending (in-game minutes)
         float elapsedInState = GetTotalMinutes() - stateStartTotalMinutes;
+        float colorBlendAlpha = stateColorBlendDurationMinutes <= 0f ? 1f : Mathf.Clamp01(elapsedInState / stateColorBlendDurationMinutes);
+        float intensityBlendAlpha = stateIntensityBlendDurationMinutes <= 0f ? 1f : Mathf.Clamp01(elapsedInState / stateIntensityBlendDurationMinutes);
 
-        float colorBlendAlpha = stateColorBlendDurationMinutes <= 0f
-            ? 1f
-            : Mathf.Clamp01(elapsedInState / stateColorBlendDurationMinutes);
-
-        float intensityBlendAlpha = stateIntensityBlendDurationMinutes <= 0f
-            ? 1f
-            : Mathf.Clamp01(elapsedInState / stateIntensityBlendDurationMinutes);
-
-        // Final blended color & intensity
         Color blendedColor = Color.Lerp(previousPhaseColor, targetPhaseColor, colorBlendAlpha);
         float blendedIntensity = Mathf.Lerp(previousPhaseIntensity, targetPhaseIntensity, intensityBlendAlpha);
 
-        // Shadows (bidirectional fade)
-        UpdateShadowFade(rain);
+        // Shadow fade (no hard disable; keep minimum shadowing)
+        UpdateShadowFadeNoDisable(rain);
 
-        // Intensity compensation relative to shadow fade
-        float dimComp = Mathf.Lerp(1f, shadowRemovalDimFactor, 1f - currentShadowFactor);
-        globalLight.intensity = blendedIntensity * dimComp;
+        // Apply global rain envelope dimming to the sun
+        float globalDim = Mathf.Clamp01(rainGlobalDimCurve.Evaluate(rain));
+        float finalSunIntensity = blendedIntensity * globalDim;
+
+        // Apply to light
+        globalLight.intensity = finalSunIntensity;
         globalLight.color = blendedColor;
+
+        // Fog color follows light color (density handled in envelope)
         RenderSettings.fogColor = blendedColor;
 
         if (debugPhaseBlend)
         {
             if (elapsedInState < Mathf.Max(stateColorBlendDurationMinutes, stateIntensityBlendDurationMinutes))
             {
-                Debug.Log($"[TimeManager] PhaseBlend state={currentState} elapsed={elapsedInState:0.0}m " +
-                          $"colorA={colorBlendAlpha:0.00} intensA={intensityBlendAlpha:0.00} rain={rain:0.00}");
+                Debug.Log($"[TimeManager] PhaseBlend state={currentState} elapsed={elapsedInState:0.0}m colorA={colorBlendAlpha:0.00} intensA={intensityBlendAlpha:0.00} rain={rain:0.00}");
             }
         }
     }
 
-    private void UpdateShadowFade(float rain)
+    private void UpdateShadowFadeNoDisable(float rain)
     {
-        float targetShadowFactor;
-        if (rain <= shadowFadeStart) targetShadowFactor = 1f;
-        else if (rain >= shadowFadeEnd) targetShadowFactor = 0f;
+        // Compute target shadow factor from 1 -> minShadowFactorAtMaxRain
+        float target;
+        if (rain <= shadowFadeStart) target = 1f;
+        else if (rain >= shadowFadeEnd) target = minShadowFactorAtMaxRain;
         else
         {
-            float t = Mathf.InverseLerp(shadowFadeStart, shadowFadeEnd, rain);
-            targetShadowFactor = 1f - t;
+            float t = Mathf.InverseLerp(shadowFadeStart, shadowFadeEnd, rain); // 0..1
+            target = Mathf.Lerp(1f, minShadowFactorAtMaxRain, t);
         }
 
-        // Re-enable physically disabled shadows if we need >0 factor and conditions allow
-        if (shadowsPhysicallyDisabled && targetShadowFactor > 0f && rain < (shadowFadeStart - shadowDisableHysteresis))
+        float prev = currentShadowFactor;
+        currentShadowFactor = Mathf.MoveTowards(currentShadowFactor, target, shadowFadeLerpSpeed * Time.deltaTime);
+        globalLight.shadowStrength = originalShadowStrength * currentShadowFactor;
+
+        if (debugShadowTransitions && Mathf.Abs(prev - currentShadowFactor) > 0.001f)
         {
-            globalLight.shadows = originalShadowType;
-            shadowsPhysicallyDisabled = false;
-            if (debugShadowTransitions)
-                Debug.Log($"[TimeManager] Re-enabling shadows (rain={rain:0.00})");
+            Debug.Log($"[TimeManager] ShadowFade (no disable) rain={rain:0.00} target={target:0.00} current={currentShadowFactor:0.00}");
         }
+    }
 
-        currentShadowFactor = Mathf.MoveTowards(
-            currentShadowFactor,
-            targetShadowFactor,
-            shadowFadeLerpSpeed * Time.deltaTime
-        );
+    private void UpdateAmbientAndFogEnvelope()
+    {
+        float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
 
-        if (!shadowsPhysicallyDisabled)
+        // Ambient
+        float ambientDim = Mathf.Clamp01(ambientDimByRain.Evaluate(rain));
+
+        if (RenderSettings.ambientMode == AmbientMode.Skybox)
         {
-            globalLight.shadowStrength = originalShadowStrength * currentShadowFactor;
-
-            if (disableShadowsCompletelyAtEnd &&
-                targetShadowFactor == 0f &&
-                currentShadowFactor <= minShadowStrengthBeforeDisable)
-            {
-                globalLight.shadows = LightShadows.None;
-                shadowsPhysicallyDisabled = true;
-                if (debugShadowTransitions)
-                    Debug.Log($"[TimeManager] Shadows fully disabled (rain={rain:0.00}).");
-            }
+            RenderSettings.ambientIntensity = originalAmbientIntensity * ambientDim;
         }
         else
         {
-            globalLight.shadowStrength = 0f;
+            // For Flat/Trilight, gently cool and dim ambientLight
+            Color targetAmbient = Color.Lerp(originalAmbientLight, rainColdTint, Mathf.Clamp01(rain * 0.6f));
+            targetAmbient *= ambientDim;
+            RenderSettings.ambientLight = targetAmbient;
         }
 
-        if (debugShadowTransitions)
+        // Fog density (if enabled)
+        if (RenderSettings.fog)
         {
-            Debug.Log($"[TimeManager] ShadowFade rain={rain:0.00} target={targetShadowFactor:0.00} current={currentShadowFactor:0.00} physDisabled={shadowsPhysicallyDisabled}");
+            float fogMul = Mathf.Max(0f, fogDensityByRain.Evaluate(rain));
+            RenderSettings.fogDensity = baseFogDensity * fogMul;
+        }
+
+        if (debugEnvelope)
+        {
+            Debug.Log($"[TimeManager] Envelope rain={rain:0.00} ambDim={ambientDim:0.00} fogDens={RenderSettings.fogDensity:0.0000}");
         }
     }
 
@@ -423,7 +460,7 @@ public class TimeManager : MonoBehaviour
         return currentState switch
         {
             DayState.Dawn => Mathf.InverseLerp(5f, 7f, hf),
-            DayState.Day => Mathf.InverseLerp(7f, 18f, hf),
+            DayState.Day  => Mathf.InverseLerp(7f, 18f, hf),
             DayState.Dusk => Mathf.InverseLerp(18f, 21f, hf),
             DayState.Night => Mathf.InverseLerp(21f, 29f, (hours >= 21 ? hf : hf + 24f)),
             _ => 0f
@@ -439,7 +476,7 @@ public class TimeManager : MonoBehaviour
     private Gradient GetNormalGradientForState(DayState s) => s switch
     {
         DayState.Dawn => gradientNightToDawn,
-        DayState.Day => gradientDawnToDay,
+        DayState.Day  => gradientDawnToDay,
         DayState.Dusk => gradientDayToDusk,
         DayState.Night => gradientDuskToNight,
         _ => gradientDuskToNight
@@ -448,7 +485,7 @@ public class TimeManager : MonoBehaviour
     private Gradient GetOvercastGradientForState(DayState s) => s switch
     {
         DayState.Dawn => overcastGradientDawn,
-        DayState.Day => overcastGradientDay,
+        DayState.Day  => overcastGradientDay,
         DayState.Dusk => overcastGradientDusk,
         DayState.Night => overcastGradientNight,
         _ => overcastGradientNight
@@ -490,9 +527,7 @@ public class TimeManager : MonoBehaviour
     private void OnValidate()
     {
         shadowFadeEnd = Mathf.Max(shadowFadeEnd, shadowFadeStart + 0.001f);
-        minShadowStrengthBeforeDisable = Mathf.Clamp01(minShadowStrengthBeforeDisable);
-        shadowRemovalDimFactor = Mathf.Clamp(shadowRemovalDimFactor, 0.5f, 1f);
-        shadowFadeLerpSpeed = Mathf.Max(0.01f, shadowFadeLerpSpeed);
+        minShadowFactorAtMaxRain = Mathf.Clamp01(minShadowFactorAtMaxRain);
         stateColorBlendDurationMinutes = Mathf.Max(0f, stateColorBlendDurationMinutes);
         stateIntensityBlendDurationMinutes = Mathf.Max(0f, stateIntensityBlendDurationMinutes);
     }
