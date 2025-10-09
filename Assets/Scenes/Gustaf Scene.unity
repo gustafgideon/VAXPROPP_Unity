@@ -92179,6 +92179,9 @@ MonoBehaviour:
   overcastDawn: {fileID: 0}
   overcastDay: {fileID: 0}
   overcastDusk: {fileID: 0}
+  globalLight: {fileID: 545497711}
+  maxSunAltitude: 55
+  fullDayLengthMinutes: 1
   gradientNightToDawn:
     serializedVersion: 2
     key0: {r: 1, g: 1, b: 1, a: 1}
@@ -92419,10 +92422,10 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 2
     m_NumAlphaKeys: 2
-  globalLight: {fileID: 545497711}
-  fullDayLengthMinutes: 1
   stateColorBlendDurationMinutes: 30
   stateIntensityBlendDurationMinutes: 20
+  nightColorBlendDurationMinutes: 8
+  nightIntensityBlendDurationMinutes: 10
   overcastBlendCurve:
     serializedVersion: 2
     m_Curve:
@@ -92680,10 +92683,165 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  shadowFadeStart: 0.12
-  shadowFadeEnd: 0.28
-  shadowFadeLerpSpeed: 2.5
-  minShadowFactorAtMaxRain: 0.25
+  nightColdTint: {r: 0.55, g: 0.62, b: 0.78, a: 1}
+  nightColdTintStrengthByNight:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.5
+      value: 0.5
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  nightDesaturationByNight:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.4
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  nightGlobalDimByNight:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.35
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  nightAmbientDimByNight:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.45
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  nightSkyboxExposureByNight:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.55
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  nightFogDensityByNight:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1.3
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  disableShadowsAtNight: 1
+  rainNoShadowThreshold: 0.01
+  nightShadowlessSunHeightThreshold: 0.12
+  shadowToggleLerpSpeed: 2.5
+  noShadowDimWhenOff: 0.85
   lightIntensityOverDay:
     serializedVersion: 2
     m_Curve:
@@ -92756,7 +92914,7 @@ MonoBehaviour:
   timeOfDayParameterName: TimeOfDay
   weatherSystem: {fileID: 0}
   debugDayStateChanges: 1
-  debugShadowTransitions: 0
+  debugShadowlessTransitions: 0
   debugPhaseBlend: 0
   debugEnvelope: 0
 --- !u!4 &1348079233

@@ -161,9 +161,7 @@ public class WeatherSystemManager : MonoBehaviour
             // Update position based on wind direction
             UpdateWind3DPosition();
             windDirectionInstance.set3DAttributes(RuntimeUtils.To3DAttributes(currentWind3DPosition));
-            
-            // Set wind strength parameter
-            windDirectionInstance.setParameterByName(windParameterName, windStrength);
+
         }
     }
 
