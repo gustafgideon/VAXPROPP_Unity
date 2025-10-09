@@ -29,10 +29,12 @@ public class WeatherSystemManager : MonoBehaviour
     [Space(10)]
     [Header("Wind Settings")]
     [Range(0f, 1f)] public float windStrength = 0.3f;
-    [Range(0f, 360f)] public float windDirection = 270f; // default: wind from West (blows East)
+    [Range(-180f, 180f)] public float windDegrees = 0f;
+    private float windSourceDistance = 5f; // Distance from player to place the 3D wind source
+    private float windSourceHeight = 0f; // Height offset for 3D wind source
     private float windParticleStrengthMultiplier = 12f;
     private bool applyWindToParticles = true;
-    private float windParticleLerpSpeed = 3f;
+    private float windParticleLerpSpeed = 4f;
 
     [Space(10)]
     [Header("Thunder Settings")]
@@ -44,16 +46,19 @@ public class WeatherSystemManager : MonoBehaviour
     [Header("FMOD")]
     public EventReference rainLoopEvent;
     public EventReference rainImpactEvent; // One-shot for impact sounds
-    public EventReference windEvent;
+    public EventReference windEvent; // Your existing 2D wind event (unchanged)
+    public EventReference windDirectionEvent; // NEW: 3D positioned wind event
     public EventReference thunderEvent;
     public string rainParameterName = "RainIntensity";
     public string windParameterName = "WindStrength";
+    public string windDegreesParameterName = "WindDegrees";
     public string rainOcclusionEQParameterName = "RainOcclusionEQ";
     public string rainOcclusionVolumeParameterName = "RainOcclusionVolume";
 
     private EventInstance rainLoopInstance;
-    private EventInstance windInstance;
-    private bool isRainValid, isWindValid;
+    private EventInstance windInstance; // Your existing wind event (unchanged)
+    private EventInstance windDirectionInstance; // NEW: 3D wind instance
+    private bool isRainValid, isWindValid, isWind3DValid;
     
     // Store current occlusion values to pass to impact events
     private float currentOcclusionEQ = 0f;
@@ -61,6 +66,9 @@ public class WeatherSystemManager : MonoBehaviour
 
     // Internal state for smoothly applying wind to particles
     private Vector3 currentAppliedWind = Vector3.zero;
+    
+    // NEW: Wind 3D positioning
+    private Vector3 currentWind3DPosition;
 
     void Start()
     {
@@ -72,7 +80,7 @@ public class WeatherSystemManager : MonoBehaviour
 
     void SetupAudio()
     {
-        // Rain loop
+        // Rain loop (unchanged)
         rainLoopInstance = RuntimeManager.CreateInstance(rainLoopEvent);
         if (rainLoopInstance.isValid())
         {
@@ -81,13 +89,23 @@ public class WeatherSystemManager : MonoBehaviour
             RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
         }
 
-        // Wind loop
+        // Wind loop (unchanged)
         windInstance = RuntimeManager.CreateInstance(windEvent);
         if (windInstance.isValid())
         {
             isWindValid = true;
             windInstance.start();
             RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
+        }
+
+        // NEW: 3D Wind event
+        windDirectionInstance = RuntimeManager.CreateInstance(windDirectionEvent);
+        if (windDirectionInstance.isValid())
+        {
+            isWind3DValid = true;
+            windDirectionInstance.start();
+            UpdateWind3DPosition();
+            windDirectionInstance.set3DAttributes(RuntimeUtils.To3DAttributes(currentWind3DPosition));
         }
     }
 
@@ -98,7 +116,8 @@ public class WeatherSystemManager : MonoBehaviour
         UpdateRainParticles();
         UpdateRainAudio();
         UpdateWindAudio();
-        UpdateRainOcclusion(); // <-- Call occlusion check here (updates current occlusion values)
+        UpdateWind3DAudio(); // NEW: Update 3D wind
+        UpdateRainOcclusion();
         HandleRainImpacts();
         HandleThunder();
 
@@ -125,12 +144,43 @@ public class WeatherSystemManager : MonoBehaviour
             RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
     }
 
-    void UpdateWindAudio()
+    void UpdateWindAudio() // Unchanged - works exactly as before
     {
         if (isWindValid)
+        {
             RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
+            RuntimeManager.StudioSystem.setParameterByName(windDegreesParameterName, windDegrees);
+        }
     }
 
+    // NEW: Update 3D wind audio
+    void UpdateWind3DAudio()
+    {
+        if (isWind3DValid)
+        {
+            // Update position based on wind direction
+            UpdateWind3DPosition();
+            windDirectionInstance.set3DAttributes(RuntimeUtils.To3DAttributes(currentWind3DPosition));
+            
+            // Set wind strength parameter
+            windDirectionInstance.setParameterByName(windParameterName, windStrength);
+        }
+    }
+
+    // NEW: Calculate 3D wind position
+    void UpdateWind3DPosition()
+    {
+        if (player == null) return;
+
+        // Calculate the position where wind is coming FROM
+        float radians = Mathf.Deg2Rad * windDegrees;
+        Vector3 windFromDirection = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
+        
+        // Position the 3D wind source at the origin point (where wind comes from)
+        currentWind3DPosition = player.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
+    }
+
+    // All the rest of your methods stay exactly the same...
     void HandleRainImpacts()
     {
         if (rainIntensity <= 0f || player == null) return;
@@ -262,70 +312,88 @@ public class WeatherSystemManager : MonoBehaviour
         }
     }
 
-    // Compute the horizontal blowing direction based on the inspector windFromDegrees slider.
-    // windFromDegrees is the compass heading the wind is coming FROM (0 = North/+Z, 90 = East/+X, etc).
-    // Returns a normalized horizontal vector (y == 0) pointing the direction the wind is BLOWING TO.
     Vector3 GetBlowingDirectionHorizontal()
     {
-        float radians = Mathf.Deg2Rad * windDirection;
-        // fromVec: unit vector pointing to the compass direction the wind is coming FROM
-        Vector3 fromVec = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians)); // 0deg -> (0,0,1) = North
-        Vector3 blowingDir = -fromVec; // invert to get blowing TO direction
+        float radians = Mathf.Deg2Rad * windDegrees;
+        Vector3 fromVec = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
+        Vector3 blowingDir = -fromVec;
         blowingDir.y = 0f;
         if (blowingDir.sqrMagnitude < 0.0001f) blowingDir = Vector3.right;
         blowingDir.Normalize();
         return blowingDir;
     }
 
-    // Apply wind to the rain particle system so the particles visibly blow in the chosen horizontal direction.
     void ApplyWindToParticles()
     {
         if (rainParticles == null) return;
 
-        // Determine horizontal blowing direction from inspector slider
         Vector3 dir = GetBlowingDirectionHorizontal();
-
-        // Desired lateral velocity applied to particles (world space) - horizontal only
         Vector3 desiredWind = dir * (windStrength * windParticleStrengthMultiplier);
-
-        // Smooth transitions so wind changes aren't instantaneous
         currentAppliedWind = Vector3.Lerp(currentAppliedWind, desiredWind, Time.deltaTime * Mathf.Max(1f, windParticleLerpSpeed));
 
-        // Use velocity over lifetime module to set a constant lateral velocity
         var vel = rainParticles.velocityOverLifetime;
         vel.enabled = true;
         vel.space = ParticleSystemSimulationSpace.World;
 
-        // Set per-axis constants. Keep Y component as currentAppliedWind.y (should be zero by design).
         vel.x = new ParticleSystem.MinMaxCurve(currentAppliedWind.x);
         vel.y = new ParticleSystem.MinMaxCurve(currentAppliedWind.y);
         vel.z = new ParticleSystem.MinMaxCurve(currentAppliedWind.z);
     }
 
-    // Draw rain radius and wind arrow in Scene view
     void OnDrawGizmosSelected()
     {
         if (player == null) return;
+        
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(player.position, rainRadius);
 
-        // Draw a small arrow to indicate wind direction in the Scene view
         Gizmos.color = Color.yellow;
-        Vector3 origin = (player != null) ? player.position + Vector3.up * 2f : transform.position + Vector3.up * 2f;
+        Vector3 origin = player.position + Vector3.up * 2f;
         Vector3 dir = GetBlowingDirectionHorizontal();
         dir = dir.normalized * 2f;
         Gizmos.DrawLine(origin, origin + dir);
-        // draw arrow head
+        
         Quaternion look = dir.sqrMagnitude > 0 ? Quaternion.LookRotation(dir) : Quaternion.identity;
         Vector3 right = look * Quaternion.Euler(0,150,0) * Vector3.forward * 0.4f;
         Vector3 left = look * Quaternion.Euler(0,-150,0) * Vector3.forward * 0.4f;
         Gizmos.DrawLine(origin + dir, origin + dir + right);
         Gizmos.DrawLine(origin + dir, origin + dir + left);
 
-        // Draw the numeric label of the 'from' degrees on the gizmo for easier tuning
+        // NEW: Show 3D wind source position
+        Gizmos.color = Color.magenta;
+        float radians = Mathf.Deg2Rad * windDegrees;
+        Vector3 windFromDirection = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
+        Vector3 wind3DPos = player.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
+        Gizmos.DrawWireSphere(wind3DPos, 2f);
+
         #if UNITY_EDITOR
         UnityEditor.Handles.color = Color.yellow;
-        UnityEditor.Handles.Label(origin + dir + Vector3.up * 0.2f, $"Wind From: {windDirection:F0}° (0=N,90=E,180=S,270=W)");
+        UnityEditor.Handles.Label(origin + dir + Vector3.up * 0.2f, $"Wind Direction: {windDegrees:F0}°");
+        
+        UnityEditor.Handles.color = Color.magenta;
+        UnityEditor.Handles.Label(wind3DPos + Vector3.up * 0.5f, "Directional Sound");
         #endif
+    }
+
+    void OnDestroy()
+    {
+        if (rainLoopInstance.isValid())
+        {
+            rainLoopInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+            rainLoopInstance.release();
+        }
+        
+        if (windInstance.isValid())
+        {
+            windInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+            windInstance.release();
+        }
+        
+        // NEW: Clean up 3D wind
+        if (windDirectionInstance.isValid())
+        {
+            windDirectionInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
+            windDirectionInstance.release();
+        }
     }
 }

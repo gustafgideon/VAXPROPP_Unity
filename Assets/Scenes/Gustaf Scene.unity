@@ -28979,8 +28979,52 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2011339014}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windDirection
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: wind3DEvent.Path
+      value: event:/AMB/WeatherSystem/Weather_WindDirection
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: customFromAngleDegrees
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: wind3DEvent.Guid.Data1
+      value: -277746311
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: wind3DEvent.Guid.Data2
+      value: 1266232415
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: wind3DEvent.Guid.Data3
+      value: 1766854059
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: wind3DEvent.Guid.Data4
+      value: 1228153356
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windDirectionEvent.Path
+      value: event:/AMB/WeatherSystem/Weather_WindDirection
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windDirectionEvent.Guid.Data1
+      value: -277746311
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windDirectionEvent.Guid.Data2
+      value: 1266232415
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windDirectionEvent.Guid.Data3
+      value: 1766854059
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windDirectionEvent.Guid.Data4
+      value: 1228153356
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -92522,13 +92566,124 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  rainGlobalDimCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.15
+      value: 0.92
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.5
+      value: 0.75
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.6
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  ambientDimByRain:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.55
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  skyboxExposureByRain:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.7
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  fogDensityByRain:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1.6
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   shadowFadeStart: 0.12
   shadowFadeEnd: 0.28
   shadowFadeLerpSpeed: 2.5
-  minShadowStrengthBeforeDisable: 0.05
-  shadowDisableHysteresis: 0.03
-  disableShadowsCompletelyAtEnd: 1
-  shadowRemovalDimFactor: 0.9
+  minShadowFactorAtMaxRain: 0.25
   lightIntensityOverDay:
     serializedVersion: 2
     m_Curve:
@@ -92603,6 +92758,7 @@ MonoBehaviour:
   debugDayStateChanges: 1
   debugShadowTransitions: 0
   debugPhaseBlend: 0
+  debugEnvelope: 0
 --- !u!4 &1348079233
 Transform:
   m_ObjectHideFlags: 0
