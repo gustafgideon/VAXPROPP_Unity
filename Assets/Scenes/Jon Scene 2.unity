@@ -113259,6 +113259,10 @@ PrefabInstance:
       propertyPath: weatherSystem
       value: 
       objectReference: {fileID: 1866269533}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: fullDayLengthMinutes
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6608563952218027659, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: m_Name
       value: TimeManager
