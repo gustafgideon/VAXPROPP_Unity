@@ -13,9 +13,9 @@ public class SplineGenerativeAudioController : MonoBehaviour
     public string waterfallTag = "Waterfall";
 
     [Header("FMOD Events (must be 3D and looping)")]
-    [SerializeField] private EventReference streamEvent;
-    [SerializeField] private EventReference rockSplashEvent;
-    [SerializeField] private EventReference waterfallEvent;
+    [SerializeField] private EventReference streamEvent;       // Base stream/river loop
+    [SerializeField] private EventReference rockSplashEvent;   // Rock splash overlay
+    [SerializeField] private EventReference waterfallEvent;    // Waterfall loop
 
     [Header("Volumes")]
     [Range(0f, 1f)] public float baseRiverVolume = 0.8f;
@@ -29,26 +29,34 @@ public class SplineGenerativeAudioController : MonoBehaviour
     [Tooltip("How many overlapping rocks are needed to reach full density (1.0).")]
     [Min(1f)] public float rockCountForMax = 3f;
 
-    [Header("Speed and dynamics")]
-    [Tooltip("If true, use a constant river flow speed instead of player movement.")]
-    public bool useConstantFlowSpeed = false;
-    [Tooltip("River flow speed used when 'useConstantFlowSpeed' is true.")]
+    [Header("Constant Flow (no player speed)")]
+    [Tooltip("River flow speed used to drive splash intensity.")]
     public float constantFlowSpeed = 2.5f;
-    [Tooltip("Speed at which rock splash reaches max volume (when using movement or flow).")]
+    [Tooltip("Flow speed at which rock splash reaches maximum intensity.")]
     public float speedForMaxRockSplash = 6f;
     [Tooltip("How quickly volumes move toward their targets (units per second).")]
     public float fadeSpeed = 3f;
+
+    [Header("Detection Area")]
+    [Tooltip("WORLD-SPACE area of the detection sphere (A = 4πr²). This drives the SphereCollider radius.")]
+    [Range(0.1f, 5000f)]
+    public float detectionArea = 50f;
 
     [Header("Optional filtering")]
     [Tooltip("Limit trigger checks to these layers (leave as Everything to include all).")]
     public LayerMask featureLayers = ~0;
 
+    [Header("Gizmos")]
+    public bool drawGizmos = true;
+    public bool drawWhenNotSelected = false;
+    public Color gizmoFillColor = new Color(0f, 1f, 1f, 0.08f);
+    public Color gizmoWireColor = new Color(0f, 0.8f, 1f, 0.9f);
+    public Color gizmoWaterfallWireColor = new Color(0.1f, 0.4f, 1f, 1f);
+    public Color gizmoRocksWireColor = new Color(0.1f, 1f, 0.6f, 1f);
+
     // State
     private int rockCount;
     private int waterfallCount;
-
-    private Vector3 lastPos;
-    private float currentSpeed;
 
     private Rigidbody rb;
     private SphereCollider sphere;
@@ -78,16 +86,16 @@ public class SplineGenerativeAudioController : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
+        // Initialize collider radius from detectionArea
+        ApplyAreaToCollider();
+
         CreateInstances();
     }
 
     void OnEnable()
     {
-        lastPos = transform.position;
-
         // Prime counts if starting inside volumes
-        float worldRadius = sphere.radius * Mathf.Max(transform.lossyScale.x, Mathf.Max(transform.lossyScale.y, transform.lossyScale.z));
-        var hits = Physics.OverlapSphere(transform.position, worldRadius, featureLayers, QueryTriggerInteraction.Collide);
+        var hits = Physics.OverlapSphere(transform.position, GetWorldRadius(), featureLayers, QueryTriggerInteraction.Collide);
         rockCount = 0;
         waterfallCount = 0;
         foreach (var h in hits)
@@ -112,18 +120,6 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     void Update()
     {
-        // Movement or constant flow
-        if (useConstantFlowSpeed)
-        {
-            currentSpeed = Mathf.Max(0f, constantFlowSpeed);
-        }
-        else
-        {
-            var pos = transform.position;
-            currentSpeed = (pos - lastPos).magnitude / Mathf.Max(Time.deltaTime, 1e-6f);
-            lastPos = pos;
-        }
-
         // Keep FMOD 3D attributes in sync
         Update3DAttributes();
 
@@ -131,14 +127,15 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
         float targetRiver = inWaterfall ? riverVolumeInWaterfall : baseRiverVolume;
 
-        float speedFactor = Mathf.Clamp01(currentSpeed / Mathf.Max(0.001f, speedForMaxRockSplash));
+        // Only constant flow is used
+        float flowFactor = Mathf.Clamp01(constantFlowSpeed / Mathf.Max(0.001f, speedForMaxRockSplash));
         float density = RockDensityFactor();
 
-        // Presence floor keeps splashes audible when stationary inside rocks
+        // Presence floor keeps splashes audible when inside rocks
         float presenceFloor = (rockCount > 0) ? Mathf.Clamp01(rockPresenceFloor) : 0f;
 
-        // Choose the higher of the floor or the speed-based intensity, then scale by density and max level
-        float targetRocks = maxRockVolume * density * Mathf.Max(presenceFloor, speedFactor);
+        // Choose the higher of the floor or the flow-based intensity, then scale by density and max level
+        float targetRocks = maxRockVolume * density * Mathf.Max(presenceFloor, flowFactor);
 
         float targetWaterfall = inWaterfall ? maxWaterfallVolume : 0f;
 
@@ -300,15 +297,85 @@ public class SplineGenerativeAudioController : MonoBehaviour
         return (featureLayers.value & (1 << col.gameObject.layer)) != 0;
     }
 
-#if UNITY_EDITOR
-    void OnDrawGizmosSelected()
+    // Convert the inspector "area" to a world-space radius, then to local collider radius
+    private void ApplyAreaToCollider()
     {
         if (!sphere) sphere = GetComponent<SphereCollider>();
         if (!sphere) return;
 
-        Gizmos.color = Color.cyan;
-        var r = sphere.radius * Mathf.Max(transform.lossyScale.x, Mathf.Max(transform.lossyScale.y, transform.lossyScale.z));
+        float worldRadius = Mathf.Sqrt(Mathf.Max(0.0001f, detectionArea) / (4f * Mathf.PI));
+        float maxAxisScale = GetMaxLossyScale();
+        float localRadius = worldRadius / Mathf.Max(0.0001f, maxAxisScale);
+        sphere.radius = localRadius;
+    }
+
+    private float GetWorldRadius()
+    {
+        // Derived directly from detectionArea to avoid drift from transform scaling
+        return Mathf.Sqrt(Mathf.Max(0.0001f, detectionArea) / (4f * Mathf.PI));
+    }
+
+    private float GetMaxLossyScale()
+    {
+        var ls = transform.lossyScale;
+        return Mathf.Max(ls.x, Mathf.Max(ls.y, ls.z));
+    }
+
+#if UNITY_EDITOR
+    void OnValidate()
+    {
+        // Keep collider radius in sync with the area slider during edit time
+        if (!sphere) sphere = GetComponent<SphereCollider>();
+        if (sphere)
+        {
+            sphere.isTrigger = true;
+            ApplyAreaToCollider();
+        }
+    }
+
+    void OnDrawGizmos()
+    {
+        if (!drawGizmos) return;
+        if (!drawWhenNotSelected && !UnityEditor.Selection.Contains(gameObject.GetInstanceID())) return;
+        DrawGizmoVolume();
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        if (!drawGizmos) return;
+        DrawGizmoVolume();
+    }
+
+    private void DrawGizmoVolume()
+    {
+        float r = GetWorldRadius();
+
+        // Fill
+        Gizmos.color = gizmoFillColor;
+        Gizmos.DrawSphere(transform.position, r);
+
+        // Wire (base)
+        Gizmos.color = gizmoWireColor;
         Gizmos.DrawWireSphere(transform.position, r);
+
+        // Optional emphasis for states
+        if (waterfallCount > 0)
+        {
+            Gizmos.color = gizmoWaterfallWireColor;
+            Gizmos.DrawWireSphere(transform.position, r * 1.02f);
+        }
+        if (rockCount > 0)
+        {
+            Gizmos.color = gizmoRocksWireColor;
+            Gizmos.DrawWireSphere(transform.position, r * 1.04f);
+        }
+
+        // Label
+        var pos = transform.position + Vector3.up * (r + 0.1f);
+        string label = $"Detection r={r:0.##}m  A={detectionArea:0.#}m²\nRocks:{rockCount}  Waterfall:{waterfallCount}";
+        var style = new GUIStyle(UnityEditor.EditorStyles.helpBox);
+        style.alignment = TextAnchor.MiddleCenter;
+        UnityEditor.Handles.Label(pos, label, style);
     }
 #endif
 }
