@@ -4,199 +4,126 @@ using FMODUnity;
 
 public class TimeManager : MonoBehaviour
 {
-    [Header("Skyboxes")]
-    [SerializeField] private Texture2D skyboxNight;
-    [SerializeField] private Texture2D skyboxDawn;
-    [SerializeField] private Texture2D skyboxDay;
-    [SerializeField] private Texture2D skyboxDusk;
+    [Header("Day Cycle")] [Tooltip("Real-time minutes for a full 24h in-game day.")] [Range(1f, 60f)] [SerializeField]
+    private float fullDayLengthMinutes = 20f;
 
-    [Header("Overcast Skyboxes")]
-    [SerializeField] private Texture2D overcastNight;
-    [SerializeField] private Texture2D overcastDawn;
-    [SerializeField] private Texture2D overcastDay;
-    [SerializeField] private Texture2D overcastDusk;
+    [Header("Skybox Textures")] 
+    [SerializeField] private Texture2D skyboxNightTexture;
+    [SerializeField] private Texture2D skyboxDawnTexture;
+    [SerializeField] private Texture2D skyboxDayTexture;
+    [SerializeField] private Texture2D skyboxDuskTexture;
+    
+    [Header("Overcast Texture")] 
+    [SerializeField] private Texture2D overcastTexture;
 
-    [Header("Sun / Main Directional Light")]
-    [SerializeField] private Light globalLight;
+    [Header("Main Skybox Material")] 
+    [SerializeField] private Material skyboxMaterial;
+
+    [Header("Skybox Settings")] [Tooltip("Should the skybox rotate?")] [SerializeField]
+    private bool enableSkyboxRotation = true;
+
+    [Tooltip("Rotation speed of skybox in degrees per second")] [SerializeField]
+    private float skyboxRotationSpeed = 0.5f;
+
+    [Tooltip("How long skybox transitions take in minutes")] [Range(0.1f, 5f)] [SerializeField]
+    private float skyboxBlendDurationMinutes = 1f;
+
+    [Header("Sun / Main Directional Light")] [SerializeField]
+    private Light globalLight;
+
+    [Header("Moon / Secondary Light")] 
+    [SerializeField] private Light moonLight;
 
     [Header("Sun Path")]
     [Tooltip("Maximum altitude of the sun above horizon (degrees). Night drives it below 0.")]
     [Range(0f, 90f)]
-    [SerializeField] private float maxSunAltitude = 55f;
+    [SerializeField]
+    private float maxSunAltitude = 55f;
 
-    [Header("Time Settings")]
-    [Tooltip("Real-time minutes for a full 24h in-game day.")]
-    [SerializeField] private float fullDayLengthMinutes = 4f;
+    [Header("Light Intensities")]
+    [SerializeField] private float dayLightIntensity = 1.2f;
+    [SerializeField] private float nightLightIntensity = 0.05f;
+    [SerializeField] private float moonLightIntensity = 0.08f;
+    [Tooltip("How much to reduce light intensity during rain (0-1)")]
+    [SerializeField][Range(0f, 1f)] private float rainLightReduction = 0.6f;
 
-    [Header("Light Color Gradients (Per Segment)")]
-    [SerializeField] private Gradient gradientNightToDawn;
+    [Header("Shadow Settings (Clear Weather)")]
+    [Tooltip("Shadow strength during clear day (0-1)")]
+    [SerializeField][Range(0f, 1f)] private float dayShadowStrength = 0.7f;
+    [Tooltip("Shadow strength during clear night (0-1)")]
+    [SerializeField][Range(0f, 1f)] private float nightShadowStrength = 0.9f;
+
+    [Header("Shadow Settings (Overcast/Rain)")]
+    [Tooltip("Shadow strength during overcast day (0-1)")]
+    [SerializeField][Range(0f, 1f)] private float overcastDayShadowStrength = 0.4f;
+    [Tooltip("Shadow strength during overcast night (0-1)")]
+    [SerializeField][Range(0f, 1f)] private float overcastNightShadowStrength = 0.5f;
+    [Tooltip("How soft shadows become during rain (higher = softer shadows)")]
+    [SerializeField][Range(0f, 5f)] private float overcastShadowNormalBias = 0.4f;
+    [Tooltip("Normal shadow bias value during clear weather")]
+    [SerializeField][Range(0f, 5f)] private float clearShadowNormalBias = 0.2f;
+
+    [Header("Light Color Gradients (Per Segment)")] [SerializeField]
+    private Gradient gradientNightToDawn;
+
     [SerializeField] private Gradient gradientDawnToDay;
     [SerializeField] private Gradient gradientDayToDusk;
     [SerializeField] private Gradient gradientDuskToNight;
 
-    [Header("Overcast Color Gradients (Per Segment)")]
-    [SerializeField] private Gradient overcastGradientNight;
+    [Header("Overcast Color Gradients (Per Segment)")] [SerializeField]
+    private Gradient overcastGradientNight;
+
     [SerializeField] private Gradient overcastGradientDawn;
     [SerializeField] private Gradient overcastGradientDay;
     [SerializeField] private Gradient overcastGradientDusk;
 
-    [Header("Phase Transition Blend (In-Game Minutes)")]
-    [Tooltip("Blend duration for light COLOR after any phase change.")]
-    [SerializeField] private float stateColorBlendDurationMinutes = 30f;
-    [Tooltip("Blend duration for light INTENSITY after any phase change.")]
-    [SerializeField] private float stateIntensityBlendDurationMinutes = 20f;
-    [Tooltip("Optional faster blend duration specifically when entering Night (color).")]
-    [SerializeField] private float nightColorBlendDurationMinutes = 8f;
-    [Tooltip("Optional faster blend duration specifically when entering Night (intensity).")]
-    [SerializeField] private float nightIntensityBlendDurationMinutes = 10f;
+    [Header("Ambient Light Colors")]
+    [SerializeField] private Color daySkyColor = new Color(0.5f, 0.5f, 0.73f);
+    [SerializeField] private Color dayEquatorColor = new Color(0.6f, 0.6f, 0.6f);
+    [SerializeField] private Color dayGroundColor = new Color(0.4f, 0.38f, 0.35f);
+    [SerializeField] private Color nightSkyColor = new Color(0.05f, 0.05f, 0.1f);
+    [SerializeField] private Color nightEquatorColor = new Color(0.04f, 0.04f, 0.08f);
+    [SerializeField] private Color nightGroundColor = new Color(0.02f, 0.02f, 0.04f);
 
-    [Header("Rain / Overcast Blend Settings")]
-    [Tooltip("Front-loaded curve so overcast appears earlier with light rain.")]
-    [SerializeField] private AnimationCurve overcastBlendCurve = new AnimationCurve(
-        new Keyframe(0f, 0f),
-        new Keyframe(0.1f, 0.55f),
-        new Keyframe(0.3f, 0.85f),
-        new Keyframe(1f, 1f)
-    );
+    [Header("Fog Settings")]
+    [SerializeField] private float dayFogDensity = 0.005f;
+    [SerializeField] private float nightFogDensity = 0.03f;
+    [Tooltip("Additional fog density during rain")]
+    [SerializeField] private float rainFogDensityAdditive = 0.02f;
 
-    [Tooltip("Multiplies base light intensity by this curve vs rainIntensity.")]
-    [SerializeField] private AnimationCurve rainLightDarkeningCurve = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(0.15f, 0.8f),
-        new Keyframe(0.5f, 0.55f),
-        new Keyframe(1f, 0.4f)
-    );
+    [Header("FMOD Settings")] [SerializeField]
+    private string timeOfDayParameterName = "TimeOfDay";
 
-    [Header("Rain Cold Tint")]
-    [SerializeField] private bool forceColdTintInRain = true;
-    [SerializeField] private Color rainColdTint = new Color(0.65f, 0.72f, 0.85f, 1f);
-    [SerializeField] private AnimationCurve rainColdTintStrengthByRain = new AnimationCurve(
-        new Keyframe(0f, 0f),
-        new Keyframe(0.2f, 0.5f),
-        new Keyframe(1f, 1f)
-    );
-    [SerializeField] private AnimationCurve rainDesaturationByRain = new AnimationCurve(
-        new Keyframe(0f, 0f),
-        new Keyframe(1f, 0.6f)
-    );
+    [Header("Weather System (Optional)")] [SerializeField]
+    private WeatherSystemManager weatherSystem;
 
-    [Header("Rain Envelope (Global Darkening)")]
-    [SerializeField] private AnimationCurve rainGlobalDimCurve = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(0.15f, 0.92f),
-        new Keyframe(0.5f, 0.75f),
-        new Keyframe(1f, 0.6f)
-    );
-    [SerializeField] private AnimationCurve ambientDimByRain = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(1f, 0.55f)
-    );
-    [SerializeField] private AnimationCurve skyboxExposureByRain = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(1f, 0.7f)
-    );
-    [SerializeField] private AnimationCurve fogDensityByRain = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(1f, 1.6f)
-    );
+    [Header("Debug Options")] [SerializeField]
+    private bool debugDayStateChanges = true;
 
-    [Header("Night Envelope (Global Darkening and Cooling)")]
-    [Tooltip("Cold tint target color at night.")]
-    [SerializeField] private Color nightColdTint = new Color(0.55f, 0.62f, 0.78f, 1f);
-    [Tooltip("How strongly to bias toward the night tint as night deepens (x=nightFactor, y=strength).")]
-    [SerializeField] private AnimationCurve nightColdTintStrengthByNight = new AnimationCurve(
-        new Keyframe(0f, 0f),
-        new Keyframe(0.5f, 0.5f),
-        new Keyframe(1f, 1f)
-    );
-    [Tooltip("Desaturation by night depth (x=nightFactor, y=desat).")]
-    [SerializeField] private AnimationCurve nightDesaturationByNight = new AnimationCurve(
-        new Keyframe(0f, 0f),
-        new Keyframe(1f, 0.4f)
-    );
-    [Tooltip("Direct sun dimming by night depth (multiplier).")]
-    [SerializeField] private AnimationCurve nightGlobalDimByNight = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(1f, 0.35f)
-    );
-    [Tooltip("Ambient dimming by night depth.")]
-    [SerializeField] private AnimationCurve nightAmbientDimByNight = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(1f, 0.45f)
-    );
-    [Tooltip("Skybox exposure reduction by night depth.")]
-    [SerializeField] private AnimationCurve nightSkyboxExposureByNight = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(1f, 0.55f)
-    );
-    [Tooltip("Fog density increase by night depth.")]
-    [SerializeField] private AnimationCurve nightFogDensityByNight = new AnimationCurve(
-        new Keyframe(0f, 1f),
-        new Keyframe(1f, 1.3f)
-    );
-
-    [Header("Shadowless Control (No Shadows in Rain/Night)")]
-    [SerializeField] private bool disableShadowsAtNight = true;
-    [Tooltip("Rain intensity at or above which we remove shadows completely.")]
-    [SerializeField] private float rainNoShadowThreshold = 0.01f;
-    [Tooltip("Sun-height threshold for shadow removal by night depth (0..1 of day). Higher removes earlier in dusk.")]
-    [Range(0f, 1f)]
-    [SerializeField] private float nightShadowlessSunHeightThreshold = 0.12f;
-    [Tooltip("Speed (units per second) to fade to/from shadowless mode.")]
-    [SerializeField] private float shadowToggleLerpSpeed = 2.5f;
-    [Tooltip("Extra dim when shadows are fully off, to avoid the scene feeling brighter.")]
-    [Range(0.5f, 1f)]
-    [SerializeField] private float noShadowDimWhenOff = 0.85f;
-
-    [Header("Base Light Intensity Over 24h")]
-    [Tooltip("Base intensity over 24h BEFORE rain/night envelopes. Will be auto-multiplied by sun height so night goes near zero.")]
-    [SerializeField] private AnimationCurve lightIntensityOverDay = new AnimationCurve(
-        new Keyframe(0f,    0.02f),  // Midnight
-        new Keyframe(0.21f, 0.4f),   // ~05:00
-        new Keyframe(0.29f, 0.85f),  // ~07:00
-        new Keyframe(0.5f,  1.0f),   // Midday
-        new Keyframe(0.71f, 0.85f),  // ~17:00
-        new Keyframe(0.79f, 0.4f),   // ~19:00
-        new Keyframe(1f,    0.02f)   // Midnight
-    );
-
-    [Header("FMOD Settings")]
-    [SerializeField] private string timeOfDayParameterName = "TimeOfDay";
-
-    [Header("Weather System (Optional)")]
-    [SerializeField] private WeatherSystemManager weatherSystem;
-
-    [Header("Debug Options")]
-    [SerializeField] private bool debugDayStateChanges = true;
-    [SerializeField] private bool debugShadowlessTransitions = false;
-    [SerializeField] private bool debugPhaseBlend = false;
-    [SerializeField] private bool debugEnvelope = false;
+    [SerializeField] private bool debugSkybox = false;
 
     private int minutes;
     private int hours = 5; // start at dawn
     private float tempSecond;
+    private float skyboxRotationValue = 0f;
 
-    private enum DayState { Night, Dawn, Day, Dusk }
+    private enum DayState
+    {
+        Night,
+        Dawn,
+        Day,
+        Dusk
+    }
+
     private DayState currentState;
-
-    // Phase blending
     private DayState previousState;
-    private float stateStartTotalMinutes;
-    private Color previousPhaseColor;
-    private float previousPhaseIntensity;
 
-    // Shadowless (full removal) controller
-    private LightShadows originalShadowType;
-    private float originalShadowStrength = 1f;
-    // 0 = normal shadows, 1 = shadowless (Light.shadows=None)
-    private float currentShadowless = 0f;
-    private bool physicallyShadowless = false; // true when Light.shadows=None
-
-    // Skybox/ambient/fog baselines
-    private float originalAmbientIntensity = 1f;
-    private Color originalAmbientLight;
-    private bool hasSkyboxExposureProps = false;
-    private float baseFogDensity = 0.01f;
+    // Skybox blending
+    private float blendFactor = 0f;
+    private float blendStartTime;
+    private bool isBlending = false;
+    private Texture2D textureFrom;
+    private Texture2D textureTo;
 
     // Cached sun height (0..1, 0 night, 1 high noon)
     private float sunHeight01 = 0f;
@@ -205,32 +132,47 @@ public class TimeManager : MonoBehaviour
     {
         if (globalLight == null)
         {
-            Debug.LogWarning("TimeManager: No globalLight assigned.");
-            enabled = false; return;
+            Debug.LogError("TimeManager: No globalLight assigned! Please assign a directional light.");
+            enabled = false;
+            return;
         }
 
-        originalShadowType = globalLight.shadows;
-        originalShadowStrength = globalLight.shadowStrength;
+        if (skyboxMaterial == null)
+        {
+            Debug.LogError("TimeManager: No skyboxMaterial assigned! Please assign your panoramic skybox material.");
+            enabled = false;
+            return;
+        }
 
-        // Cache ambient baselines
-        originalAmbientIntensity = RenderSettings.ambientIntensity;
-        originalAmbientLight = RenderSettings.ambientLight;
-
-        if (RenderSettings.fog) baseFogDensity = RenderSettings.fogDensity;
+        // Check if the shader is the correct one
+        if (!skyboxMaterial.shader.name.Contains("Panoramic"))
+        {
+            Debug.LogWarning("TimeManager: Skybox material doesn't use the Dual Panoramic shader. Blending might not work properly.");
+        }
 
         currentState = GetCurrentDayState(hours);
         previousState = currentState;
-        stateStartTotalMinutes = GetTotalMinutes();
 
-        UpdateSkyboxTextures();
-        DetectSkyboxExposureProps();
-        UpdateTimeOfDayLerp();
-        UpdateSunRotation();          // sets sunHeight01
-        UpdateLightingContinuous();   // initializes color/intensity
+        // Initialize skybox textures
+        textureFrom = GetTextureForState(currentState);
+        textureTo = textureFrom;
 
-        // Capture initial phase snapshots
-        previousPhaseColor = globalLight.color;
-        previousPhaseIntensity = globalLight.intensity;
+        // Setup initial skybox state
+        skyboxMaterial.SetTexture("_Texture1", textureFrom);
+        skyboxMaterial.SetTexture("_Texture2", textureFrom);
+        skyboxMaterial.SetTexture("_OvercastTexture", overcastTexture);
+        skyboxMaterial.SetFloat("_TimeOfDayLerp", 0);
+        
+        // Set the skybox material
+        RenderSettings.skybox = skyboxMaterial;
+
+        // Set ambient mode to trilight for better day/night control
+        RenderSettings.ambientMode = AmbientMode.Trilight;
+
+        UpdateSunRotation();
+        UpdateLightingContinuous();
+
+        SetTimeOfDayParameter(currentState);
 
         if (debugDayStateChanges)
             Debug.Log($"[TimeManager] Initial state: {currentState} at {hours:00}:{minutes:00}");
@@ -239,14 +181,26 @@ public class TimeManager : MonoBehaviour
     private void Update()
     {
         AdvanceTime();
-        UpdateSunRotation();      // updates sunHeight01
+        UpdateSunRotation();
         UpdateState();
 
-        UpdateTimeOfDayLerp();
-        UpdateSkyboxBlend();
+        // Update skybox blending if in progress
+        if (isBlending)
+        {
+            UpdateSkyboxBlend();
+        }
+
+        // Update skybox rotation (separate from state updates)
+        if (enableSkyboxRotation)
+            RotateSkybox();
+
+        // Update weather blend in shader
+        if (weatherSystem != null && skyboxMaterial != null)
+        {
+            skyboxMaterial.SetFloat("_Blend", weatherSystem.rainIntensity);
+        }
+
         UpdateLightingContinuous();
-        UpdateSkyboxExposure();
-        UpdateAmbientAndFogEnvelope();
     }
 
     private void AdvanceTime()
@@ -283,112 +237,123 @@ public class TimeManager : MonoBehaviour
             previousState = currentState;
             currentState = newState;
 
-            // Snapshot old phase values before recalculating
-            previousPhaseColor = globalLight.color;
-            previousPhaseIntensity = globalLight.intensity;
-            stateStartTotalMinutes = GetTotalMinutes();
-
             if (debugDayStateChanges)
             {
                 float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-                Debug.Log($"[TimeManager] Day state {previousState} -> {currentState} at {hours:00}:{minutes:00} (rain={rain:0.00})");
+                Debug.Log(
+                    $"[TimeManager] Day state {previousState} -> {currentState} at {hours:00}:{minutes:00} (rain={rain:0.00})");
             }
 
-            UpdateSkyboxTextures();
+            StartSkyboxBlend(previousState, currentState);
             SetTimeOfDayParameter(newState);
         }
     }
 
-    #region Skybox
+    #region Skybox Blending
 
-    private void UpdateSkyboxTextures()
+    private void StartSkyboxBlend(DayState fromState, DayState toState)
     {
-        if (RenderSettings.skybox == null) return;
-        var mat = RenderSettings.skybox;
-        mat.SetTexture("_Texture1", GetBaseSkyForState(currentState));
-        mat.SetTexture("_Texture2", GetNextBaseSkyForLerp(currentState));
-        mat.SetTexture("_OvercastTexture", GetOvercastSkyForState(currentState));
-    }
+        if (skyboxMaterial == null) return;
 
-    private void DetectSkyboxExposureProps()
-    {
-        if (RenderSettings.skybox == null) return;
-        var mat = RenderSettings.skybox;
-        hasSkyboxExposureProps = mat.HasProperty("_Exposure1") && mat.HasProperty("_Exposure2");
-    }
-
-    private void UpdateSkyboxExposure()
-    {
-        if (RenderSettings.skybox == null || !hasSkyboxExposureProps) return;
+        // Set the appropriate textures based on states
+        textureFrom = GetTextureForState(fromState);
+        textureTo = GetTextureForState(toState);
+        
+        skyboxMaterial.SetTexture("_Texture1", textureFrom);
+        skyboxMaterial.SetTexture("_Texture2", textureTo);
+        
+        // Set overcast texture
+        skyboxMaterial.SetTexture("_OvercastTexture", overcastTexture);
+        
+        // Set rain blend
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-
-        // Combine rain and night exposure multipliers
-        float expoRain = Mathf.Clamp(skyboxExposureByRain.Evaluate(rain), 0.05f, 2f);
-        float nightFactor = 1f - sunHeight01; // 0 day, 1 deep night
-        float expoNight = Mathf.Clamp(nightSkyboxExposureByNight.Evaluate(nightFactor), 0.05f, 2f);
-        float expo = Mathf.Clamp(expoRain * expoNight, 0.01f, 2f);
-
-        RenderSettings.skybox.SetFloat("_Exposure1", expo);
-        RenderSettings.skybox.SetFloat("_Exposure2", expo);
-    }
-
-    private void UpdateTimeOfDayLerp()
-    {
-        if (RenderSettings.skybox == null) return;
-        float hourFraction = hours + minutes / 60f;
-        float lerp = 0f;
-
-        switch (currentState)
-        {
-            case DayState.Dawn: lerp = Mathf.InverseLerp(5f, 7f, hourFraction); break;
-            case DayState.Day:  lerp = Mathf.InverseLerp(7f, 18f, hourFraction); break;
-            case DayState.Dusk: lerp = Mathf.InverseLerp(18f, 21f, hourFraction); break;
-            case DayState.Night:
-                float wrapped = hours >= 21 ? hourFraction : hourFraction + 24f;
-                lerp = Mathf.InverseLerp(21f, 29f, wrapped);
-                break;
-        }
-
-        RenderSettings.skybox.SetFloat("_TimeOfDayLerp", lerp);
+        skyboxMaterial.SetFloat("_Blend", rain);
+        
+        // Initialize blend
+        blendFactor = 0f;
+        blendStartTime = Time.time;
+        isBlending = true;
+        
+        // Update shader with initial blend value
+        skyboxMaterial.SetFloat("_TimeOfDayLerp", blendFactor);
+        
+        if (debugSkybox)
+            Debug.Log($"[TimeManager] Started skybox blend: {fromState} -> {toState}, rain={rain:F2}");
     }
 
     private void UpdateSkyboxBlend()
     {
-        if (RenderSettings.skybox == null) return;
-        float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-        RenderSettings.skybox.SetFloat("_Blend", overcastBlendCurve.Evaluate(rain));
+        if (!isBlending || skyboxMaterial == null) return;
+
+        // Calculate blend progress over time
+        float elapsedMinutes = (Time.time - blendStartTime) / 60f;
+        blendFactor = Mathf.Clamp01(elapsedMinutes / skyboxBlendDurationMinutes);
+
+        // Update the shader's time of day lerp parameter
+        skyboxMaterial.SetFloat("_TimeOfDayLerp", blendFactor);
+
+        // Check if blend complete
+        if (blendFactor >= 1.0f)
+        {
+            isBlending = false;
+            
+            // When blend is complete, set Texture1 to the destination texture
+            // for smooth transitions to the next state
+            skyboxMaterial.SetTexture("_Texture1", textureTo);
+            
+            if (debugSkybox)
+                Debug.Log($"[TimeManager] Completed skybox blend to {currentState}");
+        }
     }
 
-    private Texture2D GetBaseSkyForState(DayState s) => s switch
+    private void RotateSkybox()
     {
-        DayState.Dawn => skyboxDawn,
-        DayState.Day  => skyboxDay,
-        DayState.Dusk => skyboxDusk,
-        DayState.Night => skyboxNight,
-        _ => skyboxNight
-    };
+        if (skyboxMaterial == null) return;
 
-    private Texture2D GetNextBaseSkyForLerp(DayState s) => s switch
-    {
-        DayState.Night => skyboxDawn,
-        DayState.Dawn  => skyboxDay,
-        DayState.Day   => skyboxDusk,
-        DayState.Dusk  => skyboxNight,
-        _ => skyboxNight
-    };
+        // Simple continuous rotation for the skybox
+        skyboxRotationValue += skyboxRotationSpeed * Time.deltaTime;
+        if (skyboxRotationValue >= 360f)
+            skyboxRotationValue -= 360f;
 
-    private Texture2D GetOvercastSkyForState(DayState s) => s switch
+        // Apply rotation to both texture rotations in the shader
+        skyboxMaterial.SetFloat("_Rotation1", skyboxRotationValue);
+        skyboxMaterial.SetFloat("_Rotation2", skyboxRotationValue);
+    }
+
+    private Texture2D GetTextureForState(DayState s) => s switch
     {
-        DayState.Dawn => overcastDawn,
-        DayState.Day  => overcastDay,
-        DayState.Dusk => overcastDusk,
-        DayState.Night => overcastNight,
-        _ => overcastNight
+        DayState.Dawn => skyboxDawnTexture,
+        DayState.Day => skyboxDayTexture,
+        DayState.Dusk => skyboxDuskTexture,
+        DayState.Night => skyboxNightTexture,
+        _ => skyboxNightTexture
     };
 
     #endregion
 
-    #region Lighting, Envelope, Shadowless
+    #region Lighting
+
+    private void UpdateSunRotation()
+    {
+        // dayProgress 0..1
+        float dayProgress = GetDayProgress();
+
+        // Create more dramatic day cycle with adjusted curve
+        // This creates a more natural arc motion
+        float sunCurve = Mathf.Sin((dayProgress - 0.25f) * Mathf.PI * 2f);
+        sunHeight01 = Mathf.Clamp01(sunCurve * 0.5f + 0.5f);
+        
+        // Use slightly different altitude curve for more realism
+        // This makes the sun rise/set more quickly and stay higher during day
+        float altitudeAngle = Mathf.Pow(sunCurve, 0.9f) * maxSunAltitude;
+        
+        // More realistic azimuth with minor offset
+        // Ensures the sun doesn't rise/set exactly east/west
+        float sunAngle = (dayProgress * 360f) + 15f; // slight offset for realism
+        
+        // Update the light's rotation
+        globalLight.transform.rotation = Quaternion.Euler(altitudeAngle, sunAngle - 90f, 0f);
+    }
 
     private void UpdateLightingContinuous()
     {
@@ -396,174 +361,134 @@ public class TimeManager : MonoBehaviour
 
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
 
-        // Raw target color from gradients (pre-phase-blend)
+        // Get segment progress for gradient evaluation
         float segmentProgress = GetSegmentProgress();
+
+        // Get color from gradient based on time of day
         Color normalColor = GetNormalGradientForState(currentState).Evaluate(segmentProgress);
         Color overcastColor = GetOvercastGradientForState(currentState).Evaluate(segmentProgress);
-        float overcastBlend = overcastBlendCurve.Evaluate(rain);
-        Color targetPhaseColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
 
-        // Force cold, desaturated tint in rain
-        if (forceColdTintInRain && rain > 0f)
-        {
-            float coldStrength = Mathf.Clamp01(rainColdTintStrengthByRain.Evaluate(rain));
-            targetPhaseColor = Color.Lerp(targetPhaseColor, rainColdTint, coldStrength);
+        // Blend between normal and overcast based on rain intensity
+        float overcastBlend = Mathf.Clamp01(rain * 2f); // Full overcast at rain >= 0.5
+        Color targetColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
 
-            float desat = Mathf.Clamp01(rainDesaturationByRain.Evaluate(rain));
-            targetPhaseColor = Desaturate(targetPhaseColor, desat);
+        // Apply color to directional light
+        globalLight.color = targetColor;
+
+        // Much more dramatic light intensity change
+        float baseIntensity;
+        if (sunHeight01 > 0.15f) {
+            // Day/dusk intensity
+            baseIntensity = Mathf.Lerp(0.3f, dayLightIntensity, Mathf.Pow(sunHeight01, 0.7f));
+        } else {
+            // Night intensity (much darker)
+            baseIntensity = Mathf.Lerp(nightLightIntensity, 0.3f, sunHeight01 / 0.15f);
         }
 
-        // Night cold tint + desat by night depth (even if not raining)
-        float nightFactor = 1f - sunHeight01; // 0 day .. 1 deep night
-        if (nightFactor > 0f)
-        {
-            float nightTint = Mathf.Clamp01(nightColdTintStrengthByNight.Evaluate(nightFactor));
-            targetPhaseColor = Color.Lerp(targetPhaseColor, nightColdTint, nightTint);
+        // Reduce intensity in rain using configurable reduction factor
+        float rainDarkening = Mathf.Lerp(1f, 1f - rainLightReduction, rain);
+        globalLight.intensity = baseIntensity * rainDarkening;
+        
+        // Update shadow properties based on time of day AND weather
+        UpdateShadowSettings(rain);
 
-            float nightDesat = Mathf.Clamp01(nightDesaturationByNight.Evaluate(nightFactor));
-            targetPhaseColor = Desaturate(targetPhaseColor, nightDesat);
-        }
+        // Handle moon light
+        UpdateMoonLight();
 
-        // Raw target intensity (pre-phase-blend)
-        float dayProgress = GetDayProgress();
-        float baseIntensity = lightIntensityOverDay.Evaluate(dayProgress);
-
-        // Multiply by sun height so night intensity collapses naturally
-        float targetFromSun = baseIntensity * sunHeight01;
-
-        // Apply rain darkening envelope on direct light
-        float rainMultiplier = rainLightDarkeningCurve.Evaluate(rain);
-        float targetPhaseIntensity = targetFromSun * rainMultiplier;
-
-        // Phase blending (in-game minutes), with faster Night option
-        float elapsedInState = GetTotalMinutes() - stateStartTotalMinutes;
-        float colorDuration = (currentState == DayState.Night && nightColorBlendDurationMinutes > 0f)
-            ? nightColorBlendDurationMinutes
-            : stateColorBlendDurationMinutes;
-        float intensityDuration = (currentState == DayState.Night && nightIntensityBlendDurationMinutes > 0f)
-            ? nightIntensityBlendDurationMinutes
-            : stateIntensityBlendDurationMinutes;
-
-        float colorBlendAlpha = colorDuration <= 0f ? 1f : Mathf.Clamp01(elapsedInState / colorDuration);
-        float intensityBlendAlpha = intensityDuration <= 0f ? 1f : Mathf.Clamp01(elapsedInState / intensityDuration);
-
-        Color blendedColor = Color.Lerp(previousPhaseColor, targetPhaseColor, colorBlendAlpha);
-        float blendedIntensity = Mathf.Lerp(previousPhaseIntensity, targetPhaseIntensity, intensityBlendAlpha);
-
-        // Shadowless control (no shadows in heavy rain or deep night)
-        UpdateShadowless(rain, nightFactor);
-
-        // Apply global envelopes: rain and night
-        float dimRain = Mathf.Clamp01(rainGlobalDimCurve.Evaluate(rain));
-        float dimNight = Mathf.Clamp01(nightGlobalDimByNight.Evaluate(nightFactor));
-        float shadowlessDim = Mathf.Lerp(1f, noShadowDimWhenOff, currentShadowless);
-
-        float finalSunIntensity = blendedIntensity * dimRain * dimNight * shadowlessDim;
-
-        // Apply to light
-        globalLight.intensity = finalSunIntensity;
-        globalLight.color = blendedColor;
-
-        // Fog color follows light color (density handled in envelope)
-        RenderSettings.fogColor = blendedColor;
-
-        if (debugPhaseBlend)
-        {
-            if (elapsedInState < Mathf.Max(colorDuration, intensityDuration))
-            {
-                Debug.Log($"[TimeManager] PhaseBlend state={currentState} elapsed={elapsedInState:0.0}m colorA={colorBlendAlpha:0.00} intensA={intensityBlendAlpha:0.00} rain={rain:0.00} nightFactor={nightFactor:0.00}");
-            }
-        }
+        // Update ambient lighting
+        UpdateAmbientLighting();
+        
+        // Update fog settings
+        UpdateFogSettings();
     }
 
-    private void UpdateShadowless(float rain, float nightFactor)
+    private void UpdateShadowSettings(float rainIntensity)
     {
-        // Sun height threshold for night-based shadowless
-        bool nightShadowless = disableShadowsAtNight && (sunHeight01 <= (1f - Mathf.Clamp01(1f - nightShadowlessSunHeightThreshold)));
-        // Or simply: remove shadows when the sun is low enough (dusk/night)
-        nightShadowless = disableShadowsAtNight && (sunHeight01 <= (1f - nightShadowlessSunHeightThreshold));
+        // Calculate shadow strength based on both time of day and rain intensity
+        float clearWeatherShadowStrength = Mathf.Lerp(nightShadowStrength, dayShadowStrength, sunHeight01);
+        float overcastShadowStrength = Mathf.Lerp(overcastNightShadowStrength, overcastDayShadowStrength, sunHeight01);
+        
+        // Blend between clear and overcast shadow strengths based on rain intensity
+        float targetShadowStrength = Mathf.Lerp(clearWeatherShadowStrength, overcastShadowStrength, Mathf.Clamp01(rainIntensity * 2f));
+        
+        // Apply shadow strength to global light
+        globalLight.shadowStrength = targetShadowStrength;
+        
+        // Adjust shadow normal bias for softer shadows during rain (available on the Light component)
+        float targetNormalBias = Mathf.Lerp(clearShadowNormalBias, overcastShadowNormalBias, Mathf.Clamp01(rainIntensity * 2f));
+        globalLight.shadowNormalBias = targetNormalBias;
+    }
 
-        bool wantShadowlessFromRain = rain >= rainNoShadowThreshold;
-        bool targetShadowless = nightShadowless || wantShadowlessFromRain;
-
-        float target = targetShadowless ? 1f : 0f;
-        float prev = currentShadowless;
-
-        currentShadowless = Mathf.MoveTowards(currentShadowless, target, shadowToggleLerpSpeed * Time.deltaTime);
-
-        // Fade shadowStrength while not physically shadowless
-        if (!physicallyShadowless)
-        {
-            if (globalLight.shadows == LightShadows.None && currentShadowless < 0.999f)
-                globalLight.shadows = originalShadowType;
-
-            globalLight.shadowStrength = originalShadowStrength * (1f - currentShadowless);
-
-            if (currentShadowless >= 0.999f)
-            {
-                globalLight.shadows = LightShadows.None;
-                physicallyShadowless = true;
-                if (debugShadowlessTransitions)
-                    Debug.Log($"[TimeManager] Shadows DISABLED (rain={rain:0.00}, nightFactor={nightFactor:0.00})");
-            }
-        }
-        else
-        {
-            if (currentShadowless <= 0.001f)
-            {
-                globalLight.shadows = originalShadowType;
-                physicallyShadowless = false;
-                globalLight.shadowStrength = originalShadowStrength;
-                if (debugShadowlessTransitions)
-                    Debug.Log($"[TimeManager] Shadows ENABLED (rain={rain:0.00}, nightFactor={nightFactor:0.00})");
-            }
-            else
-            {
-                globalLight.shadowStrength = 0f;
-            }
-        }
-
-        if (debugShadowlessTransitions && Mathf.Abs(prev - currentShadowless) > 0.001f)
-        {
-            Debug.Log($"[TimeManager] Shadowless fade: target={target:0.00} current={currentShadowless:0.00} rain={rain:0.00} nightFactor={nightFactor:0.00} sunHeight01={sunHeight01:0.00}");
+    private void UpdateMoonLight()
+    {
+        // Only show moon when sun is down
+        if (sunHeight01 < 0.2f && moonLight != null) {
+            // Activate the moon light
+            moonLight.gameObject.SetActive(true);
+            
+            // Position moon opposite to sun (approximately)
+            moonLight.transform.rotation = Quaternion.Euler(-globalLight.transform.eulerAngles.x, 
+                                                         (globalLight.transform.eulerAngles.y + 180) % 360, 
+                                                         0f);
+            
+            // Very dim blue-tinted light
+            float actualMoonIntensity = moonLightIntensity * (1 - sunHeight01 * 5);
+            
+            // Reduce moon intensity in rain too
+            float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
+            float rainDarkening = Mathf.Lerp(1f, 1f - (rainLightReduction * 0.7f), rain);  // slightly less reduction than sun
+            
+            moonLight.intensity = actualMoonIntensity * rainDarkening;
+            moonLight.color = new Color(0.6f, 0.65f, 1f);
+            
+            // Make sure moon has shadows enabled but less detailed
+            moonLight.shadows = LightShadows.Soft;
+            moonLight.shadowStrength = 0.6f;
+        } else if (moonLight != null) {
+            moonLight.gameObject.SetActive(false);
         }
     }
 
-    private void UpdateAmbientAndFogEnvelope()
+    private void UpdateAmbientLighting()
     {
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-        float nightFactor = 1f - sunHeight01;
+        
+        // Dynamically adjust ambient light intensity based on time of day
+        float ambientIntensity = Mathf.Lerp(0.1f, 1.0f, Mathf.Pow(sunHeight01, 0.5f));
+        
+        // Reduce ambient intensity further in rain
+        ambientIntensity *= Mathf.Lerp(1f, 0.7f, rain);
+        
+        // Blend between day and night ambient settings
+        RenderSettings.ambientSkyColor = Color.Lerp(nightSkyColor, daySkyColor, ambientIntensity) * ambientIntensity;
+        RenderSettings.ambientEquatorColor = Color.Lerp(nightEquatorColor, dayEquatorColor, ambientIntensity) * ambientIntensity;
+        RenderSettings.ambientGroundColor = Color.Lerp(nightGroundColor, dayGroundColor, ambientIntensity) * ambientIntensity;
+        
+        // Also adjust ambient intensity directly
+        RenderSettings.ambientIntensity = ambientIntensity * 0.8f;
+    }
 
-        // Ambient dim combines rain and night
-        float ambientDim = Mathf.Clamp01(ambientDimByRain.Evaluate(rain)) *
-                           Mathf.Clamp01(nightAmbientDimByNight.Evaluate(nightFactor));
-
-        if (RenderSettings.ambientMode == AmbientMode.Skybox)
-        {
-            RenderSettings.ambientIntensity = originalAmbientIntensity * ambientDim;
-        }
-        else
-        {
-            // For Flat/Trilight, cool and dim ambientLight
-            Color targetAmbient = originalAmbientLight;
-            // Cool toward night tint by night depth; also slight cool in rain
-            targetAmbient = Color.Lerp(targetAmbient, nightColdTint, Mathf.Clamp01(nightFactor));
-            targetAmbient = Color.Lerp(targetAmbient, rainColdTint, Mathf.Clamp01(rain * 0.4f));
-            targetAmbient *= ambientDim;
-            RenderSettings.ambientLight = targetAmbient;
-        }
-
-        // Fog density combines rain and night
-        if (RenderSettings.fog)
-        {
-            float fogMul = Mathf.Max(0f, fogDensityByRain.Evaluate(rain)) *
-                           Mathf.Max(0f, nightFogDensityByNight.Evaluate(nightFactor));
-            RenderSettings.fogDensity = baseFogDensity * fogMul;
-        }
-
-        if (debugEnvelope)
-        {
-            Debug.Log($"[TimeManager] Envelope rain={rain:0.00} nightFactor={nightFactor:0.00} ambDim={ambientDim:0.00} fogDens={RenderSettings.fogDensity:0.0000}");
+    private void UpdateFogSettings()
+    {
+        if (RenderSettings.fog) {
+            // Get rain intensity
+            float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
+            
+            // Update fog color (this should already be in your code)
+            float segmentProgress = GetSegmentProgress();
+            Color normalColor = GetNormalGradientForState(currentState).Evaluate(segmentProgress);
+            Color overcastColor = GetOvercastGradientForState(currentState).Evaluate(segmentProgress);
+            float overcastBlend = Mathf.Clamp01(rain * 2f);
+            Color targetColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
+            
+            // Apply fog color
+            RenderSettings.fogColor = targetColor * 0.7f; // Slightly darker than sky
+            
+            // Make fog thicker at night and even thicker during rain
+            float baseFogDensity = Mathf.Lerp(nightFogDensity, dayFogDensity, sunHeight01);
+            float rainAddedFog = rain * rainFogDensityAdditive;
+            
+            RenderSettings.fogDensity = baseFogDensity + rainAddedFog;
         }
     }
 
@@ -573,7 +498,7 @@ public class TimeManager : MonoBehaviour
         return currentState switch
         {
             DayState.Dawn => Mathf.InverseLerp(5f, 7f, hf),
-            DayState.Day  => Mathf.InverseLerp(7f, 18f, hf),
+            DayState.Day => Mathf.InverseLerp(7f, 18f, hf),
             DayState.Dusk => Mathf.InverseLerp(18f, 21f, hf),
             DayState.Night => Mathf.InverseLerp(21f, 29f, (hours >= 21 ? hf : hf + 24f)),
             _ => 0f
@@ -586,28 +511,10 @@ public class TimeManager : MonoBehaviour
         return totalMinutes / 1440f;
     }
 
-    private void UpdateSunRotation()
-    {
-        // dayProgress 0..1
-        float dayProgress = GetDayProgress();
-
-        // Sun height: 0 at night, 1 at high noon
-        // sin(2πt) produces -1..1 over the day; remap to 0..1
-        float s = Mathf.Sin(dayProgress * Mathf.PI * 2f);
-        sunHeight01 = Mathf.Clamp01(s * 0.5f + 0.5f);
-
-        // Altitude angle goes from -max -> +max; negative at night
-        float altitudeAngle = (s) * maxSunAltitude;
-
-        // Azimuth around the horizon (same yaw as before)
-        float sunAngle = dayProgress * 360f;
-        globalLight.transform.rotation = Quaternion.Euler(altitudeAngle, sunAngle - 90f, 0f);
-    }
-
     private Gradient GetNormalGradientForState(DayState s) => s switch
     {
         DayState.Dawn => gradientNightToDawn,
-        DayState.Day  => gradientDawnToDay,
+        DayState.Day => gradientDawnToDay,
         DayState.Dusk => gradientDayToDusk,
         DayState.Night => gradientDuskToNight,
         _ => gradientDuskToNight
@@ -616,48 +523,64 @@ public class TimeManager : MonoBehaviour
     private Gradient GetOvercastGradientForState(DayState s) => s switch
     {
         DayState.Dawn => overcastGradientDawn,
-        DayState.Day  => overcastGradientDay,
+        DayState.Day => overcastGradientDay,
         DayState.Dusk => overcastGradientDusk,
         DayState.Night => overcastGradientNight,
         _ => overcastGradientNight
     };
 
-    private static Color Desaturate(Color c, float amount)
-    {
-        amount = Mathf.Clamp01(amount);
-        Color.RGBToHSV(c, out float h, out float s, out float v);
-        s = Mathf.Lerp(s, 0f, amount);
-        return Color.HSVToRGB(h, s, v);
-    }
-
     #endregion
 
     #region FMOD
+
     private void SetTimeOfDayParameter(DayState state)
     {
+        if (string.IsNullOrEmpty(timeOfDayParameterName)) return;
+
         float value = state switch
         {
             DayState.Dawn => 0f,
-            DayState.Day  => 1f,
+            DayState.Day => 1f,
             DayState.Dusk => 2f,
             DayState.Night => 3f,
             _ => 0f
         };
-        RuntimeManager.StudioSystem.setParameterByName(timeOfDayParameterName, value);
+
+        try
+        {
+            RuntimeManager.StudioSystem.setParameterByName(timeOfDayParameterName, value);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[TimeManager] Failed to set FMOD parameter: {e.Message}");
+        }
     }
+
     #endregion
 
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        stateColorBlendDurationMinutes = Mathf.Max(0f, stateColorBlendDurationMinutes);
-        stateIntensityBlendDurationMinutes = Mathf.Max(0f, stateIntensityBlendDurationMinutes);
-        nightColorBlendDurationMinutes = Mathf.Max(0f, nightColorBlendDurationMinutes);
-        nightIntensityBlendDurationMinutes = Mathf.Max(0f, nightIntensityBlendDurationMinutes);
-        shadowToggleLerpSpeed = Mathf.Max(0.01f, shadowToggleLerpSpeed);
-        noShadowDimWhenOff = Mathf.Clamp(noShadowDimWhenOff, 0.5f, 1f);
-        rainNoShadowThreshold = Mathf.Max(0f, rainNoShadowThreshold);
+        skyboxBlendDurationMinutes = Mathf.Max(0.1f, skyboxBlendDurationMinutes);
+        skyboxRotationSpeed = Mathf.Max(0f, skyboxRotationSpeed);
         maxSunAltitude = Mathf.Clamp(maxSunAltitude, 0f, 90f);
+        
+        // Validate light intensities
+        dayLightIntensity = Mathf.Max(0.1f, dayLightIntensity);
+        nightLightIntensity = Mathf.Max(0.001f, nightLightIntensity);
+        moonLightIntensity = Mathf.Max(0.001f, moonLightIntensity);
+        rainLightReduction = Mathf.Clamp01(rainLightReduction);
+        
+        // Validate shadow settings
+        dayShadowStrength = Mathf.Clamp01(dayShadowStrength);
+        nightShadowStrength = Mathf.Clamp01(nightShadowStrength);
+        overcastDayShadowStrength = Mathf.Clamp01(overcastDayShadowStrength);
+        overcastNightShadowStrength = Mathf.Clamp01(overcastNightShadowStrength);
+        
+        // Validate fog densities
+        dayFogDensity = Mathf.Max(0.0001f, dayFogDensity);
+        nightFogDensity = Mathf.Max(dayFogDensity, nightFogDensity);
+        rainFogDensityAdditive = Mathf.Max(0f, rainFogDensityAdditive);
     }
 #endif
 }
