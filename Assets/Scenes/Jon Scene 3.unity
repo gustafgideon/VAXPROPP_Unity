@@ -68430,63 +68430,6 @@ Transform:
   - {fileID: 832361441}
   m_Father: {fileID: 902042220}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &810602637
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -21.316717
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 18.45
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 145.97453
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.73296374
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0.5624216
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0.3036029
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0.23296216
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 75
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: -45
-      objectReference: {fileID: 0}
-    - target: {fileID: 1998902727571978263, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3307575790675839492, guid: 241a8791b5399b341b46658821300ef0, type: 3}
-      propertyPath: m_Name
-      value: SM_Barrel_01
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 241a8791b5399b341b46658821300ef0, type: 3}
 --- !u!4 &814097935 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8368335536072203828, guid: 4d32549e74a84fe4b839a0f816ea6514, type: 3}
@@ -92538,6 +92481,69 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 429486, guid: 4d37e49a7ff11c64da046512cfdd7743, type: 3}
   m_PrefabInstance: {fileID: 1005755730}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1335223215
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1335223217}
+  - component: {fileID: 1335223216}
+  m_Layer: 0
+  m_Name: AMB_Waterfall Emitter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1335223216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1335223215}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a6610d2e704f1648819acc8d7460285, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  CollisionTag: 
+  EventReference:
+    Guid:
+      Data1: 1963737772
+      Data2: 1269793788
+      Data3: -529612650
+      Data4: -1715064950
+    Path: event:/AMB/AMB_OBJ/AMB_Waterfall
+  Event: 
+  EventPlayTrigger: 1
+  EventStopTrigger: 0
+  AllowFadeout: 1
+  TriggerOnce: 0
+  Preload: 0
+  NonRigidbodyVelocity: 0
+  Params: []
+  OverrideAttenuation: 0
+  OverrideMinDistance: 1
+  OverrideMaxDistance: 30
+--- !u!4 &1335223217
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1335223215}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 3.98, y: 3.9095306, z: -5.02}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1765698771}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1340893054
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -103247,7 +103253,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rockTag: Rock_Water
-  waterfallTag: Waterfall
   streamEvent:
     Guid:
       Data1: 2121980038
@@ -103262,17 +103267,8 @@ MonoBehaviour:
       Data3: -1435205743
       Data4: 1456919739
     Path: event:/AMB/AMB_OBJ/AMB_OBJ_Rock_Stream
-  waterfallEvent:
-    Guid:
-      Data1: 1963737772
-      Data2: 1269793788
-      Data3: -529612650
-      Data4: -1715064950
-    Path: event:/AMB/AMB_OBJ/AMB_Waterfall
-  baseRiverVolume: 0.8
-  riverVolumeInWaterfall: 0.3
+  baseStreamVolume: 0.8
   maxRockVolume: 0.7
-  maxWaterfallVolume: 1
   rockPresenceFloor: 0.18
   rockCountForMax: 3
   constantFlowSpeed: 2.5
@@ -103286,8 +103282,8 @@ MonoBehaviour:
   drawWhenNotSelected: 0
   gizmoFillColor: {r: 0, g: 1, b: 1, a: 0.08}
   gizmoWireColor: {r: 0, g: 0.8, b: 1, a: 0.9}
-  gizmoWaterfallWireColor: {r: 0.1, g: 0.4, b: 1, a: 1}
   gizmoRocksWireColor: {r: 0.1, g: 1, b: 0.6, a: 1}
+  logCountsToConsole: 1
 --- !u!54 &1747866659
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -103591,6 +103587,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1335223217}
   - {fileID: 1910808048}
   m_Father: {fileID: 1255997500}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -113373,7 +113370,6 @@ SceneRoots:
   - {fileID: 507193243}
   - {fileID: 874762837}
   - {fileID: 2069369414}
-  - {fileID: 810602637}
   - {fileID: 2054822155}
   - {fileID: 136897411}
   - {fileID: 654157782}

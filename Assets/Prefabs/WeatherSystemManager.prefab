@@ -48,21 +48,10 @@ MonoBehaviour:
   rainParticles: {fileID: 0}
   rainIntensity: 0
   rainRadius: 5
-  impactTags:
-  - Metal
-  - Metal Solid
-  - Metal Hollow
-  - Wood
-  - Water
-  - Foliage
-  rainOcclusionSettings:
-  - layerName: MetalRoof1
-    occlusionEQ: 0.07
-    occlusionVolume: 0.04
-  - layerName: MetalRoof2
-    occlusionEQ: 0.5
-    occlusionVolume: 0.3
+  rainOcclusionLayers: []
+  rainImpactTags: []
   windStrength: 0
+  windDegrees: 0
   thunderChancePerSecond: 0.02
   thunderDistanceMin: 10
   thunderDistanceMax: 30
@@ -72,14 +61,28 @@ MonoBehaviour:
       Data2: 1279445097
       Data3: 1757279154
       Data4: 531760065
-    Path: event:/AMB/WeatherSystem/RainLoopEvents/WeatherRainLoop
+    Path: event:/AMB/WeatherSystem/Rain/Weather_RainLoop
+  rainImpactEvent:
+    Guid:
+      Data1: 408595158
+      Data2: 1130464333
+      Data3: 1902397370
+      Data4: -1268885141
+    Path: event:/AMB/WeatherSystem/Rain/Weather_RainImpacts
   windEvent:
     Guid:
       Data1: 57825607
       Data2: 1166931283
       Data3: 1163114917
       Data4: -420624929
-    Path: event:/AMB/WeatherSystem/Weather_Wind
+    Path: event:/AMB/WeatherSystem/Wind/Weather_Wind
+  windDirectionEvent:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   thunderEvent:
     Guid:
       Data1: -1204716419
@@ -87,14 +90,8 @@ MonoBehaviour:
       Data3: 115634052
       Data4: 1757522054
     Path: event:/AMB/WeatherSystem/Weather_Thunder
-  rainImpactEvent:
-    Guid:
-      Data1: 408595158
-      Data2: 1130464333
-      Data3: 1902397370
-      Data4: -1268885141
-    Path: event:/AMB/WeatherSystem/Weather_Rain_ImpactZone
   rainParameterName: RainIntensity
   windParameterName: WindStrength
+  windDegreesParameterName: WindDegrees
   rainOcclusionEQParameterName: RainOcclusionEQ
   rainOcclusionVolumeParameterName: RainOcclusionVolume

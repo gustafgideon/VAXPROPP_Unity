@@ -5365,7 +5365,7 @@ MonoBehaviour:
       Data2: 1323739177
       Data3: -1972418148
       Data4: 1792823485
-    Path: event:/AMB/AMB_Rain_Forest
+    Path: event:/AMB/WeatherSystem/Rain/AMB_ForestRain
   globalParameterName: RainIntensity
   masterVolume: 1
   minRainRate: 10
@@ -5380,10 +5380,6 @@ MonoBehaviour:
   manualRainZoneSize: {x: 20.3, y: 10, z: 10}
   fadeInTime: 2.05
   fadeOutTime: 3.06
-  currentZoneSize: {x: 0, y: 0, z: 0}
-  status: Configure zone in ParticleSystem Shape module
-  audioStatus: 'Event selected: event:/AMB/AMB_Rain_Forest | Global param: RainIntensity'
-  playerInZone: 0
 --- !u!1 &721571289
 GameObject:
   m_ObjectHideFlags: 0

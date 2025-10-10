@@ -9,19 +9,14 @@ public class SplineGenerativeAudioController : MonoBehaviour
     [Header("Environment tagging")]
     [Tooltip("Tag applied to rock colliders in the river.")]
     public string rockTag = "Rock_Water";
-    [Tooltip("Tag applied to an invisible trigger volume that marks a waterfall area.")]
-    public string waterfallTag = "Waterfall";
 
-    [Header("FMOD Events (must be 3D and looping)")]
-    [SerializeField] private EventReference streamEvent;       // Base stream/river loop
-    [SerializeField] private EventReference rockSplashEvent;   // Rock splash overlay
-    [SerializeField] private EventReference waterfallEvent;    // Waterfall loop
+    [Header("FMOD Events")]
+    [SerializeField] private EventReference streamEvent;       // Base stream loop
+    [SerializeField] private EventReference rockSplashEvent;   // Rock splash loop
 
     [Header("Volumes")]
-    [Range(0f, 1f)] public float baseRiverVolume = 0.8f;
-    [Range(0f, 1f)] public float riverVolumeInWaterfall = 0.3f;
+    [Range(0f, 1f)] public float baseStreamVolume = 0.8f;
     [Range(0f, 1f)] public float maxRockVolume = 0.7f;
-    [Range(0f, 1f)] public float maxWaterfallVolume = 1.0f;
 
     [Header("Rock behavior")]
     [Tooltip("Minimum rock splash level whenever inside rock colliders, even if stationary.")]
@@ -51,29 +46,28 @@ public class SplineGenerativeAudioController : MonoBehaviour
     public bool drawWhenNotSelected = false;
     public Color gizmoFillColor = new Color(0f, 1f, 1f, 0.08f);
     public Color gizmoWireColor = new Color(0f, 0.8f, 1f, 0.9f);
-    public Color gizmoWaterfallWireColor = new Color(0.1f, 0.4f, 1f, 1f);
     public Color gizmoRocksWireColor = new Color(0.1f, 1f, 0.6f, 1f);
+
+    [Header("Debug logging")]
+    [Tooltip("Log rock counts to the Console when they change or on enable.")]
+    public bool logCountsToConsole = true;
 
     // State
     private int rockCount;
-    private int waterfallCount;
 
     private Rigidbody rb;
     private SphereCollider sphere;
 
     // FMOD instances
-    private EventInstance riverInst;
+    private EventInstance streamInst;
     private EventInstance rockInst;
-    private EventInstance waterfallInst;
 
     // Cached volumes
-    private float riverVol;
+    private float streamVol;
     private float rockVol;
-    private float waterfallVol;
 
-    private bool riverCreated;
+    private bool streamCreated;
     private bool rockCreated;
-    private bool waterfallCreated;
 
     void Awake()
     {
@@ -97,25 +91,23 @@ public class SplineGenerativeAudioController : MonoBehaviour
         // Prime counts if starting inside volumes
         var hits = Physics.OverlapSphere(transform.position, GetWorldRadius(), featureLayers, QueryTriggerInteraction.Collide);
         rockCount = 0;
-        waterfallCount = 0;
         foreach (var h in hits)
         {
             if (IsFeature(h, rockTag)) rockCount++;
-            if (IsFeature(h, waterfallTag)) waterfallCount++;
         }
 
+        // Log initial state
+        LogCounts("OnEnable prime");
+
         // Initial volumes
-        riverVol = baseRiverVolume;
+        streamVol = baseStreamVolume;
         rockVol = (rockCount > 0) ? maxRockVolume * Mathf.Clamp01(rockPresenceFloor) * RockDensityFactor() : 0f;
-        waterfallVol = (waterfallCount > 0) ? maxWaterfallVolume : 0f;
 
-        SetVolume(riverInst, riverVol);
+        SetVolume(streamInst, streamVol);
         SetVolume(rockInst, rockVol);
-        SetVolume(waterfallInst, waterfallVol);
 
-        EnsureStartedIfAudible(riverInst, riverVol);
+        EnsureStartedIfAudible(streamInst, streamVol);
         EnsureStartedIfAudible(rockInst, rockVol);
-        EnsureStartedIfAudible(waterfallInst, waterfallVol);
     }
 
     void Update()
@@ -123,9 +115,7 @@ public class SplineGenerativeAudioController : MonoBehaviour
         // Keep FMOD 3D attributes in sync
         Update3DAttributes();
 
-        bool inWaterfall = waterfallCount > 0;
-
-        float targetRiver = inWaterfall ? riverVolumeInWaterfall : baseRiverVolume;
+        float targetStream = baseStreamVolume;
 
         // Only constant flow is used
         float flowFactor = Mathf.Clamp01(constantFlowSpeed / Mathf.Max(0.001f, speedForMaxRockSplash));
@@ -137,15 +127,11 @@ public class SplineGenerativeAudioController : MonoBehaviour
         // Choose the higher of the floor or the flow-based intensity, then scale by density and max level
         float targetRocks = maxRockVolume * density * Mathf.Max(presenceFloor, flowFactor);
 
-        float targetWaterfall = inWaterfall ? maxWaterfallVolume : 0f;
-
-        riverVol = MoveVolumeToward(riverInst, riverVol, targetRiver);
+        streamVol = MoveVolumeToward(streamInst, streamVol, targetStream);
         rockVol = MoveVolumeToward(rockInst, rockVol, targetRocks);
-        waterfallVol = MoveVolumeToward(waterfallInst, waterfallVol, targetWaterfall);
 
-        HandleStartStop(riverInst, riverVol, targetRiver);
+        HandleStartStop(streamInst, streamVol, targetStream);
         HandleStartStop(rockInst, rockVol, targetRocks);
-        HandleStartStop(waterfallInst, waterfallVol, targetWaterfall);
     }
 
     void OnDisable()
@@ -162,16 +148,22 @@ public class SplineGenerativeAudioController : MonoBehaviour
     {
         if (!IsOnFeatureLayers(other)) return;
 
-        if (IsFeature(other, rockTag)) rockCount++;
-        if (IsFeature(other, waterfallTag)) waterfallCount++;
+        if (IsFeature(other, rockTag))
+        {
+            rockCount++;
+            LogCounts($"Enter {other.tag} ({other.name})");
+        }
     }
 
     void OnTriggerExit(Collider other)
     {
         if (!IsOnFeatureLayers(other)) return;
 
-        if (IsFeature(other, rockTag)) rockCount = Mathf.Max(0, rockCount - 1);
-        if (IsFeature(other, waterfallTag)) waterfallCount = Mathf.Max(0, waterfallCount - 1);
+        if (IsFeature(other, rockTag))
+        {
+            rockCount = Mathf.Max(0, rockCount - 1);
+            LogCounts($"Exit {other.tag} ({other.name})");
+        }
     }
 
     private float RockDensityFactor()
@@ -182,20 +174,15 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     private void CreateInstances()
     {
-        if (!riverCreated && streamEvent.IsNull == false)
+        if (!streamCreated && streamEvent.IsNull == false)
         {
-            riverInst = RuntimeManager.CreateInstance(streamEvent);
-            riverCreated = true;
+            streamInst = RuntimeManager.CreateInstance(streamEvent);
+            streamCreated = true;
         }
         if (!rockCreated && rockSplashEvent.IsNull == false)
         {
             rockInst = RuntimeManager.CreateInstance(rockSplashEvent);
             rockCreated = true;
-        }
-        if (!waterfallCreated && waterfallEvent.IsNull == false)
-        {
-            waterfallInst = RuntimeManager.CreateInstance(waterfallEvent);
-            waterfallCreated = true;
         }
 
         Update3DAttributes();
@@ -203,17 +190,13 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     private void Update3DAttributes()
     {
-        if (riverCreated)
+        if (streamCreated)
         {
-            riverInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
+            streamInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
         }
         if (rockCreated)
         {
             rockInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
-        }
-        if (waterfallCreated)
-        {
-            waterfallInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
         }
     }
 
@@ -270,16 +253,14 @@ public class SplineGenerativeAudioController : MonoBehaviour
     {
         var mode = allowFadeout ? FMOD.Studio.STOP_MODE.ALLOWFADEOUT : FMOD.Studio.STOP_MODE.IMMEDIATE;
 
-        if (riverCreated) riverInst.stop(mode);
+        if (streamCreated) streamInst.stop(mode);
         if (rockCreated) rockInst.stop(mode);
-        if (waterfallCreated) waterfallInst.stop(mode);
     }
 
     private void ReleaseAllInstances()
     {
-        if (riverCreated) { riverInst.release(); riverCreated = false; }
+        if (streamCreated) { streamInst.release(); streamCreated = false; }
         if (rockCreated) { rockInst.release(); rockCreated = false; }
-        if (waterfallCreated) { waterfallInst.release(); waterfallCreated = false; }
     }
 
     private static bool IsValid(EventInstance inst)
@@ -321,6 +302,14 @@ public class SplineGenerativeAudioController : MonoBehaviour
         return Mathf.Max(ls.x, Mathf.Max(ls.y, ls.z));
     }
 
+    // Console logging helper
+    private void LogCounts(string reason = null)
+    {
+        if (!logCountsToConsole) return;
+        string ctx = string.IsNullOrEmpty(reason) ? "" : $" [{reason}]";
+        Debug.Log($"[SplineGenerativeAudio] Rocks: {rockCount}{ctx}", this);
+    }
+
 #if UNITY_EDITOR
     void OnValidate()
     {
@@ -336,7 +325,10 @@ public class SplineGenerativeAudioController : MonoBehaviour
     void OnDrawGizmos()
     {
         if (!drawGizmos) return;
-        if (!drawWhenNotSelected && !UnityEditor.Selection.Contains(gameObject.GetInstanceID())) return;
+
+        // Draw only when selected unless drawWhenNotSelected is true
+        if (!drawWhenNotSelected && UnityEditor.Selection.activeGameObject != gameObject) return;
+
         DrawGizmoVolume();
     }
 
@@ -359,23 +351,11 @@ public class SplineGenerativeAudioController : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, r);
 
         // Optional emphasis for states
-        if (waterfallCount > 0)
-        {
-            Gizmos.color = gizmoWaterfallWireColor;
-            Gizmos.DrawWireSphere(transform.position, r * 1.02f);
-        }
         if (rockCount > 0)
         {
             Gizmos.color = gizmoRocksWireColor;
             Gizmos.DrawWireSphere(transform.position, r * 1.04f);
         }
-
-        // Label
-        var pos = transform.position + Vector3.up * (r + 0.1f);
-        string label = $"Detection r={r:0.##}m  A={detectionArea:0.#}m²\nRocks:{rockCount}  Waterfall:{waterfallCount}";
-        var style = new GUIStyle(UnityEditor.EditorStyles.helpBox);
-        style.alignment = TextAnchor.MiddleCenter;
-        UnityEditor.Handles.Label(pos, label, style);
     }
 #endif
 }
