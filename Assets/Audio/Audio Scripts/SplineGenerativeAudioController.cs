@@ -18,17 +18,11 @@ public class SplineGenerativeAudioController : MonoBehaviour
     [Range(0f, 1f)] public float baseStreamVolume = 0.8f;
     [Range(0f, 1f)] public float maxRockVolume = 0.7f;
 
-    [Header("Rock behavior")]
-    [Tooltip("Minimum rock splash level whenever inside rock colliders, even if stationary.")]
-    [Range(0f, 1f)] public float rockPresenceFloor = 0.18f;
-    [Tooltip("How many overlapping rocks are needed to reach full density (1.0).")]
+    [Header("Rock scaling")]
+    [Tooltip("How many overlapping rock colliders are needed to reach full rock volume.")]
     [Min(1f)] public float rockCountForMax = 3f;
 
-    [Header("Constant Flow (no player speed)")]
-    [Tooltip("River flow speed used to drive splash intensity.")]
-    public float constantFlowSpeed = 2.5f;
-    [Tooltip("Flow speed at which rock splash reaches maximum intensity.")]
-    public float speedForMaxRockSplash = 6f;
+    [Header("Fades")]
     [Tooltip("How quickly volumes move toward their targets (units per second).")]
     public float fadeSpeed = 3f;
 
@@ -37,16 +31,9 @@ public class SplineGenerativeAudioController : MonoBehaviour
     [Range(0.1f, 5000f)]
     public float detectionArea = 50f;
 
-    [Header("Optional filtering")]
-    [Tooltip("Limit trigger checks to these layers (leave as Everything to include all).")]
-    public LayerMask featureLayers = ~0;
-
     [Header("Gizmos")]
+    [Tooltip("If enabled, draws a simple gizmo sphere representing the detection area.")]
     public bool drawGizmos = true;
-    public bool drawWhenNotSelected = false;
-    public Color gizmoFillColor = new Color(0f, 1f, 1f, 0.08f);
-    public Color gizmoWireColor = new Color(0f, 0.8f, 1f, 0.9f);
-    public Color gizmoRocksWireColor = new Color(0.1f, 1f, 0.6f, 1f);
 
     [Header("Debug logging")]
     [Tooltip("Log rock counts to the Console when they change or on enable.")]
@@ -88,20 +75,20 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     void OnEnable()
     {
-        // Prime counts if starting inside volumes
-        var hits = Physics.OverlapSphere(transform.position, GetWorldRadius(), featureLayers, QueryTriggerInteraction.Collide);
+        // Prime counts if starting inside volumes (check every collider)
+        var hits = Physics.OverlapSphere(transform.position, GetWorldRadius(), ~0, QueryTriggerInteraction.Collide);
         rockCount = 0;
         foreach (var h in hits)
         {
             if (IsFeature(h, rockTag)) rockCount++;
         }
 
-        // Log initial state
-        LogCounts("OnEnable prime");
+        // Log initial state (just the rock count)
+        LogCounts();
 
         // Initial volumes
         streamVol = baseStreamVolume;
-        rockVol = (rockCount > 0) ? maxRockVolume * Mathf.Clamp01(rockPresenceFloor) * RockDensityFactor() : 0f;
+        rockVol = (rockCount > 0) ? maxRockVolume * RockDensityFactor() : 0f;
 
         SetVolume(streamInst, streamVol);
         SetVolume(rockInst, rockVol);
@@ -117,15 +104,8 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
         float targetStream = baseStreamVolume;
 
-        // Only constant flow is used
-        float flowFactor = Mathf.Clamp01(constantFlowSpeed / Mathf.Max(0.001f, speedForMaxRockSplash));
-        float density = RockDensityFactor();
-
-        // Presence floor keeps splashes audible when inside rocks
-        float presenceFloor = (rockCount > 0) ? Mathf.Clamp01(rockPresenceFloor) : 0f;
-
-        // Choose the higher of the floor or the flow-based intensity, then scale by density and max level
-        float targetRocks = maxRockVolume * density * Mathf.Max(presenceFloor, flowFactor);
+        // Rock volume purely from density (how many rocks are inside)
+        float targetRocks = (rockCount > 0) ? maxRockVolume * RockDensityFactor() : 0f;
 
         streamVol = MoveVolumeToward(streamInst, streamVol, targetStream);
         rockVol = MoveVolumeToward(rockInst, rockVol, targetRocks);
@@ -146,23 +126,19 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (!IsOnFeatureLayers(other)) return;
-
         if (IsFeature(other, rockTag))
         {
             rockCount++;
-            LogCounts($"Enter {other.tag} ({other.name})");
+            LogCounts();
         }
     }
 
     void OnTriggerExit(Collider other)
     {
-        if (!IsOnFeatureLayers(other)) return;
-
         if (IsFeature(other, rockTag))
         {
             rockCount = Mathf.Max(0, rockCount - 1);
-            LogCounts($"Exit {other.tag} ({other.name})");
+            LogCounts();
         }
     }
 
@@ -273,11 +249,6 @@ public class SplineGenerativeAudioController : MonoBehaviour
         return !string.IsNullOrEmpty(tagName) && col.CompareTag(tagName);
     }
 
-    private bool IsOnFeatureLayers(Collider col)
-    {
-        return (featureLayers.value & (1 << col.gameObject.layer)) != 0;
-    }
-
     // Convert the inspector "area" to a world-space radius, then to local collider radius
     private void ApplyAreaToCollider()
     {
@@ -302,12 +273,11 @@ public class SplineGenerativeAudioController : MonoBehaviour
         return Mathf.Max(ls.x, Mathf.Max(ls.y, ls.z));
     }
 
-    // Console logging helper
-    private void LogCounts(string reason = null)
+    // Console logging helper (prints only the rock count)
+    private void LogCounts()
     {
         if (!logCountsToConsole) return;
-        string ctx = string.IsNullOrEmpty(reason) ? "" : $" [{reason}]";
-        Debug.Log($"[SplineGenerativeAudio] Rocks: {rockCount}{ctx}", this);
+        Debug.Log($"[SplineGenerativeAudio] Rocks: {rockCount}", this);
     }
 
 #if UNITY_EDITOR
@@ -322,16 +292,6 @@ public class SplineGenerativeAudioController : MonoBehaviour
         }
     }
 
-    void OnDrawGizmos()
-    {
-        if (!drawGizmos) return;
-
-        // Draw only when selected unless drawWhenNotSelected is true
-        if (!drawWhenNotSelected && UnityEditor.Selection.activeGameObject != gameObject) return;
-
-        DrawGizmoVolume();
-    }
-
     void OnDrawGizmosSelected()
     {
         if (!drawGizmos) return;
@@ -342,18 +302,18 @@ public class SplineGenerativeAudioController : MonoBehaviour
     {
         float r = GetWorldRadius();
 
-        // Fill
-        Gizmos.color = gizmoFillColor;
+        // Fill (fixed subtle cyan)
+        Gizmos.color = new Color(0f, 1f, 1f, 0.08f);
         Gizmos.DrawSphere(transform.position, r);
 
-        // Wire (base)
-        Gizmos.color = gizmoWireColor;
+        // Wire (fixed cyan)
+        Gizmos.color = new Color(0f, 0.8f, 1f, 0.9f);
         Gizmos.DrawWireSphere(transform.position, r);
 
-        // Optional emphasis for states
+        // Optional emphasis for rocks state (fixed greenish wire)
         if (rockCount > 0)
         {
-            Gizmos.color = gizmoRocksWireColor;
+            Gizmos.color = new Color(0.1f, 1f, 0.6f, 1f);
             Gizmos.DrawWireSphere(transform.position, r * 1.04f);
         }
     }
