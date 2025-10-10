@@ -13,6 +13,8 @@ public class Layers
 
 public class WeatherSystemManager : MonoBehaviour
 {
+    public event System.Action<float> OnThunderTriggered; // float parameter for intensity
+    
     public Transform player;
     public ParticleSystem rainParticles;
     
@@ -41,6 +43,10 @@ public class WeatherSystemManager : MonoBehaviour
     public float thunderChancePerSecond = 0.02f;
     public float thunderDistanceMin = 30f;
     public float thunderDistanceMax = 200f;
+    [Tooltip("When enabled, thunder will only occur when it's raining")]
+    public bool thunderRequiresRain = true;
+    [Tooltip("Minimum rain intensity required for thunder (0-1)")]
+    [Range(0f, 1f)] public float minRainIntensityForThunder = 0.2f;
     
     [Space(10)]
     [Header("FMOD")]
@@ -69,6 +75,14 @@ public class WeatherSystemManager : MonoBehaviour
     
     // NEW: Wind 3D positioning
     private Vector3 currentWind3DPosition;
+    
+    // Private thunder timer variables
+    private float nextThunderTime = 0f;
+    private bool thunderScheduled = false;
+    
+    // Debug option
+    [Header("Debug")]
+    public bool debug = false;
 
     void Start()
     {
@@ -116,10 +130,10 @@ public class WeatherSystemManager : MonoBehaviour
         UpdateRainParticles();
         UpdateRainAudio();
         UpdateWindAudio();
-        UpdateWind3DAudio(); // NEW: Update 3D wind
+        UpdateWind3DAudio();
         UpdateRainOcclusion();
         HandleRainImpacts();
-        HandleThunder();
+        HandleThunder(); // Check if it's time for thunder
 
         // Apply wind to the particle system so rain looks like it's blowing
         if (applyWindToParticles)
@@ -153,7 +167,6 @@ public class WeatherSystemManager : MonoBehaviour
         }
     }
 
-    // NEW: Update 3D wind audio
     void UpdateWind3DAudio()
     {
         if (isWind3DValid)
@@ -161,11 +174,9 @@ public class WeatherSystemManager : MonoBehaviour
             // Update position based on wind direction
             UpdateWind3DPosition();
             windDirectionInstance.set3DAttributes(RuntimeUtils.To3DAttributes(currentWind3DPosition));
-
         }
     }
 
-    // NEW: Calculate 3D wind position
     void UpdateWind3DPosition()
     {
         if (player == null) return;
@@ -178,7 +189,6 @@ public class WeatherSystemManager : MonoBehaviour
         currentWind3DPosition = player.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
     }
 
-    // All the rest of your methods stay exactly the same...
     void HandleRainImpacts()
     {
         if (rainIntensity <= 0f || player == null) return;
@@ -300,13 +310,26 @@ public class WeatherSystemManager : MonoBehaviour
 
     void HandleThunder()
     {
-        if (Random.value < thunderChancePerSecond * Time.deltaTime)
+        // Check if thunder should be restricted to rainy weather
+        bool canThunder = !thunderRequiresRain || (rainIntensity >= minRainIntensityForThunder);
+        
+        // Only proceed with thunder if conditions are met
+        if (canThunder && Random.value < thunderChancePerSecond * Time.deltaTime)
         {
             float distance = Random.Range(thunderDistanceMin, thunderDistanceMax);
             Vector3 direction = Random.onUnitSphere;
             direction.y = 0f;
             Vector3 thunderPos = player.position + direction.normalized * distance;
+            
+            // Calculate lightning intensity based on distance (closer = more intense)
+            float intensity = Mathf.Clamp01(1.0f - (distance - thunderDistanceMin) / (thunderDistanceMax - thunderDistanceMin));
+            
+            // Play thunder sound
             RuntimeManager.PlayOneShot(thunderEvent, thunderPos);
+            
+            // Notify subscribers about the thunder
+            if (OnThunderTriggered != null)
+                OnThunderTriggered(intensity);
         }
     }
 

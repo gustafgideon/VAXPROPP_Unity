@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering; // For RenderSettings.ambientMode
 using FMODUnity;
+using System.Collections;
 
 public class TimeManager : MonoBehaviour
 {
@@ -91,11 +92,17 @@ public class TimeManager : MonoBehaviour
     [Tooltip("Additional fog density during rain")]
     [SerializeField] private float rainFogDensityAdditive = 0.02f;
 
+    [Header("Lightning Settings")]
+    [SerializeField] private float lightningMaxIntensity = 8f;
+    [SerializeField] private float lightningMinIntensity = 3f;
+    [SerializeField] private float lightningDuration = 0.2f;
+    [SerializeField] private Color lightningColor = new Color(0.8f, 0.9f, 1.0f);
+
     [Header("FMOD Settings")] [SerializeField]
     private string timeOfDayParameterName = "TimeOfDay";
 
-    [Header("Weather System (Optional)")] [SerializeField]
-    private WeatherSystemManager weatherSystem;
+    [Header("Weather System")] 
+    [SerializeField] private WeatherSystemManager weatherSystem;
 
     [Header("Debug Options")] [SerializeField]
     private bool debugDayStateChanges = true;
@@ -127,6 +134,11 @@ public class TimeManager : MonoBehaviour
 
     // Cached sun height (0..1, 0 night, 1 high noon)
     private float sunHeight01 = 0f;
+    
+    // Lightning effect
+    private Color originalLightColor;
+    private float originalLightIntensity;
+    private bool isLightningActive = false;
 
     private void Start()
     {
@@ -176,6 +188,16 @@ public class TimeManager : MonoBehaviour
 
         if (debugDayStateChanges)
             Debug.Log($"[TimeManager] Initial state: {currentState} at {hours:00}:{minutes:00}");
+            
+        // Subscribe to the thunder event if we have a reference to the weather system
+        if (weatherSystem != null)
+        {
+            weatherSystem.OnThunderTriggered += CreateLightningEffect;
+        }
+        else
+        {
+            Debug.LogWarning("TimeManager: WeatherSystemManager reference not set. Lightning effects won't work.");
+        }
     }
 
     private void Update()
@@ -358,6 +380,9 @@ public class TimeManager : MonoBehaviour
     private void UpdateLightingContinuous()
     {
         if (!globalLight) return;
+        
+        // Skip lighting updates if lightning is active
+        if (isLightningActive) return;
 
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
 
@@ -558,6 +583,76 @@ public class TimeManager : MonoBehaviour
 
     #endregion
 
+    #region Lightning Effect
+
+    // New method to create lightning effect
+    public void CreateLightningEffect(float intensity)
+    {
+        // Only at night or dusk/dawn for realism
+        if (currentState == DayState.Night || currentState == DayState.Dusk || currentState == DayState.Dawn)
+        {
+            if (!isLightningActive)
+            {
+                StartCoroutine(LightningFlashCoroutine(intensity));
+            }
+        }
+    }
+    
+    private IEnumerator LightningFlashCoroutine(float intensity)
+    {
+        if (globalLight == null) yield break;
+        
+        isLightningActive = true;
+        
+        // Store original values
+        originalLightColor = globalLight.color;
+        originalLightIntensity = globalLight.intensity;
+        
+        // Calculate flash intensity based on provided intensity parameter
+        float actualIntensity = Mathf.Lerp(lightningMinIntensity, lightningMaxIntensity, intensity);
+        
+        // First flash - brightest
+        globalLight.color = lightningColor;
+        globalLight.intensity = actualIntensity;
+        
+        // Short duration for first flash
+        float firstFlashDuration = lightningDuration * 0.4f;
+        yield return new WaitForSeconds(firstFlashDuration);
+        
+        // Dim briefly
+        globalLight.intensity = originalLightIntensity;
+        yield return new WaitForSeconds(lightningDuration * 0.1f);
+        
+        // Second flash - less bright
+        globalLight.intensity = actualIntensity * 0.6f;
+        yield return new WaitForSeconds(lightningDuration * 0.3f);
+        
+        // Dim briefly
+        globalLight.intensity = originalLightIntensity * 0.7f;
+        yield return new WaitForSeconds(lightningDuration * 0.05f);
+        
+        // Third flash - even less bright
+        globalLight.intensity = actualIntensity * 0.3f;
+        yield return new WaitForSeconds(lightningDuration * 0.2f);
+        
+        // Restore original light settings
+        globalLight.color = originalLightColor;
+        globalLight.intensity = originalLightIntensity;
+        
+        isLightningActive = false;
+    }
+
+    #endregion
+
+    private void OnDestroy()
+    {
+        // Unsubscribe from events when this object is destroyed
+        if (weatherSystem != null)
+        {
+            weatherSystem.OnThunderTriggered -= CreateLightningEffect;
+        }
+    }
+
 #if UNITY_EDITOR
     private void OnValidate()
     {
@@ -581,6 +676,12 @@ public class TimeManager : MonoBehaviour
         dayFogDensity = Mathf.Max(0.0001f, dayFogDensity);
         nightFogDensity = Mathf.Max(dayFogDensity, nightFogDensity);
         rainFogDensityAdditive = Mathf.Max(0f, rainFogDensityAdditive);
+        
+        // Validate lightning settings
+        lightningMaxIntensity = Mathf.Max(1f, lightningMaxIntensity);
+        lightningMinIntensity = Mathf.Max(0.5f, lightningMinIntensity);
+        lightningMinIntensity = Mathf.Min(lightningMinIntensity, lightningMaxIntensity - 0.5f);
+        lightningDuration = Mathf.Max(0.05f, lightningDuration);
     }
 #endif
 }
