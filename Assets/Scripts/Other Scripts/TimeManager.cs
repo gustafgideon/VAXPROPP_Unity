@@ -98,6 +98,10 @@ public class TimeManager : MonoBehaviour
     [SerializeField] private float lightningDuration = 0.2f;
     [SerializeField] private Color lightningColor = new Color(0.8f, 0.9f, 1.0f);
 
+    [Header("Close Lightning Boost")]
+    [Tooltip("Extra intensity multiplier applied when thunderLevel == 3")]
+    [SerializeField] private float closeLightningIntensityMultiplier = 1.3f;
+
     [Header("FMOD Settings")] [SerializeField]
     private string timeOfDayParameterName = "TimeOfDay";
 
@@ -156,7 +160,6 @@ public class TimeManager : MonoBehaviour
             return;
         }
 
-        // Check if the shader is the correct one
         if (!skyboxMaterial.shader.name.Contains("Panoramic"))
         {
             Debug.LogWarning("TimeManager: Skybox material doesn't use the Dual Panoramic shader. Blending might not work properly.");
@@ -189,7 +192,7 @@ public class TimeManager : MonoBehaviour
         if (debugDayStateChanges)
             Debug.Log($"[TimeManager] Initial state: {currentState} at {hours:00}:{minutes:00}");
             
-        // Subscribe to the thunder event if we have a reference to the weather system
+        // Subscribe to thunder visuals
         if (weatherSystem != null)
         {
             weatherSystem.OnThunderTriggered += CreateLightningEffect;
@@ -271,8 +274,6 @@ public class TimeManager : MonoBehaviour
         }
     }
 
-    #region Skybox Blending
-
     private void StartSkyboxBlend(DayState fromState, DayState toState)
     {
         if (skyboxMaterial == null) return;
@@ -351,29 +352,28 @@ public class TimeManager : MonoBehaviour
         _ => skyboxNightTexture
     };
 
-    #endregion
-
-    #region Lighting
-
     private void UpdateSunRotation()
     {
-        // dayProgress 0..1
         float dayProgress = GetDayProgress();
 
-        // Create more dramatic day cycle with adjusted curve
-        // This creates a more natural arc motion
-        float sunCurve = Mathf.Sin((dayProgress - 0.25f) * Mathf.PI * 2f);
+        // sin-based daily curve
+        float t = (dayProgress - 0.25f) * Mathf.PI * 2f;
+        float sunCurve = Mathf.Sin(t);
+
+        // Cache [0..1] height for downstream lighting calcs
         sunHeight01 = Mathf.Clamp01(sunCurve * 0.5f + 0.5f);
-        
-        // Use slightly different altitude curve for more realism
-        // This makes the sun rise/set more quickly and stay higher during day
-        float altitudeAngle = Mathf.Pow(sunCurve, 0.9f) * maxSunAltitude;
-        
-        // More realistic azimuth with minor offset
-        // Ensures the sun doesn't rise/set exactly east/west
-        float sunAngle = (dayProgress * 360f) + 15f; // slight offset for realism
-        
-        // Update the light's rotation
+
+        // IMPORTANT: Preserve sign before applying fractional power to avoid NaN
+        float signedPow = Mathf.Sign(sunCurve) * Mathf.Pow(Mathf.Abs(sunCurve), 0.9f);
+        float altitudeAngle = signedPow * maxSunAltitude;
+
+        // Azimuth with slight offset
+        float sunAngle = (dayProgress * 360f) + 15f;
+
+        // Safety guards (belt-and-suspenders)
+        if (float.IsNaN(altitudeAngle) || float.IsInfinity(altitudeAngle)) altitudeAngle = 0f;
+        if (float.IsNaN(sunAngle) || float.IsInfinity(sunAngle)) sunAngle = 0f;
+
         globalLight.transform.rotation = Quaternion.Euler(altitudeAngle, sunAngle - 90f, 0f);
     }
 
@@ -554,8 +554,6 @@ public class TimeManager : MonoBehaviour
         _ => overcastGradientNight
     };
 
-    #endregion
-
     #region FMOD
 
     private void SetTimeOfDayParameter(DayState state)
@@ -585,11 +583,11 @@ public class TimeManager : MonoBehaviour
 
     #region Lightning Effect
 
-    // New method to create lightning effect
+    // Called by WeatherSystemManager when thunder occurs, intensity is 0..1
     public void CreateLightningEffect(float intensity)
     {
-        // Only at night or dusk/dawn for realism
-        if (currentState == DayState.Night || currentState == DayState.Dusk || currentState == DayState.Dawn)
+        // Visual lightning for Distant, Mid, and Close. Level 3 is stronger.
+        if (weatherSystem != null && weatherSystem.thunderLevel != ThunderLevel.None)
         {
             if (!isLightningActive)
             {
@@ -608,33 +606,48 @@ public class TimeManager : MonoBehaviour
         originalLightColor = globalLight.color;
         originalLightIntensity = globalLight.intensity;
         
-        // Calculate flash intensity based on provided intensity parameter
-        float actualIntensity = Mathf.Lerp(lightningMinIntensity, lightningMaxIntensity, intensity);
+        // Base intensity from provided hint
+        float actualIntensity = Mathf.Lerp(lightningMinIntensity, lightningMaxIntensity, Mathf.Clamp01(intensity));
+
+        // Exaggerate if close thunder (level 3)
+        bool isClose = weatherSystem != null && weatherSystem.thunderLevel == ThunderLevel.Close;
+        if (isClose)
+        {
+            actualIntensity *= Mathf.Max(1f, closeLightningIntensityMultiplier);
+            // Clamp to a reasonable upper bound (up to 1.5x max)
+            actualIntensity = Mathf.Min(actualIntensity, lightningMaxIntensity * 1.5f);
+        }
         
         // First flash - brightest
         globalLight.color = lightningColor;
         globalLight.intensity = actualIntensity;
-        
-        // Short duration for first flash
-        float firstFlashDuration = lightningDuration * 0.4f;
-        yield return new WaitForSeconds(firstFlashDuration);
+        yield return new WaitForSeconds(lightningDuration * 0.4f);
         
         // Dim briefly
         globalLight.intensity = originalLightIntensity;
         yield return new WaitForSeconds(lightningDuration * 0.1f);
         
         // Second flash - less bright
-        globalLight.intensity = actualIntensity * 0.6f;
+        float secondFlash = actualIntensity * 0.6f;
+        globalLight.intensity = secondFlash;
         yield return new WaitForSeconds(lightningDuration * 0.3f);
         
         // Dim briefly
         globalLight.intensity = originalLightIntensity * 0.7f;
         yield return new WaitForSeconds(lightningDuration * 0.05f);
         
-        // Third flash - even less bright
-        globalLight.intensity = actualIntensity * 0.3f;
+        // Third flash - even less bright (slightly stronger if close)
+        float thirdFlash = actualIntensity * (isClose ? 0.45f : 0.3f);
+        globalLight.intensity = thirdFlash;
         yield return new WaitForSeconds(lightningDuration * 0.2f);
         
+        // Optional tiny extra pop for close
+        if (isClose)
+        {
+            globalLight.intensity = actualIntensity * 0.3f;
+            yield return new WaitForSeconds(lightningDuration * 0.12f);
+        }
+
         // Restore original light settings
         globalLight.color = originalLightColor;
         globalLight.intensity = originalLightIntensity;
@@ -646,7 +659,6 @@ public class TimeManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Unsubscribe from events when this object is destroyed
         if (weatherSystem != null)
         {
             weatherSystem.OnThunderTriggered -= CreateLightningEffect;
@@ -665,23 +677,8 @@ public class TimeManager : MonoBehaviour
         nightLightIntensity = Mathf.Max(0.001f, nightLightIntensity);
         moonLightIntensity = Mathf.Max(0.001f, moonLightIntensity);
         rainLightReduction = Mathf.Clamp01(rainLightReduction);
-        
-        // Validate shadow settings
-        dayShadowStrength = Mathf.Clamp01(dayShadowStrength);
-        nightShadowStrength = Mathf.Clamp01(nightShadowStrength);
-        overcastDayShadowStrength = Mathf.Clamp01(overcastDayShadowStrength);
-        overcastNightShadowStrength = Mathf.Clamp01(overcastNightShadowStrength);
-        
-        // Validate fog densities
-        dayFogDensity = Mathf.Max(0.0001f, dayFogDensity);
-        nightFogDensity = Mathf.Max(dayFogDensity, nightFogDensity);
-        rainFogDensityAdditive = Mathf.Max(0f, rainFogDensityAdditive);
-        
-        // Validate lightning settings
-        lightningMaxIntensity = Mathf.Max(1f, lightningMaxIntensity);
-        lightningMinIntensity = Mathf.Max(0.5f, lightningMinIntensity);
-        lightningMinIntensity = Mathf.Min(lightningMinIntensity, lightningMaxIntensity - 0.5f);
-        lightningDuration = Mathf.Max(0.05f, lightningDuration);
+
+        closeLightningIntensityMultiplier = Mathf.Max(1.0f, closeLightningIntensityMultiplier);
     }
 #endif
 }

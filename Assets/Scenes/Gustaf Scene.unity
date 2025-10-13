@@ -29255,7 +29255,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windDirectionEvent.Path
-      value: event:/AMB/WeatherSystem/Weather_WindDirection
+      value: event:/AMB/WeatherSystem/Wind/Weather_WindDirection
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windDirectionEvent.Guid.Data1
