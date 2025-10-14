@@ -55,4 +55,49 @@ public class PlayerAudio : ScriptableObject
         playerWalkInstance.start();
         playerWalkInstance.release();
     }
+    
+    public void PlayerRunAudio(GameObject runObj, string surface, float stairDirection = 0f)
+    {
+
+        EventInstance playerRunInstance = RuntimeManager.CreateInstance(playerRun);
+        RuntimeManager.AttachInstanceToGameObject(playerRunInstance, runObj.transform);
+        
+        switch (surface) //vill jämföra innehållet i "surface"parametern
+        {
+            //Namn på olika taggar med olika numeriska värden och  refererar till parametern i FMOD "Surface"
+            case "Grass":
+                playerRunInstance.setParameterByName("Surface", 0f); 
+                break;
+            case "Dirt":
+                playerRunInstance.setParameterByName("Surface", 1f);
+                break;
+            case "Wood":
+                playerRunInstance.setParameterByName("Surface", 2f);
+                break;
+            case "Concrete":
+                playerRunInstance.setParameterByName("Surface", 3f);
+                break;
+            case "Sand":
+                playerRunInstance.setParameterByName("Surface", 4f);
+                break;
+            case "Stone":
+                playerRunInstance.setParameterByName("Surface", 5f);
+                break;
+            case "Concrete_Stair":
+                playerRunInstance.setParameterByName("Surface", 6f);
+                break;
+            case "Player":
+                break;
+            default:
+                playerRunInstance.setParameterByName("Surface", 0f);
+                break;
+        }
+        
+        // StairDirection parameter
+        playerRunInstance.setParameterByName("StairDirection", stairDirection);
+
+        
+        playerRunInstance.start();
+        playerRunInstance.release();
+    }
 }

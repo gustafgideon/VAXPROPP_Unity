@@ -35,10 +35,26 @@ public class PlayerMovementAudio : MonoBehaviour
 
         // Call FMOD via ScriptableObject
         playerAudio.PlayerWalkAudio(playerFoot, surface, stairDirection);
+    }
+    
+    public void PlayerRunAudio()
+    {
+        if (playerFoot == null) return;
 
-        Debug.Log($"Footstep: {surface}, StairDirection: {stairDirection}");
-        
-        Debug.Log("Footstep triggered by: " + GetComponent<Animator>().GetCurrentAnimatorClipInfo(0)[0].clip.name);
+        string surface = DetectSurface(); // returns e.g. "Grass", "Concrete_Stair", "Wood"
+
+        // Stair direction detection
+        float stairDirection = 0f; // Up = 0, Down = 1
+        if (surface.Contains("Stair"))
+        {
+            float deltaY = playerFoot.transform.position.y - lastFootPosition.y;
+            stairDirection = (deltaY < -0.01f) ? 1f : 0f; // Down if foot moved downward
+        }
+
+        lastFootPosition = playerFoot.transform.position;
+
+        // Call FMOD via ScriptableObject
+        playerAudio.PlayerRunAudio(playerFoot, surface, stairDirection);
     }
 
     // Raycast to detect surface

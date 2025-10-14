@@ -21,11 +21,11 @@ MonoBehaviour:
     Path: event:/Player/PlayerMovement/Player_Walk
   playerRun:
     Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
+      Data1: 2077040391
+      Data2: 1311210321
+      Data3: -78858103
+      Data4: 590976
+    Path: event:/Player/PlayerMovement/Player_Run
   playerJump:
     Guid:
       Data1: 0
