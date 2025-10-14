@@ -26757,6 +26757,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 978462366}
     m_Modifications:
+    - target: {fileID: 5257352771509540318, guid: e8348585f15c37646bf42aec98e25e2c, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
+      objectReference: {fileID: 0}
     - target: {fileID: 5799991557702423958, guid: e8348585f15c37646bf42aec98e25e2c, type: 3}
       propertyPath: m_LocalPosition.x
       value: -28.68
@@ -28721,6 +28725,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: S2_SkinnyBunches_v2_00
       objectReference: {fileID: 0}
+    - target: {fileID: 7256423810072300443, guid: 691cb41d1b787034698151179180e981, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -29214,9 +29222,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 930912995}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: thunderObj
+      value: 
+      objectReference: {fileID: 1937354762}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windOrigin
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: playerObject
+      value: 
+      objectReference: {fileID: 1937354762}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: rainIntensity
       value: 0
@@ -29256,6 +29272,14 @@ PrefabInstance:
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windDirectionEvent.Path
       value: event:/AMB/WeatherSystem/Wind/Weather_WindDirection
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: rainImpactTags.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: 'rainImpactTags.Array.data[0]'
+      value: Foliage
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windDirectionEvent.Guid.Data1
@@ -39566,6 +39590,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: S2_Curved_v3_00
       objectReference: {fileID: 0}
+    - target: {fileID: 6533759351211657139, guid: 20790c9e6c547304189190091e8951af, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -41044,6 +41072,10 @@ PrefabInstance:
     - target: {fileID: 3597507614282932571, guid: 94aa44a95207ed04db856b1a7b75157f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4346857974400233985, guid: 94aa44a95207ed04db856b1a7b75157f, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -43219,6 +43251,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 978462366}
     m_Modifications:
+    - target: {fileID: 1749414149577141351, guid: 40f1c1c744496554d91c73f4529807fa, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
+      objectReference: {fileID: 0}
     - target: {fileID: 4593077377499808857, guid: 40f1c1c744496554d91c73f4529807fa, type: 3}
       propertyPath: m_LocalPosition.x
       value: -43.60006
@@ -70324,6 +70360,10 @@ PrefabInstance:
     - target: {fileID: 7441298556082409150, guid: bddc967e03664b049a3d1f968cd57017, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9208918365065219830, guid: bddc967e03664b049a3d1f968cd57017, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -102546,6 +102586,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 978462366}
     m_Modifications:
+    - target: {fileID: 226118209480679453, guid: bddc967e03664b049a3d1f968cd57017, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
+      objectReference: {fileID: 0}
     - target: {fileID: 6680690834056869220, guid: bddc967e03664b049a3d1f968cd57017, type: 3}
       propertyPath: m_Name
       value: Sm1_SkinnyTall_v1_00
@@ -105727,6 +105771,11 @@ Mesh:
     offset: 0
     size: 0
     path: 
+--- !u!1 &1937354762 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 120805247324170805, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+  m_PrefabInstance: {fileID: 3689455767964182751}
+  m_PrefabAsset: {fileID: 0}
 --- !u!43 &1948089145
 Mesh:
   m_ObjectHideFlags: 0
@@ -111244,6 +111293,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 978462366}
     m_Modifications:
+    - target: {fileID: 226118209480679453, guid: bddc967e03664b049a3d1f968cd57017, type: 3}
+      propertyPath: m_TagString
+      value: Foliage
+      objectReference: {fileID: 0}
     - target: {fileID: 6680690834056869220, guid: bddc967e03664b049a3d1f968cd57017, type: 3}
       propertyPath: m_Name
       value: Sm1_SkinnyTall_v1_00 (2)

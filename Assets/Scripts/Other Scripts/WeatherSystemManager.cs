@@ -27,6 +27,7 @@ public class WeatherSystemManager : MonoBehaviour
     public event System.Action<float> OnThunderTriggered;
 
     public Transform player;
+    public GameObject playerObject;
     public ParticleSystem rainParticles;
 
     [Space(10)]
@@ -314,7 +315,7 @@ public class WeatherSystemManager : MonoBehaviour
         // Play thunder event now; any delay is authored in FMOD
         if (!thunderEvent.IsNull)
         {
-            RuntimeManager.PlayOneShot(thunderEvent, pos);
+            RuntimeManager.PlayOneShotAttached(thunderEvent, playerObject);
         }
 
         if (debug) Debug.Log($"[WeatherSystemManager] Manual thunder generated (level {(int)thunderLevel}).");
