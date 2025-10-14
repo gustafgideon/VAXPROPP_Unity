@@ -29275,11 +29275,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: rainImpactTags.Array.size
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: 'rainImpactTags.Array.data[0]'
       value: Foliage
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: 'rainImpactTags.Array.data[1]'
+      value: Water
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windDirectionEvent.Guid.Data1
@@ -49666,6 +49670,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 2864f03e06e0edf41b9b19c8c8baba95, type: 2}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: nightFogDensity
+      value: 0.005
+      objectReference: {fileID: 0}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: nightSkyColor.b
       value: 0.3490566
       objectReference: {fileID: 0}
@@ -49685,6 +49693,10 @@ PrefabInstance:
       propertyPath: skyboxDayTexture
       value: 
       objectReference: {fileID: 2800000, guid: 99b254ad4e7668d419be526ebb66b549, type: 3}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: dayLightIntensity
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: skyboxDawnTexture
       value: 
@@ -49723,7 +49735,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: nightLightIntensity
-      value: 0.3
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: skyboxRotationSpeed
@@ -49731,7 +49743,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: fullDayLengthMinutes
-      value: 5
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: rainToOvercastExponent
+      value: 0.15
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: gradientDayToDusk.key0.b

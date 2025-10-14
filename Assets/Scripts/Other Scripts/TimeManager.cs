@@ -108,6 +108,41 @@ public class TimeManager : MonoBehaviour
     [Header("Weather System")] 
     [SerializeField] private WeatherSystemManager weatherSystem;
 
+    [Header("Rain Visual Response")]
+    [Tooltip("Non-linear exponent mapping for how quickly the skybox goes overcast as rain rises. <1 reacts faster.")]
+    [SerializeField][Range(0.1f, 2f)] private float rainToOvercastExponent = 0.35f;
+
+    [Tooltip("Linear gain applied before exponent to make overcast kick in earlier. 1 = no gain.")]
+    [SerializeField][Range(0.1f, 8f)] private float rainToOvercastGain = 4f;
+
+    [Tooltip("Rain value above which a minimum overcast blend is enforced.")]
+    [SerializeField][Range(0f, 1f)] private float rainOvercastThreshold = 0.02f;
+
+    [Tooltip("Minimum overcast blend applied whenever rain >= threshold.")]
+    [SerializeField][Range(0f, 1f)] private float minOvercastBlend = 0.45f;
+
+    [Tooltip("Cold tint applied to sun light while raining (makes light cold regardless of time of day).")]
+    [SerializeField] private Color rainColdLightTint = new Color(0.65f, 0.72f, 1.0f);
+
+    [Tooltip("Max strength of the cold tint under rain.")]
+    [SerializeField][Range(0f, 1f)] private float rainColdTintMaxStrength = 0.85f;
+
+    [Tooltip("Exponent shaping how quickly the cold tint ramps in with rain (<1 reacts fast).")]
+    [SerializeField][Range(0.1f, 2f)] private float rainColdTintExponent = 0.4f;
+
+    [Header("Night Brightness")]
+    [Tooltip("Minimum directional light intensity enforced at night.")]
+    [SerializeField][Range(0f, 1f)] private float minNightDirectionalIntensity = 0.15f;
+
+    [Tooltip("Minimum ambient intensity at night (before global multiplier).")]
+    [SerializeField][Range(0f, 1f)] private float nightAmbientFloor = 0.2f;
+
+    [Tooltip("Global multiplier applied to RenderSettings.ambientIntensity.")]
+    [SerializeField][Range(0f, 2f)] private float ambientGlobalMultiplier = 1.0f;
+
+    [Tooltip("Multiplier applied to moon light intensity.")]
+    [SerializeField][Range(0f, 3f)] private float moonLightMultiplier = 1.5f;
+
     [Header("Debug Options")] [SerializeField]
     private bool debugDayStateChanges = true;
 
@@ -143,6 +178,25 @@ public class TimeManager : MonoBehaviour
     private Color originalLightColor;
     private float originalLightIntensity;
     private bool isLightningActive = false;
+
+    // UI Helpers for debug phase logging
+    private static string GetPhaseIcon(DayState s) => s switch
+    {
+        DayState.Dawn => "🌅",
+        DayState.Day  => "☀️",
+        DayState.Dusk => "🌇",
+        DayState.Night=> "🌙",
+        _ => ""
+    };
+
+    private static string GetPhaseText(DayState s) => s switch
+    {
+        DayState.Dawn => "DAWN",
+        DayState.Day  => "DAY",
+        DayState.Dusk => "DUSK",
+        DayState.Night=> "NIGHT",
+        _ => "UNKNOWN"
+    };
 
     private void Start()
     {
@@ -190,7 +244,7 @@ public class TimeManager : MonoBehaviour
         SetTimeOfDayParameter(currentState);
 
         if (debugDayStateChanges)
-            Debug.Log($"[TimeManager] Initial state: {currentState} at {hours:00}:{minutes:00}");
+            Debug.Log($"[TimeManager] {GetPhaseIcon(currentState)} {GetPhaseText(currentState)} at {hours:00}:{minutes:00}");
             
         // Subscribe to thunder visuals (manual trigger comes from WeatherSystemManager.GenerateThunder)
         if (weatherSystem != null)
@@ -219,10 +273,11 @@ public class TimeManager : MonoBehaviour
         if (enableSkyboxRotation)
             RotateSkybox();
 
-        // Update weather blend in shader
-        if (weatherSystem != null && skyboxMaterial != null)
+        // Update weather blend in shader with fast overcast response
+        if (skyboxMaterial != null)
         {
-            skyboxMaterial.SetFloat("_Blend", weatherSystem.rainIntensity);
+            float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
+            skyboxMaterial.SetFloat("_Blend", ComputeOvercastBlend(rain));
         }
 
         UpdateLightingContinuous();
@@ -264,9 +319,7 @@ public class TimeManager : MonoBehaviour
 
             if (debugDayStateChanges)
             {
-                float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-                Debug.Log(
-                    $"[TimeManager] Day state {previousState} -> {currentState} at {hours:00}:{minutes:00} (rain={rain:0.00})");
+                Debug.Log($"[TimeManager] {GetPhaseIcon(currentState)} {GetPhaseText(currentState)} at {hours:00}:{minutes:00}");
             }
 
             StartSkyboxBlend(previousState, currentState);
@@ -288,9 +341,9 @@ public class TimeManager : MonoBehaviour
         // Set overcast texture
         skyboxMaterial.SetTexture("_OvercastTexture", overcastTexture);
         
-        // Set rain blend
+        // Set rain blend with fast overcast response
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-        skyboxMaterial.SetFloat("_Blend", rain);
+        skyboxMaterial.SetFloat("_Blend", ComputeOvercastBlend(rain));
         
         // Initialize blend
         blendFactor = 0f;
@@ -393,26 +446,38 @@ public class TimeManager : MonoBehaviour
         Color normalColor = GetNormalGradientForState(currentState).Evaluate(segmentProgress);
         Color overcastColor = GetOvercastGradientForState(currentState).Evaluate(segmentProgress);
 
-        // Blend between normal and overcast based on rain intensity
-        float overcastBlend = Mathf.Clamp01(rain * 2f); // Full overcast at rain >= 0.5
+        // Blend between normal and overcast based on rain (non-linear + min floor)
+        float overcastBlend = ComputeOvercastBlend(rain);
         Color targetColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
 
-        // Apply color to directional light
-        globalLight.color = targetColor;
+        // Force a cold tint during rain, regardless of time of day
+        float tintStrength = (rain > 0f)
+            ? Mathf.Clamp01(Mathf.Pow(rain, rainColdTintExponent) * rainColdTintMaxStrength)
+            : 0f;
+        Color coldTintedColor = Color.Lerp(targetColor, rainColdLightTint, tintStrength);
 
-        // Much more dramatic light intensity change
+        // Apply color to directional light
+        globalLight.color = coldTintedColor;
+
+        // Dramatic light intensity change with a night floor
         float baseIntensity;
         if (sunHeight01 > 0.15f) {
             // Day/dusk intensity
             baseIntensity = Mathf.Lerp(0.3f, dayLightIntensity, Mathf.Pow(sunHeight01, 0.7f));
         } else {
-            // Night intensity (much darker)
-            baseIntensity = Mathf.Lerp(nightLightIntensity, 0.3f, sunHeight01 / 0.15f);
+            // Night intensity (less dark than before)
+            baseIntensity = Mathf.Lerp(nightLightIntensity, 0.35f, sunHeight01 / 0.15f);
         }
 
         // Reduce intensity in rain using configurable reduction factor
         float rainDarkening = Mathf.Lerp(1f, 1f - rainLightReduction, rain);
-        globalLight.intensity = baseIntensity * rainDarkening;
+        float finalDirectional = baseIntensity * rainDarkening;
+
+        // Enforce a minimum floor at night so it's not too dark
+        if (sunHeight01 < 0.2f)
+            finalDirectional = Mathf.Max(finalDirectional, minNightDirectionalIntensity);
+
+        globalLight.intensity = finalDirectional;
         
         // Update shadow properties based on time of day AND weather
         UpdateShadowSettings(rain);
@@ -456,8 +521,8 @@ public class TimeManager : MonoBehaviour
                                                          (globalLight.transform.eulerAngles.y + 180) % 360, 
                                                          0f);
             
-            // Very dim blue-tinted light
-            float actualMoonIntensity = moonLightIntensity * (1 - sunHeight01 * 5);
+            // Dim blue-tinted light with a multiplier
+            float actualMoonIntensity = moonLightIntensity * (1 - sunHeight01 * 5) * moonLightMultiplier;
             
             // Reduce moon intensity in rain too
             float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
@@ -466,7 +531,7 @@ public class TimeManager : MonoBehaviour
             moonLight.intensity = actualMoonIntensity * rainDarkening;
             moonLight.color = new Color(0.6f, 0.65f, 1f);
             
-            // Make sure moon has shadows enabled but less detailed
+            // Ensure moon has shadows enabled but less detailed
             moonLight.shadows = LightShadows.Soft;
             moonLight.shadowStrength = 0.6f;
         } else if (moonLight != null) {
@@ -478,8 +543,8 @@ public class TimeManager : MonoBehaviour
     {
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
         
-        // Dynamically adjust ambient light intensity based on time of day
-        float ambientIntensity = Mathf.Lerp(0.1f, 1.0f, Mathf.Pow(sunHeight01, 0.5f));
+        // Ambient intensity with a higher floor at night
+        float ambientIntensity = Mathf.Lerp(nightAmbientFloor, 1.0f, Mathf.Pow(sunHeight01, 0.5f));
         
         // Reduce ambient intensity further in rain
         ambientIntensity *= Mathf.Lerp(1f, 0.7f, rain);
@@ -489,8 +554,8 @@ public class TimeManager : MonoBehaviour
         RenderSettings.ambientEquatorColor = Color.Lerp(nightEquatorColor, dayEquatorColor, ambientIntensity) * ambientIntensity;
         RenderSettings.ambientGroundColor = Color.Lerp(nightGroundColor, dayGroundColor, ambientIntensity) * ambientIntensity;
         
-        // Also adjust ambient intensity directly
-        RenderSettings.ambientIntensity = ambientIntensity * 0.8f;
+        // Apply global multiplier (lets you brighten nights without oversaturating colors)
+        RenderSettings.ambientIntensity = ambientIntensity * ambientGlobalMultiplier;
     }
 
     private void UpdateFogSettings()
@@ -499,15 +564,19 @@ public class TimeManager : MonoBehaviour
             // Get rain intensity
             float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
             
-            // Update fog color (this should already be in your code)
+            // Update fog color derived from the same logic (and apply cold tint for rain)
             float segmentProgress = GetSegmentProgress();
             Color normalColor = GetNormalGradientForState(currentState).Evaluate(segmentProgress);
             Color overcastColor = GetOvercastGradientForState(currentState).Evaluate(segmentProgress);
-            float overcastBlend = Mathf.Clamp01(rain * 2f);
+            float overcastBlend = ComputeOvercastBlend(rain);
             Color targetColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
+            float tintStrength = (rain > 0f)
+                ? Mathf.Clamp01(Mathf.Pow(rain, rainColdTintExponent) * rainColdTintMaxStrength)
+                : 0f;
+            Color fogColor = Color.Lerp(targetColor, rainColdLightTint, tintStrength);
             
-            // Apply fog color
-            RenderSettings.fogColor = targetColor * 0.7f; // Slightly darker than sky
+            // Apply fog color (slightly darker than sky)
+            RenderSettings.fogColor = fogColor * 0.7f;
             
             // Make fog thicker at night and even thicker during rain
             float baseFogDensity = Mathf.Lerp(nightFogDensity, dayFogDensity, sunHeight01);
@@ -553,6 +622,21 @@ public class TimeManager : MonoBehaviour
         DayState.Night => overcastGradientNight,
         _ => overcastGradientNight
     };
+
+    // Fast overcast response curve with gain + minimum floor when raining
+    private float ComputeOvercastBlend(float rain)
+    {
+        if (rain <= 0f) return 0f;
+
+        // Apply gain before exponent so small rain values already look overcast
+        float x = Mathf.Clamp01(rain * rainToOvercastGain);
+        float nonLinear = Mathf.Pow(x, rainToOvercastExponent);
+
+        // Enforce a minimum overcast blend once threshold is crossed
+        float floor = (rain >= rainOvercastThreshold) ? minOvercastBlend : 0f;
+
+        return Mathf.Clamp01(Mathf.Max(nonLinear, floor));
+    }
 
     #region FMOD
 
@@ -679,6 +763,18 @@ public class TimeManager : MonoBehaviour
         rainLightReduction = Mathf.Clamp01(rainLightReduction);
 
         closeLightningIntensityMultiplier = Mathf.Max(1.0f, closeLightningIntensityMultiplier);
+
+        rainToOvercastExponent = Mathf.Clamp(rainToOvercastExponent, 0.1f, 2f);
+        rainToOvercastGain = Mathf.Clamp(rainToOvercastGain, 0.1f, 8f);
+        rainOvercastThreshold = Mathf.Clamp01(rainOvercastThreshold);
+        minOvercastBlend = Mathf.Clamp01(minOvercastBlend);
+        rainColdTintMaxStrength = Mathf.Clamp01(rainColdTintMaxStrength);
+        rainColdTintExponent = Mathf.Clamp(rainColdTintExponent, 0.1f, 2f);
+
+        minNightDirectionalIntensity = Mathf.Clamp01(minNightDirectionalIntensity);
+        nightAmbientFloor = Mathf.Clamp01(nightAmbientFloor);
+        ambientGlobalMultiplier = Mathf.Clamp(ambientGlobalMultiplier, 0f, 2f);
+        moonLightMultiplier = Mathf.Clamp(moonLightMultiplier, 0f, 3f);
     }
 #endif
 }
