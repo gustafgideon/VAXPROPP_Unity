@@ -29218,6 +29218,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windDegrees
+      value: -180
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: thunderLevel
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windStrength
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: rainIntensity
       value: 0
       objectReference: {fileID: 0}
@@ -29232,6 +29244,10 @@ PrefabInstance:
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: wind3DEvent.Path
       value: event:/AMB/WeatherSystem/Weather_WindDirection
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: usePerLevelSoundDelay
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: customFromAngleDegrees
@@ -29256,6 +29272,22 @@ PrefabInstance:
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windDirectionEvent.Path
       value: event:/AMB/WeatherSystem/Wind/Weather_WindDirection
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: thunderIntervalSeconds.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: thunderIntervalSeconds.y
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: closeStrikeDistanceRange.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: closeStrikeDistanceRange.y
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windDirectionEvent.Guid.Data1
@@ -111644,6 +111676,7 @@ SceneRoots:
   - {fileID: 545497712}
   - {fileID: 174186609}
   - {fileID: 1603942632}
+  - {fileID: 211782625}
   - {fileID: 3689455767964182751}
   - {fileID: 424242132}
   - {fileID: 707816421}
@@ -111661,4 +111694,3 @@ SceneRoots:
   - {fileID: 2091271265}
   - {fileID: 1201864689}
   - {fileID: 2025965057}
-  - {fileID: 211782625}

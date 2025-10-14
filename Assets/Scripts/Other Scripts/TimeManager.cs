@@ -192,7 +192,7 @@ public class TimeManager : MonoBehaviour
         if (debugDayStateChanges)
             Debug.Log($"[TimeManager] Initial state: {currentState} at {hours:00}:{minutes:00}");
             
-        // Subscribe to thunder visuals
+        // Subscribe to thunder visuals (manual trigger comes from WeatherSystemManager.GenerateThunder)
         if (weatherSystem != null)
         {
             weatherSystem.OnThunderTriggered += CreateLightningEffect;

@@ -20,17 +20,6 @@ public enum ThunderLevel
     Close = 3
 }
 
-[System.Serializable]
-public class ThunderLevelSettings
-{
-    [Tooltip("Random interval (seconds) between thunder occurrences when this level is active")]
-    public Vector2 intervalSeconds = new Vector2(8f, 14f);
-
-    [Tooltip("Delay (seconds) after the lightning until the thunder sound is heard at this level")]
-    [Range(0f, 10f)]
-    public float soundDelaySeconds = 1.0f;
-}
-
 public class WeatherSystemManager : MonoBehaviour
 {
     // Fired when a lightning visual should occur (used by TimeManager).
@@ -65,29 +54,6 @@ public class WeatherSystemManager : MonoBehaviour
     [Tooltip("0=None, 1=Distant, 2=Mid, 3=Close")]
     public ThunderLevel thunderLevel = ThunderLevel.None;
 
-    [Tooltip("Distant thunder settings")]
-    public ThunderLevelSettings distantSettings = new ThunderLevelSettings
-    {
-        intervalSeconds = new Vector2(10f, 18f),
-        soundDelaySeconds = 2.5f
-    };
-
-    [Tooltip("Mid thunder settings")]
-    public ThunderLevelSettings midSettings = new ThunderLevelSettings
-    {
-        intervalSeconds = new Vector2(8f, 14f),
-        soundDelaySeconds = 1.2f
-    };
-
-    [Tooltip("Close thunder settings")]
-    public ThunderLevelSettings closeSettings = new ThunderLevelSettings
-    {
-        intervalSeconds = new Vector2(6f, 10f),
-        soundDelaySeconds = 0.4f
-    };
-    
-    private bool skipFirstOccurrenceAfterLevelChange = true;
-
     [Space(10)]
     [Header("FMOD")]
     public EventReference rainLoopEvent;
@@ -95,11 +61,14 @@ public class WeatherSystemManager : MonoBehaviour
     public EventReference windEvent;
     public EventReference windDirectionEvent;
     public EventReference thunderEvent;
+
     public string rainParameterName = "RainIntensity";
     public string windParameterName = "WindStrength";
     public string windDegreesParameterName = "WindDegrees";
     public string rainOcclusionEQParameterName = "RainOcclusionEQ";
     public string rainOcclusionVolumeParameterName = "RainOcclusionVolume";
+
+    // Only set when GenerateThunder() is called (never on inspector change).
     public string thunderLevelParameterName = "ThunderLevel";
 
     private EventInstance rainLoopInstance;
@@ -112,17 +81,8 @@ public class WeatherSystemManager : MonoBehaviour
 
     private Vector3 currentAppliedWind = Vector3.zero;
     private Vector3 currentWind3DPosition;
-
-    private int lastThunderLevelSentToFMOD = -1;
-
-    // Interval scheduler
-    private float nextThunderTime = Mathf.Infinity;
-
-    // Guard to prevent immediate thunder right after level change
-    private bool suppressNextThunderOnce = false;
-
-    [Header("Debug")]
-    public bool debug = false;
+    
+    private bool debug = false;
 
     void Start()
     {
@@ -130,10 +90,6 @@ public class WeatherSystemManager : MonoBehaviour
             rainParticles = GetComponentInChildren<ParticleSystem>();
 
         SetupAudio();
-
-        // Ensure FMOD global param matches inspector at start
-        SyncThunderPresenceWithFMOD(force: true);
-        ScheduleNextThunder();
     }
 
     void SetupAudio()
@@ -177,12 +133,6 @@ public class WeatherSystemManager : MonoBehaviour
         UpdateWind3DAudio();
         UpdateRainOcclusion();
         HandleRainImpacts();
-
-        // Keep FMOD ThunderLevel in sync
-        SyncThunderPresenceWithFMOD();
-
-        // Interval-driven thunder occurrences
-        HandleThunderScheduling();
 
         if (applyWindToParticles)
             ApplyWindToParticles();
@@ -336,109 +286,38 @@ public class WeatherSystemManager : MonoBehaviour
         currentOcclusionVolume = occlusionVolume;
     }
 
-    // Interval-driven thunder
-    void HandleThunderScheduling()
+    // Manual thunder trigger. Call from UI Button or click the Inspector context menu in Play Mode.
+    [ContextMenu("Generate Thunder")]
+    public void GenerateThunder()
     {
         if (thunderLevel == ThunderLevel.None)
         {
-            nextThunderTime = Mathf.Infinity;
+            if (debug) Debug.LogWarning("[WeatherSystemManager] ThunderLevel is None. Set a level (Distant/Mid/Close) to generate thunder.");
             return;
         }
 
-        if (Time.time >= nextThunderTime)
-        {
-            // Prevent immediate thunder right after changing level
-            if (suppressNextThunderOnce && skipFirstOccurrenceAfterLevelChange)
-            {
-                suppressNextThunderOnce = false;
-                ScheduleNextThunder();
-                if (debug) Debug.Log("[WeatherSystemManager] Skipped immediate thunder after level change.");
-                return;
-            }
-
-            PlayThunderOccurrence();
-            ScheduleNextThunder();
-        }
-    }
-
-    void PlayThunderOccurrence()
-    {
         Vector3 pos = player ? player.position : Vector3.zero;
 
-        // Trigger lightning visuals for all non-none levels
-        if (thunderLevel != ThunderLevel.None)
-        {
-            float intensity =
-                (thunderLevel == ThunderLevel.Distant) ? 0.2f :
-                (thunderLevel == ThunderLevel.Mid)     ? 0.66f :
-                                                         1.0f; // Close
-            OnThunderTriggered?.Invoke(intensity);
-        }
+        // Trigger lightning visuals for TimeManager
+        float intensity =
+            (thunderLevel == ThunderLevel.Distant) ? 0.2f :
+            (thunderLevel == ThunderLevel.Mid)     ? 0.66f :
+                                                     1.0f; // Close
+        OnThunderTriggered?.Invoke(intensity);
 
-        // Schedule thunder sound after level-specific delay (for all 1..3)
-        ThunderLevelSettings levelSettings = GetSettingsForLevel(thunderLevel);
-        if (!thunderEvent.IsNull && thunderLevel != ThunderLevel.None)
-        {
-            StartCoroutine(PlayThunderSoundAfterDelay(levelSettings.soundDelaySeconds, pos));
-        }
-
-        if (debug) Debug.Log($"[WeatherSystemManager] Thunder occurrence (level {(int)thunderLevel}).");
-    }
-
-    IEnumerator PlayThunderSoundAfterDelay(float delay, Vector3 pos)
-    {
-        if (delay > 0f)
-            yield return new WaitForSeconds(delay);
-
-        RuntimeManager.PlayOneShot(thunderEvent, pos);
-    }
-
-    void ScheduleNextThunder()
-    {
-        if (thunderLevel == ThunderLevel.None)
-        {
-            nextThunderTime = Mathf.Infinity;
-            return;
-        }
-
-        ThunderLevelSettings s = GetSettingsForLevel(thunderLevel);
-        float min = Mathf.Max(0.1f, Mathf.Min(s.intervalSeconds.x, s.intervalSeconds.y));
-        float max = Mathf.Max(min + 0.1f, Mathf.Max(s.intervalSeconds.x, s.intervalSeconds.y));
-        nextThunderTime = Time.time + Random.Range(min, max);
-
-        if (debug) Debug.Log($"[WeatherSystemManager] Next thunder in {nextThunderTime - Time.time:F1}s");
-    }
-
-    ThunderLevelSettings GetSettingsForLevel(ThunderLevel level)
-    {
-        switch (level)
-        {
-            case ThunderLevel.Distant: return distantSettings;
-            case ThunderLevel.Mid:     return midSettings;
-            case ThunderLevel.Close:   return closeSettings;
-            default:                   return distantSettings;
-        }
-    }
-
-    // Keep FMOD global parameter ThunderLevel in sync with the inspector enum
-    void SyncThunderPresenceWithFMOD(bool force = false)
-    {
+        // Set FMOD parameter at trigger time (not on inspector change)
         if (!string.IsNullOrEmpty(thunderLevelParameterName))
         {
-            int levelInt = (int)thunderLevel;
-            if (force || levelInt != lastThunderLevelSentToFMOD)
-            {
-                lastThunderLevelSentToFMOD = levelInt;
-
-                // Mark to suppress the next due thunder once after a level change
-                suppressNextThunderOnce = true;
-
-                RuntimeManager.StudioSystem.setParameterByName(thunderLevelParameterName, levelInt);
-                if (debug) Debug.Log($"[WeatherSystemManager] Set FMOD '{thunderLevelParameterName}' = {levelInt}");
-                // Re-schedule when level changes
-                ScheduleNextThunder();
-            }
+            RuntimeManager.StudioSystem.setParameterByName(thunderLevelParameterName, (float)thunderLevel);
         }
+
+        // Play thunder event now; any delay is authored in FMOD
+        if (!thunderEvent.IsNull)
+        {
+            RuntimeManager.PlayOneShot(thunderEvent, pos);
+        }
+
+        if (debug) Debug.Log($"[WeatherSystemManager] Manual thunder generated (level {(int)thunderLevel}).");
     }
 
     Vector3 GetBlowingDirectionHorizontal()
@@ -506,12 +385,6 @@ public class WeatherSystemManager : MonoBehaviour
 
     void OnDestroy()
     {
-        // Reset ThunderLevel to 0 on teardown
-        if (!string.IsNullOrEmpty(thunderLevelParameterName))
-        {
-            RuntimeManager.StudioSystem.setParameterByName(thunderLevelParameterName, 0f);
-        }
-
         if (rainLoopInstance.isValid())
         {
             rainLoopInstance.stop(FMOD.Studio.STOP_MODE.IMMEDIATE);
@@ -534,29 +407,7 @@ public class WeatherSystemManager : MonoBehaviour
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        // Sanitize per-level settings
-        ValidateThunderSettings(ref distantSettings);
-        ValidateThunderSettings(ref midSettings);
-        ValidateThunderSettings(ref closeSettings);
-
-        if (Application.isPlaying)
-        {
-            // Force sync and mark suppression (handled in Sync)
-            SyncThunderPresenceWithFMOD(force: true);
-            // Schedule is called in Sync
-        }
-        else
-        {
-            lastThunderLevelSentToFMOD = -1; // ensure re-sync on play
-        }
-    }
-
-    private void ValidateThunderSettings(ref ThunderLevelSettings s)
-    {
-        float min = Mathf.Max(0.1f, Mathf.Min(s.intervalSeconds.x, s.intervalSeconds.y));
-        float max = Mathf.Max(min + 0.1f, Mathf.Max(s.intervalSeconds.x, s.intervalSeconds.y));
-        s.intervalSeconds = new Vector2(min, max);
-        s.soundDelaySeconds = Mathf.Max(0f, s.soundDelaySeconds);
+        // No automatic FMOD parameter syncing here to avoid unintended triggers.
     }
 #endif
 }
