@@ -130,7 +130,7 @@ GameObject:
   - component: {fileID: 2046472}
   - component: {fileID: 2046471}
   m_Layer: 0
-  m_Name: SAmbianceZoneSplinePath
+  m_Name: SplineZone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -184,112 +184,112 @@ MonoBehaviour:
           w: 0.6445678
     - Position:
         x: 14.983083
-        y: -1.0715361
+        y: -1.46
         z: -4.812683
       TangentIn:
         x: -0
         y: -0
-        z: -4.322824
+        z: -4.3158894
       TangentOut:
         x: 0
         y: 0
-        z: 4.7620883
+        z: 4.779697
       Rotation:
         value:
-          x: -0.022201994
-          y: 0.4669478
-          z: -0.036831897
-          w: 0.8832385
+          x: -0.041446753
+          y: 0.46697786
+          z: -0.026647244
+          w: 0.8828951
     - Position:
         x: 23.803082
-        y: -0.101536274
+        y: 1.31
         z: 8.897308
       TangentIn:
         x: -0
         y: -0
-        z: -4.5951924
+        z: -4.6267
       TangentOut:
         x: 0
         y: 0
-        z: 4.405367
+        z: 4.4043026
       Rotation:
         value:
-          x: -0.033742476
-          y: 0.021470508
-          z: 0.048535436
-          w: 0.9980204
+          x: -0.05266395
+          y: 0.020289274
+          z: 0.04893369
+          w: 0.99720633
     - Position:
         x: 16.721327
-        y: 0.8043747
+        y: 1.56
         z: 22.100067
       TangentIn:
         x: -0
         y: -0
-        z: -5.4223123
+        z: -5.420321
       TangentOut:
         x: 0
         y: 0
-        z: 7.101804
+        z: 7.1031547
       Rotation:
         value:
-          x: 0.017469132
-          y: -0.38350397
-          z: -0.06007761
-          w: 0.92141753
+          x: 0.01947536
+          y: -0.3833055
+          z: -0.059255745
+          w: 0.9215131
     - Position:
         x: -6.0121803
-        y: -0.066244125
+        y: 1.6
         z: 34.156647
       TangentIn:
         x: -0
         y: -0
-        z: -7.565815
+        z: -7.566696
       TangentOut:
         x: 0
         y: 0
-        z: 6.781007
+        z: 6.7809386
       Rotation:
         value:
-          x: 0.04044676
-          y: -0.66204685
-          z: -0.050567426
-          w: 0.7466598
+          x: 0.038233083
+          y: -0.66219914
+          z: -0.052538086
+          w: 0.7465054
     - Position:
         x: -26.0461
-        y: 0.8860283
+        y: 2.05
         z: 29.105194
       TangentIn:
         x: -0
         y: -0
-        z: -5.0328164
+        z: -5.028473
       TangentOut:
         x: 0
         y: 0
-        z: 5.6453633
+        z: 5.6439867
       Rotation:
         value:
-          x: 0.07294324
-          y: 0.9642195
-          z: -0.0021092077
-          w: -0.25486386
+          x: 0.06810125
+          y: 0.96461153
+          z: -0.020565964
+          w: -0.25389722
     - Position:
         x: -18.510708
-        y: 0.87773705
+        y: 1.3
         z: 4.196106
       TangentIn:
         x: -0
         y: -0
-        z: -7.848519
+        z: -7.8553524
       TangentOut:
         x: 0
         y: 0
-        z: 7.4496717
+        z: 7.458846
       Rotation:
         value:
-          x: 0.056028333
-          y: 0.94235396
-          z: 0.0040619248
-          w: 0.32986867
+          x: 0.060132984
+          y: 0.9419076
+          z: -0.0077215447
+          w: 0.330355
     m_MetaData:
     - Mode: 4
       Tension: 0.5
@@ -59230,6 +59230,67 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8390911460650591097, guid: c47c46abbf0ea6e4ea20351c42ddcd77, type: 3}
   m_PrefabInstance: {fileID: 824871685}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &764465496
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 100000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_Name
+      value: rock2
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_TagString
+      value: Rock_Water
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 20.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 5.84
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 357.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.00000031987892
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 7b5f2f9ea19c74c659ab8ac969280fb2, type: 3}
 --- !u!1 &787477974
 GameObject:
   m_ObjectHideFlags: 0
@@ -79157,7 +79218,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1176123627}
   - component: {fileID: 1176123626}
-  - component: {fileID: 1176123625}
+  - component: {fileID: 1176123630}
+  - component: {fileID: 1176123629}
+  - component: {fileID: 1176123628}
   m_Layer: 0
   m_Name: AmbianceZoneSplineMover
   m_TagString: Untagged
@@ -79165,37 +79228,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1176123625
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1176123624}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a6610d2e704f1648819acc8d7460285, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  CollisionTag: 
-  EventReference:
-    Guid:
-      Data1: 2121980038
-      Data2: 1264849609
-      Data3: -184128093
-      Data4: 523088097
-    Path: event:/AMB/AMB_OBJ/AMB_OBJ_Stream
-  Event: 
-  EventPlayTrigger: 1
-  EventStopTrigger: 0
-  AllowFadeout: 1
-  TriggerOnce: 0
-  Preload: 0
-  NonRigidbodyVelocity: 0
-  Params: []
-  OverrideAttenuation: 0
-  OverrideMinDistance: 1
-  OverrideMaxDistance: 20
 --- !u!114 &1176123626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -79211,6 +79243,10 @@ MonoBehaviour:
   PathContainer: {fileID: 2046471}
   SplineIndex: 0
   Player: {fileID: 1937354762}
+  Behavior: 0
+  OrientToSpline: 1
+  MatchPlayerRotationInside: 0
+  InvertInsideSign: 0
 --- !u!4 &1176123627
 Transform:
   m_ObjectHideFlags: 0
@@ -79219,13 +79255,95 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1176123624}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.02181804, y: 0.7326387, z: -0.023511762, w: 0.67986155}
-  m_LocalPosition: {x: 0.5782214, y: 4.864016, z: 343.61517}
+  m_LocalRotation: {x: 0.030213337, y: 0.7320622, z: -0.032536615, w: 0.6797893}
+  m_LocalPosition: {x: 0.46885008, y: 4.8503127, z: 343.62384}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!54 &1176123628
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176123624}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!135 &1176123629
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176123624}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 1.9947112
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1176123630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176123624}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbd26ca88392cdc4fb7154ba7a334c92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rockTag: Rock_Water
+  streamEvent:
+    Guid:
+      Data1: 2121980038
+      Data2: 1264849609
+      Data3: -184128093
+      Data4: 523088097
+    Path: event:/AMB/AMB_OBJ/AMB_OBJ_Stream
+  rockSplashEvent:
+    Guid:
+      Data1: 1178322470
+      Data2: 1105757793
+      Data3: -1435205743
+      Data4: 1456919739
+    Path: event:/AMB/AMB_OBJ/AMB_OBJ_Rock_Stream
+  baseStreamVolume: 0.8
+  maxRockVolume: 0.7
+  rockCountForMax: 3
+  fadeSpeed: 3
+  detectionArea: 50
+  drawGizmos: 1
+  logCountsToConsole: 1
 --- !u!1001 &1184886875
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -112024,3 +112142,4 @@ SceneRoots:
   - {fileID: 211782625}
   - {fileID: 2046472}
   - {fileID: 1176123627}
+  - {fileID: 764465496}

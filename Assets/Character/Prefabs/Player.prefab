@@ -2301,7 +2301,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   nonRigidbodyVelocity: 0
-  attenuationObject: {fileID: 0}
+  attenuationObject: {fileID: 120805247324170805}
 --- !u!114 &6806600987177336883
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2672,7 +2672,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerAudio: {fileID: 11400000, guid: bf2230818dad30a469ed1d2012b3f270, type: 2}
   playerFoot: {fileID: 4428851560239054765}
-  playerHand: {fileID: 4133335356112340805}
   rayDistance: 1
   surfaceLayerMask:
     serializedVersion: 2

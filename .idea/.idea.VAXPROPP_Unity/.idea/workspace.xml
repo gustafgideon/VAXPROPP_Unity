@@ -6,7 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceZone.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceZone.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceZone.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceZone.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/Spline.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/Spline.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineGenerativeAudioController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineGenerativeAudioController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineMover.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineMover.cs.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Character/Prefabs/Player.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Character/Prefabs/Player.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 4.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 4.unity" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
     </list>
@@ -18,6 +26,7 @@
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/../../../../DSU-Projekt/Spelprojekt 2/SlimeBoy3-AdventureQuestMaster/Assets/scripts/Audio/PlayerAudio.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../../../../DSU-Projekt/Spelprojekt 2/SlimeBoy3-AdventureQuestMaster/Assets/scripts/Player/NewMovementSlime.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/PlayerController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/RainController.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Other Scripts/VisionTrigger.cs" root0="FORCE_HIGHLIGHTING" />
@@ -144,7 +153,8 @@
       <workItem from="1760361335159" duration="1654000" />
       <workItem from="1760363033688" duration="3304000" />
       <workItem from="1760433698842" duration="8436000" />
-      <workItem from="1760517673921" duration="1751000" />
+      <workItem from="1760517673921" duration="2095000" />
+      <workItem from="1760540673525" duration="2976000" />
     </task>
     <servers />
   </component>

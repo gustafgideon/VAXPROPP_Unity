@@ -3,9 +3,15 @@ using UnityEngine.Splines;
 using Unity.Mathematics;
 
 [ExecuteAlways]
-public class AmbianceZone : MonoBehaviour
+public class SplineController : MonoBehaviour
 {
-    [Tooltip("Unity SplineContainer that holds your closed circle spline.")]
+    public enum Mode
+    {
+        Zone,         // Attach to player when "inside" (dot > 0), else stick to spline
+        FollowSpline  // Always stick to closest point on spline (no zone)
+    }
+
+    [Tooltip("Unity SplineContainer that holds your closed spline.")]
     public SplineContainer PathContainer;
 
     [Tooltip("Which spline in the container to use (0-based).")]
@@ -13,6 +19,19 @@ public class AmbianceZone : MonoBehaviour
 
     [Tooltip("Character to track")]
     public GameObject Player;
+
+    [Header("Mode")]
+    public Mode Behavior = Mode.Zone;
+
+    [Header("Options")]
+    [Tooltip("Align with spline tangent when attached to the spline.")]
+    public bool OrientToSpline = true;
+
+    [Tooltip("Match player rotation when attached to the player (Zone mode).")]
+    public bool MatchPlayerRotationInside = false;
+
+    [Tooltip("Flip inside/outside if it feels inverted (depends on spline winding). Zone mode only.")]
+    public bool InvertInsideSign = false;
 
     // Internal defaults (not shown in Inspector)
     const int Samples = 256;                      // polyline samples for closest-point
@@ -43,23 +62,27 @@ public class AmbianceZone : MonoBehaviour
         ClosestOnPolyline(Player.transform.position, out Vector3 closestPos, out Vector3 tangent);
 
         // 2) Set spline pose first (matches original flow)
-        Quaternion rot = tangent.sqrMagnitude > 0f
-            ? Quaternion.LookRotation(tangent.normalized, FixedUp)
-            : transform.rotation;
+        if (OrientToSpline && tangent.sqrMagnitude > 0f)
+            transform.rotation = Quaternion.LookRotation(tangent.normalized, FixedUp);
 
         transform.position = closestPos;
-        transform.rotation = rot;
 
-        // 3) Inside test via dot, attach to player when "inside"
-        Vector3 Sub = transform.position - Player.transform.position; // splineClosest - player
-        Vector3 SplineRight = transform.right;                        // frame right at closest point
-        float dot = Vector3.Dot(Sub, SplineRight);
-
-        if (dot > 0f)
+        if (Behavior == Mode.Zone)
         {
-            transform.position = Player.transform.position;
-            transform.rotation = Player.transform.rotation;
+            // Inside test via dot, attach to player when "inside"
+            Vector3 Sub = transform.position - Player.transform.position; // splineClosest - player
+            Vector3 SplineRight = transform.right;                        // frame right at closest point
+            float dot = Vector3.Dot(Sub, SplineRight);
+            if (InvertInsideSign) dot = -dot;
+
+            if (dot > 0f)
+            {
+                transform.position = Player.transform.position;
+                if (MatchPlayerRotationInside)
+                    transform.rotation = Player.transform.rotation;
+            }
         }
+        // else: FollowSpline -> do nothing more (already at closest point)
     }
 
     void Rebuild()
