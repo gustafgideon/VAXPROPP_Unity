@@ -130,7 +130,7 @@ GameObject:
   - component: {fileID: 2046472}
   - component: {fileID: 2046471}
   m_Layer: 0
-  m_Name: SplinePath
+  m_Name: SAmbianceZoneSplinePath
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -79159,7 +79159,7 @@ GameObject:
   - component: {fileID: 1176123626}
   - component: {fileID: 1176123625}
   m_Layer: 0
-  m_Name: SplineCart
+  m_Name: AmbianceZoneSplineMover
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -79211,14 +79211,6 @@ MonoBehaviour:
   PathContainer: {fileID: 2046471}
   SplineIndex: 0
   Player: {fileID: 1937354762}
-  BakeSamples: 256
-  EnterMargin: 0.1
-  ExitMargin: 0.15
-  OrientToSplineOutside: 1
-  MatchPlayerRotationInside: 0
-  FixedUp: {x: 0, y: 1, z: 0}
-  PositionSmoothTime: 0.06
-  RotationSpeed: 360
 --- !u!4 &1176123627
 Transform:
   m_ObjectHideFlags: 0

@@ -7,6 +7,8 @@
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceZone.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/AmbianceZone.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 4.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 4.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -141,7 +143,8 @@
       <workItem from="1759999133263" duration="8839000" />
       <workItem from="1760361335159" duration="1654000" />
       <workItem from="1760363033688" duration="3304000" />
-      <workItem from="1760433698842" duration="8081000" />
+      <workItem from="1760433698842" duration="8436000" />
+      <workItem from="1760517673921" duration="1751000" />
     </task>
     <servers />
   </component>
