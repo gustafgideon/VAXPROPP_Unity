@@ -29486,18 +29486,6 @@ PrefabInstance:
       value: event:/AMB/WeatherSystem/Wind/Weather_WindDirection
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
-      propertyPath: rainImpactTags.Array.size
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
-      propertyPath: 'rainImpactTags.Array.data[0]'
-      value: Foliage
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
-      propertyPath: 'rainImpactTags.Array.data[1]'
-      value: Water
-      objectReference: {fileID: 0}
-    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: windDirectionEvent.Guid.Data1
       value: -277746311
       objectReference: {fileID: 0}
@@ -49970,8 +49958,20 @@ PrefabInstance:
       value: 0.75526315
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: nightTintTransitionSpeed
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: overcastDayShadowStrength
       value: 0.801
+      objectReference: {fileID: 0}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: gradientDuskToNight.ctime1
+      value: 38165
+      objectReference: {fileID: 0}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: gradientDuskToNight.m_Mode
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: skyboxBlendDurationMinutes

@@ -48,6 +48,13 @@ public class TimeManager : MonoBehaviour
     [Tooltip("How much to reduce light intensity during rain (0-1)")]
     [SerializeField][Range(0f, 1f)] private float rainLightReduction = 0.6f;
 
+    [Header("Smooth Transition Settings")]
+    [Tooltip("How long light color transitions take when changing day states (in seconds)")]
+    [SerializeField][Range(0.5f, 10f)] private float lightTransitionDuration = 3f;
+
+    [Tooltip("How quickly the dusk red tint fades to night blue (higher = faster)")]
+    [SerializeField][Range(0.1f, 5f)] private float duskToNightTintSpeed = 2f;
+
     [Header("Shadow Settings (Clear Weather)")]
     [Tooltip("Shadow strength during clear day (0-1)")]
     [SerializeField][Range(0f, 1f)] private float dayShadowStrength = 0.7f;
@@ -179,6 +186,13 @@ public class TimeManager : MonoBehaviour
     private float originalLightIntensity;
     private bool isLightningActive = false;
 
+    // Smooth light color transition variables
+    private Color previousLightColor;
+    private Color targetLightColor;
+    private bool isTransitioningLight = false;
+    private float lightTransitionStartTime;
+    private float lightTransitionProgress = 1f;
+
     // UI Helpers for debug phase logging
     private static string GetPhaseIcon(DayState s) => s switch
     {
@@ -239,6 +253,14 @@ public class TimeManager : MonoBehaviour
         RenderSettings.ambientMode = AmbientMode.Trilight;
 
         UpdateSunRotation();
+
+        // Initialize smooth light transitions
+        float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
+        Color initialColor = CalculateContinuousLightColor(rain);
+        previousLightColor = initialColor;
+        targetLightColor = initialColor;
+        globalLight.color = initialColor;
+        
         UpdateLightingContinuous();
 
         SetTimeOfDayParameter(currentState);
@@ -439,25 +461,49 @@ public class TimeManager : MonoBehaviour
 
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
 
-        // Get segment progress for gradient evaluation
-        float segmentProgress = GetSegmentProgress();
-
-        // Get color from gradient based on time of day
-        Color normalColor = GetNormalGradientForState(currentState).Evaluate(segmentProgress);
-        Color overcastColor = GetOvercastGradientForState(currentState).Evaluate(segmentProgress);
-
-        // Blend between normal and overcast based on rain (non-linear + min floor)
-        float overcastBlend = ComputeOvercastBlend(rain);
-        Color targetColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
-
-        // Force a cold tint during rain, regardless of time of day
-        float tintStrength = (rain > 0f)
-            ? Mathf.Clamp01(Mathf.Pow(rain, rainColdTintExponent) * rainColdTintMaxStrength)
-            : 0f;
-        Color coldTintedColor = Color.Lerp(targetColor, rainColdLightTint, tintStrength);
-
-        // Apply color to directional light
-        globalLight.color = coldTintedColor;
+        // Calculate the target color using continuous time instead of discrete states
+        Color newTargetColor = CalculateContinuousLightColor(rain);
+        
+        // Handle smooth transitions when day state changes or weather changes significantly
+        float colorDifference = Mathf.Abs(newTargetColor.r - targetLightColor.r) + 
+                              Mathf.Abs(newTargetColor.g - targetLightColor.g) + 
+                              Mathf.Abs(newTargetColor.b - targetLightColor.b);
+        
+        if (colorDifference > 0.05f && !isTransitioningLight)
+        {
+            // Start a new transition
+            previousLightColor = globalLight.color;
+            targetLightColor = newTargetColor;
+            isTransitioningLight = true;
+            lightTransitionStartTime = Time.time;
+            lightTransitionProgress = 0f;
+        }
+        
+        // Update transition progress
+        if (isTransitioningLight)
+        {
+            lightTransitionProgress = (Time.time - lightTransitionStartTime) / lightTransitionDuration;
+            
+            if (lightTransitionProgress >= 1f)
+            {
+                // Transition complete
+                isTransitioningLight = false;
+                lightTransitionProgress = 1f;
+                globalLight.color = targetLightColor;
+            }
+            else
+            {
+                // Smooth transition in progress
+                globalLight.color = Color.Lerp(previousLightColor, targetLightColor, 
+                    Mathf.SmoothStep(0f, 1f, lightTransitionProgress));
+            }
+        }
+        else
+        {
+            // No transition needed, update normally but smoothly
+            targetLightColor = newTargetColor;
+            globalLight.color = Color.Lerp(globalLight.color, targetLightColor, Time.deltaTime * 2f);
+        }
 
         // Dramatic light intensity change with a night floor
         float baseIntensity;
@@ -490,6 +536,137 @@ public class TimeManager : MonoBehaviour
         
         // Update fog settings
         UpdateFogSettings();
+    }
+
+    private Color CalculateContinuousLightColor(float rain)
+    {
+        float totalMinutes = GetTotalMinutes();
+        
+        // Create smooth transitions across the entire day using a continuous curve
+        Color normalColor = GetContinuousNormalColor(totalMinutes);
+        Color overcastColor = GetContinuousOvercastColor(totalMinutes);
+        
+        // Blend between normal and overcast based on rain
+        float overcastBlend = ComputeOvercastBlend(rain);
+        Color baseColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
+
+        // Apply cold tint during rain
+        float tintStrength = (rain > 0f)
+            ? Mathf.Clamp01(Mathf.Pow(rain, rainColdTintExponent) * rainColdTintMaxStrength)
+            : 0f;
+        
+        return Color.Lerp(baseColor, rainColdLightTint, tintStrength);
+    }
+
+    private Color GetContinuousNormalColor(float totalMinutes)
+    {
+        // Define the color points for the day cycle
+        float dawn = 5f * 60f;      // 5:00 AM
+        float day = 7f * 60f;       // 7:00 AM
+        float dusk = 18f * 60f;     // 6:00 PM
+        float night = 21f * 60f;    // 9:00 PM
+        
+        // Handle the 24-hour wrap-around
+        float adjustedMinutes = totalMinutes;
+        if (totalMinutes < dawn)
+            adjustedMinutes += 1440f; // Add 24 hours for night calculation
+        
+        Color resultColor;
+        
+        if (adjustedMinutes >= dawn && adjustedMinutes < day)
+        {
+            // Dawn period
+            float progress = (adjustedMinutes - dawn) / (day - dawn);
+            resultColor = gradientNightToDawn.Evaluate(progress);
+        }
+        else if (adjustedMinutes >= day && adjustedMinutes < dusk)
+        {
+            // Day period
+            float progress = (adjustedMinutes - day) / (dusk - day);
+            resultColor = gradientDawnToDay.Evaluate(progress);
+        }
+        else if (adjustedMinutes >= dusk && adjustedMinutes < night)
+        {
+            // Dusk period
+            float progress = (adjustedMinutes - dusk) / (night - dusk);
+            resultColor = gradientDayToDusk.Evaluate(progress);
+        }
+        else
+        {
+            // Night period - this is where we fix the red-to-blue transition
+            float nightDuration = dawn + 1440f - night; // Total night duration
+            float nightProgress;
+            
+            if (adjustedMinutes >= night)
+            {
+                nightProgress = (adjustedMinutes - night) / nightDuration;
+            }
+            else
+            {
+                nightProgress = (adjustedMinutes + 1440f - night) / nightDuration;
+            }
+            
+            // Apply the dusk-to-night transition speed to make blue appear faster
+            nightProgress = Mathf.Pow(nightProgress, 1f / duskToNightTintSpeed);
+            nightProgress = Mathf.Clamp01(nightProgress);
+            
+            resultColor = gradientDuskToNight.Evaluate(nightProgress);
+        }
+        
+        return resultColor;
+    }
+
+    private Color GetContinuousOvercastColor(float totalMinutes)
+    {
+        // Similar logic but using overcast gradients
+        float dawn = 5f * 60f;
+        float day = 7f * 60f;
+        float dusk = 18f * 60f;
+        float night = 21f * 60f;
+        
+        float adjustedMinutes = totalMinutes;
+        if (totalMinutes < dawn)
+            adjustedMinutes += 1440f;
+        
+        Color resultColor;
+        
+        if (adjustedMinutes >= dawn && adjustedMinutes < day)
+        {
+            float progress = (adjustedMinutes - dawn) / (day - dawn);
+            resultColor = overcastGradientDawn.Evaluate(progress);
+        }
+        else if (adjustedMinutes >= day && adjustedMinutes < dusk)
+        {
+            float progress = (adjustedMinutes - day) / (dusk - day);
+            resultColor = overcastGradientDay.Evaluate(progress);
+        }
+        else if (adjustedMinutes >= dusk && adjustedMinutes < night)
+        {
+            float progress = (adjustedMinutes - dusk) / (night - dusk);
+            resultColor = overcastGradientDusk.Evaluate(progress);
+        }
+        else
+        {
+            float nightDuration = dawn + 1440f - night;
+            float nightProgress;
+            
+            if (adjustedMinutes >= night)
+            {
+                nightProgress = (adjustedMinutes - night) / nightDuration;
+            }
+            else
+            {
+                nightProgress = (adjustedMinutes + 1440f - night) / nightDuration;
+            }
+            
+            // Apply same speed adjustment for overcast night colors
+            nightProgress = Mathf.Pow(nightProgress, 1f / duskToNightTintSpeed);
+            nightProgress = Mathf.Clamp01(nightProgress);
+            
+            resultColor = overcastGradientNight.Evaluate(nightProgress);
+        }
+        
+        return resultColor;
     }
 
     private void UpdateShadowSettings(float rainIntensity)
@@ -564,19 +741,11 @@ public class TimeManager : MonoBehaviour
             // Get rain intensity
             float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
             
-            // Update fog color derived from the same logic (and apply cold tint for rain)
-            float segmentProgress = GetSegmentProgress();
-            Color normalColor = GetNormalGradientForState(currentState).Evaluate(segmentProgress);
-            Color overcastColor = GetOvercastGradientForState(currentState).Evaluate(segmentProgress);
-            float overcastBlend = ComputeOvercastBlend(rain);
-            Color targetColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
-            float tintStrength = (rain > 0f)
-                ? Mathf.Clamp01(Mathf.Pow(rain, rainColdTintExponent) * rainColdTintMaxStrength)
-                : 0f;
-            Color fogColor = Color.Lerp(targetColor, rainColdLightTint, tintStrength);
+            // Use the same smooth color calculation for fog
+            Color targetColor = CalculateContinuousLightColor(rain);
             
             // Apply fog color (slightly darker than sky)
-            RenderSettings.fogColor = fogColor * 0.7f;
+            RenderSettings.fogColor = targetColor * 0.7f;
             
             // Make fog thicker at night and even thicker during rain
             float baseFogDensity = Mathf.Lerp(nightFogDensity, dayFogDensity, sunHeight01);
@@ -761,6 +930,10 @@ public class TimeManager : MonoBehaviour
         nightLightIntensity = Mathf.Max(0.001f, nightLightIntensity);
         moonLightIntensity = Mathf.Max(0.001f, moonLightIntensity);
         rainLightReduction = Mathf.Clamp01(rainLightReduction);
+
+        // Validate new smooth transition settings
+        lightTransitionDuration = Mathf.Clamp(lightTransitionDuration, 0.5f, 10f);
+        duskToNightTintSpeed = Mathf.Clamp(duskToNightTintSpeed, 0.1f, 5f);
 
         closeLightningIntensityMultiplier = Mathf.Max(1.0f, closeLightningIntensityMultiplier);
 

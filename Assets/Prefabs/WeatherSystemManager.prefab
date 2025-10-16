@@ -45,16 +45,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 0}
+  playerObject: {fileID: 0}
   rainParticles: {fileID: 0}
   rainIntensity: 0
   rainRadius: 5
   rainOcclusionLayers: []
-  rainImpactTags: []
+  rainImpactTags:
+  - Foliage
+  - Water
+  - Metal Solid
+  - Metal Hollow
   windStrength: 0
   windDegrees: 0
-  thunderChancePerSecond: 0.02
-  thunderDistanceMin: 10
-  thunderDistanceMax: 30
+  thunderLevel: 0
   rainLoopEvent:
     Guid:
       Data1: 1736692442
@@ -95,3 +98,4 @@ MonoBehaviour:
   windDegreesParameterName: WindDegrees
   rainOcclusionEQParameterName: RainOcclusionEQ
   rainOcclusionVolumeParameterName: RainOcclusionVolume
+  thunderLevelParameterName: ThunderLevel
