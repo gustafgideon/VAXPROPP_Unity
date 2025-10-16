@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using FMODUnity;
 using FMOD.Studio;
@@ -6,55 +7,42 @@ using FMOD.Studio;
 [RequireComponent(typeof(Rigidbody))]
 public class SplineGenerativeAudioController : MonoBehaviour
 {
-    [Header("Environment tagging")]
-    [Tooltip("Tag applied to rock colliders in the river.")]
-    public string rockTag = "Rock_Water";
+    [Header("Environment Features")]
+    [Tooltip("Define object tags and their corresponding FMOD Events.")]
+    public List<FeatureSound> featureSounds = new List<FeatureSound>();
 
-    [Header("FMOD Events")]
-    [SerializeField] private EventReference streamEvent;       // Base stream loop
-    [SerializeField] private EventReference rockSplashEvent;   // Rock splash loop
+    [System.Serializable]
+    public class FeatureSound
+    {
+        public string tag;
+        public EventReference fmodEvent;
+        [Range(0f, 1f)]
+        public float maxVolume = 0.7f;
+    }
 
-    [Header("Volumes")]
+    [Header("FMOD Event: Base Stream")]
+    [SerializeField] private EventReference streamEvent;
     [Range(0f, 1f)] public float baseStreamVolume = 0.8f;
-    [Range(0f, 1f)] public float maxRockVolume = 0.7f;
-
-    [Header("Rock scaling")]
-    [Tooltip("How many overlapping rock colliders are needed to reach full rock volume.")]
-    [Min(1f)] public float rockCountForMax = 3f;
-
-    [Header("Fades")]
-    [Tooltip("How quickly volumes move toward their targets (units per second).")]
-    public float fadeSpeed = 3f;
 
     [Header("Detection Area")]
-    [Tooltip("WORLD-SPACE area of the detection sphere (A = 4πr²). This drives the SphereCollider radius.")]
     [Range(0.1f, 5000f)]
     public float detectionArea = 50f;
-
-    [Header("Gizmos")]
-    [Tooltip("If enabled, draws a simple gizmo sphere representing the detection area.")]
     public bool drawGizmos = true;
 
-    [Header("Debug logging")]
-    [Tooltip("Log rock counts to the Console when they change or on enable.")]
-    public bool logCountsToConsole = true;
-
-    // State
-    private int rockCount;
+    [Header("Fades")]
+    public float fadeSpeed = 3f;
 
     private Rigidbody rb;
     private SphereCollider sphere;
 
-    // FMOD instances
+    // Stream sound
     private EventInstance streamInst;
-    private EventInstance rockInst;
-
-    // Cached volumes
     private float streamVol;
-    private float rockVol;
-
     private bool streamCreated;
-    private bool rockCreated;
+
+    // Feature object FMOD instances
+    // Key: Collider instanceID. Value: Per-tag dictionary of FMOD event instance
+    private Dictionary<Collider, Dictionary<string, EventInstance>> activeFeatureInstances = new Dictionary<Collider, Dictionary<string, EventInstance>>();
 
     void Awake()
     {
@@ -67,56 +55,53 @@ public class SplineGenerativeAudioController : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        // Initialize collider radius from detectionArea
         ApplyAreaToCollider();
-
-        CreateInstances();
+        CreateStreamInstance();
     }
 
     void OnEnable()
     {
-        // Prime counts if starting inside volumes (check every collider)
-        var hits = Physics.OverlapSphere(transform.position, GetWorldRadius(), ~0, QueryTriggerInteraction.Collide);
-        rockCount = 0;
-        foreach (var h in hits)
-        {
-            if (IsFeature(h, rockTag)) rockCount++;
-        }
-
-        // Log initial state (just the rock count)
-        LogCounts();
-
-        // Initial volumes
         streamVol = baseStreamVolume;
-        rockVol = (rockCount > 0) ? maxRockVolume * RockDensityFactor() : 0f;
-
         SetVolume(streamInst, streamVol);
-        SetVolume(rockInst, rockVol);
-
         EnsureStartedIfAudible(streamInst, streamVol);
-        EnsureStartedIfAudible(rockInst, rockVol);
+
+        // Prime: detect all objects already in area
+        var hits = Physics.OverlapSphere(transform.position, GetWorldRadius(), ~0, QueryTriggerInteraction.Collide);
+        foreach (var h in hits)
+            TryStartFeatureEvents(h);
     }
 
     void Update()
     {
-        // Keep FMOD 3D attributes in sync
         Update3DAttributes();
 
-        float targetStream = baseStreamVolume;
+        streamVol = MoveVolumeToward(streamInst, streamVol, baseStreamVolume);
+        HandleStartStop(streamInst, streamVol, baseStreamVolume);
 
-        // Rock volume purely from density (how many rocks are inside)
-        float targetRocks = (rockCount > 0) ? maxRockVolume * RockDensityFactor() : 0f;
-
-        streamVol = MoveVolumeToward(streamInst, streamVol, targetStream);
-        rockVol = MoveVolumeToward(rockInst, rockVol, targetRocks);
-
-        HandleStartStop(streamInst, streamVol, targetStream);
-        HandleStartStop(rockInst, rockVol, targetRocks);
+        // Update 3D positions for all active feature instances
+        foreach (var entry in activeFeatureInstances)
+        {
+            var col = entry.Key;
+            if (!col || !col.gameObject.activeInHierarchy)
+                continue;
+            foreach (var pair in entry.Value)
+            {
+                var inst = pair.Value;
+                if (inst.isValid())
+                    inst.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
+            }
+        }
     }
 
     void OnDisable()
     {
         StopAllInstances(true);
+        // Release and clear all feature object instances
+        foreach (var dict in activeFeatureInstances.Values)
+            foreach (var inst in dict.Values)
+                if (inst.isValid())
+                    inst.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+        activeFeatureInstances.Clear();
     }
 
     void OnDestroy()
@@ -126,65 +111,77 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (IsFeature(other, rockTag))
-        {
-            rockCount++;
-            LogCounts();
-        }
+        TryStartFeatureEvents(other);
     }
 
     void OnTriggerExit(Collider other)
     {
-        if (IsFeature(other, rockTag))
+        TryStopFeatureEvents(other);
+    }
+
+    // --- Feature Sound Control ---
+
+    void TryStartFeatureEvents(Collider col)
+    {
+        foreach (var feature in featureSounds)
         {
-            rockCount = Mathf.Max(0, rockCount - 1);
-            LogCounts();
+            if (col.CompareTag(feature.tag))
+            {
+                if (!activeFeatureInstances.TryGetValue(col, out var taggedInstances))
+                {
+                    taggedInstances = new Dictionary<string, EventInstance>();
+                    activeFeatureInstances[col] = taggedInstances;
+                }
+                // Only create if not already playing for this tag
+                if (!taggedInstances.ContainsKey(feature.tag))
+                {
+                    var inst = RuntimeManager.CreateInstance(feature.fmodEvent);
+                    inst.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
+                    inst.setVolume(feature.maxVolume);
+                    inst.start();
+                    taggedInstances[feature.tag] = inst;
+                }
+            }
         }
     }
 
-    private float RockDensityFactor()
+    void TryStopFeatureEvents(Collider col)
     {
-        // Normalize rock count into 0..1 based on rockCountForMax
-        return Mathf.Clamp01(rockCount / Mathf.Max(1f, rockCountForMax));
+        if (activeFeatureInstances.TryGetValue(col, out var taggedInstances))
+        {
+            foreach (var inst in taggedInstances.Values)
+            {
+                if (inst.isValid())
+                    inst.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+            }
+            activeFeatureInstances.Remove(col);
+        }
     }
 
-    private void CreateInstances()
+    // --- Stream Base Sound ---
+
+    private void CreateStreamInstance()
     {
-        if (!streamCreated && streamEvent.IsNull == false)
+        if (!streamCreated && !streamEvent.IsNull)
         {
             streamInst = RuntimeManager.CreateInstance(streamEvent);
             streamCreated = true;
+            Update3DAttributes();
         }
-        if (!rockCreated && rockSplashEvent.IsNull == false)
-        {
-            rockInst = RuntimeManager.CreateInstance(rockSplashEvent);
-            rockCreated = true;
-        }
-
-        Update3DAttributes();
     }
 
     private void Update3DAttributes()
     {
         if (streamCreated)
-        {
             streamInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
-        }
-        if (rockCreated)
-        {
-            rockInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
-        }
     }
 
     private float MoveVolumeToward(EventInstance inst, float current, float target)
     {
         if (!IsValid(inst)) return 0f;
-
         float next = Mathf.MoveTowards(current, Mathf.Clamp01(target), fadeSpeed * Time.deltaTime);
         if (!Mathf.Approximately(next, current))
-        {
             SetVolume(inst, next);
-        }
         return next;
     }
 
@@ -201,16 +198,13 @@ public class SplineGenerativeAudioController : MonoBehaviour
         {
             inst.getPlaybackState(out PLAYBACK_STATE state);
             if (state != PLAYBACK_STATE.PLAYING && state != PLAYBACK_STATE.STARTING)
-            {
                 inst.start();
-            }
         }
     }
 
     private void HandleStartStop(EventInstance inst, float currentVol, float targetVol)
     {
         if (!IsValid(inst)) return;
-
         inst.getPlaybackState(out PLAYBACK_STATE state);
 
         if (targetVol > 0.001f && (state != PLAYBACK_STATE.PLAYING && state != PLAYBACK_STATE.STARTING))
@@ -228,15 +222,18 @@ public class SplineGenerativeAudioController : MonoBehaviour
     private void StopAllInstances(bool allowFadeout)
     {
         var mode = allowFadeout ? FMOD.Studio.STOP_MODE.ALLOWFADEOUT : FMOD.Studio.STOP_MODE.IMMEDIATE;
-
         if (streamCreated) streamInst.stop(mode);
-        if (rockCreated) rockInst.stop(mode);
     }
 
     private void ReleaseAllInstances()
     {
         if (streamCreated) { streamInst.release(); streamCreated = false; }
-        if (rockCreated) { rockInst.release(); rockCreated = false; }
+        // Also release all feature instances
+        foreach (var dict in activeFeatureInstances.Values)
+            foreach (var inst in dict.Values)
+                if (inst.isValid())
+                    inst.release();
+        activeFeatureInstances.Clear();
     }
 
     private static bool IsValid(EventInstance inst)
@@ -244,12 +241,8 @@ public class SplineGenerativeAudioController : MonoBehaviour
         return inst.isValid();
     }
 
-    private bool IsFeature(Collider col, string tagName)
-    {
-        return !string.IsNullOrEmpty(tagName) && col.CompareTag(tagName);
-    }
+    // --- Area Utilities ---
 
-    // Convert the inspector "area" to a world-space radius, then to local collider radius
     private void ApplyAreaToCollider()
     {
         if (!sphere) sphere = GetComponent<SphereCollider>();
@@ -263,7 +256,6 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     private float GetWorldRadius()
     {
-        // Derived directly from detectionArea to avoid drift from transform scaling
         return Mathf.Sqrt(Mathf.Max(0.0001f, detectionArea) / (4f * Mathf.PI));
     }
 
@@ -273,17 +265,9 @@ public class SplineGenerativeAudioController : MonoBehaviour
         return Mathf.Max(ls.x, Mathf.Max(ls.y, ls.z));
     }
 
-    // Console logging helper (prints only the rock count)
-    private void LogCounts()
-    {
-        if (!logCountsToConsole) return;
-        Debug.Log($"[SplineGenerativeAudio] Rocks: {rockCount}", this);
-    }
-
 #if UNITY_EDITOR
     void OnValidate()
     {
-        // Keep collider radius in sync with the area slider during edit time
         if (!sphere) sphere = GetComponent<SphereCollider>();
         if (sphere)
         {
@@ -302,20 +286,11 @@ public class SplineGenerativeAudioController : MonoBehaviour
     {
         float r = GetWorldRadius();
 
-        // Fill (fixed subtle cyan)
         Gizmos.color = new Color(0f, 1f, 1f, 0.08f);
         Gizmos.DrawSphere(transform.position, r);
 
-        // Wire (fixed cyan)
         Gizmos.color = new Color(0f, 0.8f, 1f, 0.9f);
         Gizmos.DrawWireSphere(transform.position, r);
-
-        // Optional emphasis for rocks state (fixed greenish wire)
-        if (rockCount > 0)
-        {
-            Gizmos.color = new Color(0.1f, 1f, 0.6f, 1f);
-            Gizmos.DrawWireSphere(transform.position, r * 1.04f);
-        }
     }
 #endif
 }
