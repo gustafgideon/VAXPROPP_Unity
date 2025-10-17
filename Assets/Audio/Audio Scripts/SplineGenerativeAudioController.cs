@@ -3,6 +3,10 @@ using UnityEngine;
 using FMODUnity;
 using FMOD.Studio;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 [RequireComponent(typeof(SphereCollider))]
 [RequireComponent(typeof(Rigidbody))]
 public class SplineGenerativeAudioController : MonoBehaviour
@@ -25,9 +29,16 @@ public class SplineGenerativeAudioController : MonoBehaviour
     [Range(0f, 1f)] public float baseStreamVolume = 0.8f;
 
     [Header("Detection Area")]
-    [Range(0.1f, 5000f)]
-    public float detectionArea = 50f;
+    [Tooltip("Detection radius in meters (used for the SphereCollider world radius and scene queries).")]
+    [Min(0.1f)] public float detectionRadius = 15f;
+    [Tooltip("Draw the detection gizmo (wire sphere).")]
     public bool drawGizmos = true;
+
+    [Header("Debug")]
+    [Tooltip("If enabled, draw small markers for objects currently inside the detection radius (only feature-tagged objects).")]
+    public bool debugShowContents = false;
+    [Tooltip("If enabled, log contents to the Console when the set of colliders inside changes (only feature-tagged objects).")]
+    public bool logContentsToConsole = false;
 
     [Header("Fades")]
     public float fadeSpeed = 3f;
@@ -41,11 +52,32 @@ public class SplineGenerativeAudioController : MonoBehaviour
     private bool streamCreated;
 
     // Feature object FMOD instances
-    // Key: Collider instanceID. Value: Per-tag dictionary of FMOD event instance
+    // Key: Collider instance. Value: Per-tag dictionary of FMOD event instance
     private Dictionary<Collider, Dictionary<string, EventInstance>> activeFeatureInstances = new Dictionary<Collider, Dictionary<string, EventInstance>>();
+
+    // Runtime cache for debug/list detection
+    private List<Collider> _collidersInside = new List<Collider>();
+    private string _lastInsideDigest = "";
+
+    // Fast lookup of configured feature tags
+    private HashSet<string> _featureTagSet = new HashSet<string>();
+
+    void OnValidate()
+    {
+        BuildFeatureTagSet();
+
+        if (!sphere) sphere = GetComponent<SphereCollider>();
+        if (sphere)
+        {
+            sphere.isTrigger = true;
+            ApplyRadiusToCollider();
+        }
+    }
 
     void Awake()
     {
+        BuildFeatureTagSet();
+
         sphere = GetComponent<SphereCollider>();
         sphere.isTrigger = true;
 
@@ -55,20 +87,26 @@ public class SplineGenerativeAudioController : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        ApplyAreaToCollider();
+        ApplyRadiusToCollider();
         CreateStreamInstance();
     }
 
     void OnEnable()
     {
+        BuildFeatureTagSet();
+
         streamVol = baseStreamVolume;
         SetVolume(streamInst, streamVol);
         EnsureStartedIfAudible(streamInst, streamVol);
 
-        // Prime: detect all objects already in area
-        var hits = Physics.OverlapSphere(transform.position, GetWorldRadius(), ~0, QueryTriggerInteraction.Collide);
+        // Prime: detect all objects already in area (use world radius) but only start events for tagged features
+        var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
         foreach (var h in hits)
             TryStartFeatureEvents(h);
+
+        // prime debug cache
+        if (debugShowContents || logContentsToConsole)
+            UpdateInsideCacheAndMaybeLog();
     }
 
     void Update()
@@ -91,6 +129,10 @@ public class SplineGenerativeAudioController : MonoBehaviour
                     inst.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
             }
         }
+
+        // Update debug/list cache periodically (we do this every frame only if debug/log enabled)
+        if (debugShowContents || logContentsToConsole)
+            UpdateInsideCacheAndMaybeLog();
     }
 
     void OnDisable()
@@ -123,8 +165,10 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     void TryStartFeatureEvents(Collider col)
     {
+        // Only consider feature-specified tags
         foreach (var feature in featureSounds)
         {
+            if (string.IsNullOrEmpty(feature.tag)) continue;
             if (col.CompareTag(feature.tag))
             {
                 if (!activeFeatureInstances.TryGetValue(col, out var taggedInstances))
@@ -243,20 +287,19 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     // --- Area Utilities ---
 
-    private void ApplyAreaToCollider()
+    private void ApplyRadiusToCollider()
     {
         if (!sphere) sphere = GetComponent<SphereCollider>();
         if (!sphere) return;
 
-        float worldRadius = Mathf.Sqrt(Mathf.Max(0.0001f, detectionArea) / (4f * Mathf.PI));
         float maxAxisScale = GetMaxLossyScale();
-        float localRadius = worldRadius / Mathf.Max(0.0001f, maxAxisScale);
+        float localRadius = detectionRadius / Mathf.Max(0.0001f, maxAxisScale);
         sphere.radius = localRadius;
     }
 
     private float GetWorldRadius()
     {
-        return Mathf.Sqrt(Mathf.Max(0.0001f, detectionArea) / (4f * Mathf.PI));
+        return detectionRadius;
     }
 
     private float GetMaxLossyScale()
@@ -265,32 +308,90 @@ public class SplineGenerativeAudioController : MonoBehaviour
         return Mathf.Max(ls.x, Mathf.Max(ls.y, ls.z));
     }
 
-#if UNITY_EDITOR
-    void OnValidate()
+    // Debug helpers: update list of colliders inside detectionRadius and optionally log changes
+    // Now only includes colliders with tags that appear in featureSounds
+    private void UpdateInsideCacheAndMaybeLog()
     {
-        if (!sphere) sphere = GetComponent<SphereCollider>();
-        if (sphere)
+        var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
+        _collidersInside.Clear();
+        for (int i = 0; i < hits.Length; ++i)
         {
-            sphere.isTrigger = true;
-            ApplyAreaToCollider();
+            var c = hits[i];
+            if (c == null) continue;
+            // Only include colliders whose tag is in the configured featureTags
+            if (_featureTagSet.Contains(c.gameObject.tag))
+                _collidersInside.Add(c);
+        }
+
+        // create a simple digest (sorted instanceIDs) to detect change
+        _collidersInside.Sort((a, b) => a.GetInstanceID().CompareTo(b.GetInstanceID()));
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        foreach (var c in _collidersInside)
+        {
+            if (c) sb.Append(c.gameObject.name).Append("|");
+        }
+        string digest = sb.ToString();
+
+        if (digest != _lastInsideDigest)
+        {
+            // changed
+            if (logContentsToConsole)
+            {
+                if (_collidersInside.Count == 0)
+                    Debug.Log($"[SplineGenerativeAudio] Detection radius ({detectionRadius}m) now contains: (none)", this);
+                else
+                {
+                    Debug.Log($"[SplineGenerativeAudio] Detection radius ({detectionRadius}m) contains {_collidersInside.Count} feature object(s):", this);
+                    foreach (var c in _collidersInside)
+                        Debug.Log($"  - {c.gameObject.name} (tag={c.gameObject.tag})", this);
+                }
+            }
+            _lastInsideDigest = digest;
         }
     }
 
+    // Build HashSet of configured feature tags for quick lookup
+    private void BuildFeatureTagSet()
+    {
+        _featureTagSet.Clear();
+        if (featureSounds == null) return;
+        foreach (var f in featureSounds)
+        {
+            if (!string.IsNullOrEmpty(f.tag))
+                _featureTagSet.Add(f.tag);
+        }
+    }
+
+#if UNITY_EDITOR
     void OnDrawGizmosSelected()
     {
         if (!drawGizmos) return;
-        DrawGizmoVolume();
-    }
 
-    private void DrawGizmoVolume()
-    {
-        float r = GetWorldRadius();
-
-        Gizmos.color = new Color(0f, 1f, 1f, 0.08f);
-        Gizmos.DrawSphere(transform.position, r);
-
+        // detection radius (wire)
         Gizmos.color = new Color(0f, 0.8f, 1f, 0.9f);
-        Gizmos.DrawWireSphere(transform.position, r);
+        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+
+        // optionally draw small markers for feature-tagged objects only
+        if (debugShowContents)
+        {
+            var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
+            Gizmos.color = new Color(1f, 0.5f, 0.7f, 0.9f);
+            for (int i = 0; i < hits.Length; ++i)
+            {
+                var c = hits[i];
+                if (c == null) continue;
+                if (!_featureTagSet.Contains(c.gameObject.tag)) continue; // <- only feature-tagged objects
+
+                Vector3 p = c.bounds.center;
+                Gizmos.DrawSphere(p, 0.08f);
+
+#if UNITY_EDITOR
+                // label with name + tag
+                Handles.color = new Color(1f, 0.9f, 0.2f, 1f);
+                Handles.Label(p + Vector3.up * 0.12f, $"{c.gameObject.name} [{c.gameObject.tag}]");
+#endif
+            }
+        }
     }
 #endif
 }

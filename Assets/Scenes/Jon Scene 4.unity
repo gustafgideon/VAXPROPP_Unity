@@ -79272,8 +79272,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1176123624}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.030213337, y: 0.7320622, z: -0.032536615, w: 0.6797893}
-  m_LocalPosition: {x: 0.46885008, y: 4.8503127, z: 343.62384}
+  m_LocalRotation: {x: 0.029473124, y: 0.73430127, z: -0.031947404, w: 0.67743075}
+  m_LocalPosition: {x: 0.5320705, y: 4.844936, z: 343.61823}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -79325,7 +79325,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1.9947112
+  m_Radius: 4.9999995
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1176123630
 MonoBehaviour:
@@ -79357,8 +79357,10 @@ MonoBehaviour:
       Data4: 523088097
     Path: event:/AMB/AMB_OBJ/AMB_OBJ_Stream
   baseStreamVolume: 0.8
-  detectionArea: 50
+  detectionRadius: 5
   drawGizmos: 1
+  debugShowContents: 0
+  logContentsToConsole: 1
   fadeSpeed: 3
 --- !u!1001 &1184886875
 PrefabInstance:
