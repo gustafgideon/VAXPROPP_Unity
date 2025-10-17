@@ -6,10 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineGenerativeAudioController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineGenerativeAudioController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/WeatherSystemManager.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/WeatherSystemManager.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineController.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 4.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 4.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Other Scripts/TimeManager.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -149,7 +147,9 @@
       <workItem from="1760433698842" duration="8436000" />
       <workItem from="1760517673921" duration="2095000" />
       <workItem from="1760540673525" duration="3295000" />
-      <workItem from="1760589319779" duration="2487000" />
+      <workItem from="1760589319779" duration="2724000" />
+      <workItem from="1760603692974" duration="641000" />
+      <workItem from="1760682144494" duration="458000" />
     </task>
     <servers />
   </component>

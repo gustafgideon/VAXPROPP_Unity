@@ -5,6 +5,16 @@ using Unity.Mathematics;
 [ExecuteAlways]
 public class SplineController : MonoBehaviour
 {
+    public enum Mode
+    {
+        Zone,        // Attach to player when "inside" (dot>0), else stick to spline
+        FollowSpline // Always stick to closest point on spline
+    }
+
+    [Header("Mode")]
+    [Tooltip("Zone: attach to player when inside. FollowSpline: always follow the spline.")]
+    public Mode Behavior = Mode.Zone;
+
     [Header("Spline")]
     [Tooltip("Unity SplineContainer that holds your spline.")]
     public SplineContainer PathContainer;
@@ -28,6 +38,13 @@ public class SplineController : MonoBehaviour
 
     [Tooltip("Use world up for a stable frame (prevents rolling/flip).")]
     public bool UseWorldUp = true;
+
+    [Header("Zone Options (only used in Zone mode)")]
+    [Tooltip("When in Zone mode and attached to player, match player's rotation.")]
+    public bool MatchPlayerRotationInside = false;
+
+    [Tooltip("Flip inside/outside test if it feels inverted (depends on spline winding).")]
+    public bool InvertInsideSign = false;
 
     [Header("Path Settings")]
     [Tooltip("Treat spline as a closed loop (wraps arc-length).")]
@@ -237,6 +254,29 @@ public class SplineController : MonoBehaviour
                 _rotCurrent = targetRot;
             }
             transform.rotation = _rotCurrent;
+        }
+
+        // 5) Zone behavior: optionally attach to the player if inside the spline zone.
+        //    This mirrors the original AmbianceZone dot-product logic:
+        //    compute Sub = splineClosest - player, use transform.right as spline frame's right,
+        //    and attach when dot(Sub, right) > 0 (optionally inverted).
+        if (Behavior == Mode.Zone && IsAlive(Player))
+        {
+            Vector3 Sub = transform.position - Player.position; // splineClosest - player
+            Vector3 SplineRight = transform.right;              // frame right at closest point
+            float dot = Vector3.Dot(Sub, SplineRight);
+            if (InvertInsideSign) dot = -dot;
+
+            if (dot > 0f)
+            {
+                // Attach to player
+                transform.position = Player.position;
+                if (MatchPlayerRotationInside && IsAlive(Player))
+                {
+                    transform.rotation = Player.rotation;
+                    _rotCurrent = transform.rotation; // keep rotation cache in sync
+                }
+            }
         }
 
         _filteredS = filteredS;

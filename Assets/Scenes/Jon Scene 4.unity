@@ -79240,13 +79240,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a1fd5d82a0cc534cb2e78e8cf50e697, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Behavior: 0
   PathContainer: {fileID: 2046471}
   SplineIndex: 0
-  Player: {fileID: 1937354762}
-  Behavior: 0
+  Player: {fileID: 930912995}
+  AutoFindPlayerByTag: 1
+  PlayerTag: Player
   OrientToSpline: 1
+  UseWorldUp: 1
   MatchPlayerRotationInside: 0
   InvertInsideSign: 0
+  ClosedLoop: 1
+  Samples: 512
+  UseLocalSearch: 1
+  LocalSearchWindow: 16
+  DistanceSwitchBias: 0.01
+  ProjectionMode: 1
+  MoveThreshold: 0.03
+  AngleThresholdDeg: 1
+  ProjectionInterval: 0.033
+  RunInLateUpdate: 1
+  RunInEditMode: 0
+  PositionSmoothTime: 0.08
+  MaxSpeedAlongPath: 100
+  RotationDamping: 12
 --- !u!4 &1176123627
 Transform:
   m_ObjectHideFlags: 0
@@ -79322,7 +79339,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cbd26ca88392cdc4fb7154ba7a334c92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rockTag: Rock_Water
+  featureSounds:
+  - tag: Rock_Water
+    fmodEvent:
+      Guid:
+        Data1: 1963737772
+        Data2: 1269793788
+        Data3: -529612650
+        Data4: -1715064950
+      Path: event:/AMB/AMB_OBJ/AMB_Waterfall
+    maxVolume: 1
   streamEvent:
     Guid:
       Data1: 2121980038
@@ -79330,20 +79356,10 @@ MonoBehaviour:
       Data3: -184128093
       Data4: 523088097
     Path: event:/AMB/AMB_OBJ/AMB_OBJ_Stream
-  rockSplashEvent:
-    Guid:
-      Data1: 1178322470
-      Data2: 1105757793
-      Data3: -1435205743
-      Data4: 1456919739
-    Path: event:/AMB/AMB_OBJ/AMB_OBJ_Rock_Stream
   baseStreamVolume: 0.8
-  maxRockVolume: 0.7
-  rockCountForMax: 3
-  fadeSpeed: 3
   detectionArea: 50
   drawGizmos: 1
-  logCountsToConsole: 1
+  fadeSpeed: 3
 --- !u!1001 &1184886875
 PrefabInstance:
   m_ObjectHideFlags: 0
