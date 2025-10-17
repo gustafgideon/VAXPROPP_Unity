@@ -6,7 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="e22cc2fa-2df0-4827-bd9a-ec5678ac6469" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.VAXPROPP_Unity/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineGenerativeAudioController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Audio/Audio Scripts/SplineGenerativeAudioController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.bank" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.strings.bank" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/FMOD/Banks/Desktop/Master.strings.bank" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/WeatherSystemManager.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/WeatherSystemManager.prefab" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Gustaf Scene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Gustaf Scene.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 3.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 3.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 4.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/Jon Scene 4.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Skybox Shader/Skybox_Dual Panoramic.mat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -147,7 +153,7 @@
       <workItem from="1760540673525" duration="3295000" />
       <workItem from="1760589319779" duration="2724000" />
       <workItem from="1760603692974" duration="641000" />
-      <workItem from="1760682144494" duration="1388000" />
+      <workItem from="1760682144494" duration="5357000" />
     </task>
     <servers />
   </component>

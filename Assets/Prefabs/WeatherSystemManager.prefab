@@ -64,14 +64,14 @@ MonoBehaviour:
       Data2: 1279445097
       Data3: 1757279154
       Data4: 531760065
-    Path: event:/AMB/WeatherSystem/Rain/Weather_RainLoop
+    Path: event:/AMB/WeatherSystem/Rain/Weather_Rain_Events/Weather_RainLoop_Forest
   rainImpactEvent:
     Guid:
       Data1: 408595158
       Data2: 1130464333
       Data3: 1902397370
       Data4: -1268885141
-    Path: event:/AMB/WeatherSystem/Rain/Weather_RainImpacts
+    Path: event:/AMB/WeatherSystem/Rain/Weather_Rain_Impacts/Weather_RainImpacts
   windEvent:
     Guid:
       Data1: 57825607
