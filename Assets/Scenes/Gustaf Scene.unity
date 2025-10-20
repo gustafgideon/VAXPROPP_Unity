@@ -48129,6 +48129,22 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 416178, guid: fe546dac68b4ae943a161dec60c98fed, type: 3}
   m_PrefabInstance: {fileID: 556345648}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &557916774 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4726437090455838076, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+  m_PrefabInstance: {fileID: 3689455767964182751}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3faa023e20734ce4999afbed02965e7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!95 &557916775 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 6972640204651235396, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+  m_PrefabInstance: {fileID: 3689455767964182751}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &557980515
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -129525,6 +129541,10 @@ PrefabInstance:
       propertyPath: m_CullingMask.m_Bits
       value: 4294967295
       objectReference: {fileID: 0}
+    - target: {fileID: 4726437090455838076, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 557916775}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.49
@@ -129584,6 +129604,34 @@ PrefabInstance:
     - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: tpToFpTransitionDuration
       value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: onAnimationClipEventAccepted.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: onAnimationClipEventAccepted.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: onAnimationClipEventAccepted.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 557916774}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: onAnimationClipEventAccepted.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: onAnimationClipEventAccepted.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: PlayerRunAudio
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: onAnimationClipEventAccepted.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: PlayerMovementAudio, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 6453010615568738857, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: onAnimationClipEventAccepted.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     - target: {fileID: 6806600987177336883, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_Cameras.Array.size

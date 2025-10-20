@@ -8,7 +8,16 @@ public class PlayerMovementAudio : MonoBehaviour
     public float rayDistance = 1f;
     public LayerMask surfaceLayerMask; // Include terrain, props, stairs
 
+    [Header("Footstep Guard (Option A)")]
+    [Tooltip("Animator that drives the locomotion blend tree")]
+    public Animator animator;
+    [Tooltip("Animator layer index to check clip weights on (usually 0)")]
+    public int animEventLayer = 0;
+    [Tooltip("Minimum time (s) between accepted footstep events to avoid double-play from blended clips")]
+    public float footstepMinInterval = 0.12f;
+
     private Vector3 lastFootPosition;
+    private float lastFootstepTime = -10f;
 
     private void Start()
     {
@@ -16,10 +25,13 @@ public class PlayerMovementAudio : MonoBehaviour
             lastFootPosition = playerFoot.transform.position;
     }
 
-    // Called from Animation Event
+    // Called directly from Animation Event (no change required to your existing events)
+    // Keep these names if your events already point to them.
     public void PlayerWalkAudio()
     {
         if (playerFoot == null) return;
+
+        if (!ShouldPlayFootstep("walk")) return;
 
         string surface = DetectSurface(); // returns e.g. "Grass", "Concrete_Stair", "Wood"
 
@@ -34,13 +46,15 @@ public class PlayerMovementAudio : MonoBehaviour
         lastFootPosition = playerFoot.transform.position;
 
         // Call FMOD via ScriptableObject
-        playerAudio.PlayerWalkAudio(playerFoot, surface, stairDirection);
+        playerAudio?.PlayerWalkAudio(playerFoot, surface, stairDirection);
     }
     
     public void PlayerRunAudio()
     {
         if (playerFoot == null) return;
 
+        if (!ShouldPlayFootstep("run")) return;
+
         string surface = DetectSurface(); // returns e.g. "Grass", "Concrete_Stair", "Wood"
 
         // Stair direction detection
@@ -54,7 +68,97 @@ public class PlayerMovementAudio : MonoBehaviour
         lastFootPosition = playerFoot.transform.position;
 
         // Call FMOD via ScriptableObject
-        playerAudio.PlayerRunAudio(playerFoot, surface, stairDirection);
+        playerAudio?.PlayerRunAudio(playerFoot, surface, stairDirection);
+    }
+
+    // Core guard: checks dominant clip and cooldown.
+    // type should be "walk" or "run" (case-insensitive)
+    private bool ShouldPlayFootstep(string type)
+    {
+        // Cooldown first (quick reject)
+        if (Time.time - lastFootstepTime < footstepMinInterval)
+            return false;
+
+        // If no animator assigned, fallback to cooldown-only behavior (prevents double-play in many cases)
+        if (animator == null)
+        {
+            lastFootstepTime = Time.time;
+            return true;
+        }
+
+        // Find dominant clip name across current and next state (handles transitions)
+        string dominant = GetDominantClipName(animEventLayer);
+        if (string.IsNullOrEmpty(dominant))
+        {
+            // No clip info available -> allow, but set cooldown
+            lastFootstepTime = Time.time;
+            return true;
+        }
+
+        string lower = dominant.ToLowerInvariant();
+        string want = (type ?? "").ToLowerInvariant();
+
+        // Decide allowed type by clip name heuristics:
+        // - If dominant clip name contains "run" or "sprint" -> allow run only
+        // - If dominant clip name contains "walk" or "step" -> allow walk only
+        // - Otherwise, if the clip name doesn't clearly indicate, allow only if clip name matches the invoked type
+        bool dominantIsRun = lower.Contains("run") || lower.Contains("sprint");
+        bool dominantIsWalk = lower.Contains("walk") || lower.Contains("step");
+
+        bool accept = false;
+        if (dominantIsRun && want == "run") accept = true;
+        else if (dominantIsWalk && want == "walk") accept = true;
+        else if (!dominantIsRun && !dominantIsWalk)
+        {
+            // Fallback: if the clip name itself contains the type string, accept,
+            // otherwise only accept if the clip exactly matches the type hint.
+            if (lower.Contains(want)) accept = true;
+            else accept = false;
+        }
+
+        if (!accept) return false;
+
+        // Passed checks -> set cooldown and accept
+        lastFootstepTime = Time.time;
+        return true;
+    }
+
+    // Get the dominant clip name on a layer (checks current and next state's clip infos)
+    private string GetDominantClipName(int layer)
+    {
+        if (animator == null) return null;
+
+        float maxW = 0f;
+        string best = null;
+
+        AnimatorClipInfo[] current = animator.GetCurrentAnimatorClipInfo(layer);
+        for (int i = 0; i < current.Length; i++)
+        {
+            var ci = current[i];
+            if (ci.clip == null) continue;
+            if (ci.weight > maxW)
+            {
+                maxW = ci.weight;
+                best = ci.clip.name;
+            }
+        }
+
+        if (animator.IsInTransition(layer))
+        {
+            AnimatorClipInfo[] next = animator.GetNextAnimatorClipInfo(layer);
+            for (int i = 0; i < next.Length; i++)
+            {
+                var ni = next[i];
+                if (ni.clip == null) continue;
+                if (ni.weight > maxW)
+                {
+                    maxW = ni.weight;
+                    best = ni.clip.name;
+                }
+            }
+        }
+
+        return best;
     }
 
     // Raycast to detect surface
@@ -72,7 +176,7 @@ public class PlayerMovementAudio : MonoBehaviour
                 case "Wood": return "Wood";
                 case "Concrete": return "Concrete";
                 case "Sand": return "Sand";
-                case"Stone": return "Stone";
+                case "Stone": return "Stone";
                 case "Concrete_Stair": return "Concrete_Stair";
                 case "Wood_Stair": return "Wood_Stair";
             }
@@ -86,6 +190,10 @@ public class PlayerMovementAudio : MonoBehaviour
 
                 int mapX = Mathf.FloorToInt((pos.x / data.size.x) * data.alphamapWidth);
                 int mapZ = Mathf.FloorToInt((pos.z / data.size.z) * data.alphamapHeight);
+
+                // Clamp to valid range to avoid exceptions on edges
+                mapX = Mathf.Clamp(mapX, 0, data.alphamapWidth - 1);
+                mapZ = Mathf.Clamp(mapZ, 0, data.alphamapHeight - 1);
 
                 float[,,] splat = data.GetAlphamaps(mapX, mapZ, 1, 1);
                 int dominant = 0;
