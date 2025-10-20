@@ -33,6 +33,13 @@ public class AmbianceManager : MonoBehaviour
     private StudioEventEmitter currentlyPlaying;
     private GameObject player;
 
+    // Track active crossfade to avoid conflicting stops/fades
+    private Coroutine crossfadeRoutine;
+    private StudioEventEmitter crossfadeOldEmitter;
+    private StudioEventEmitter crossfadeNewEmitter;
+
+    public bool IsCrossfading => crossfadeRoutine != null;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -83,7 +90,9 @@ public class AmbianceManager : MonoBehaviour
         // If there is a different currently playing emitter, crossfade it out while fading this in
         if (currentlyPlaying != null && currentlyPlaying != emitter)
         {
-            StartCoroutine(CrossFade(currentlyPlaying, emitter));
+            // Cancel any in-flight crossfade first (very rare edge case of rapid changes)
+            if (crossfadeRoutine != null) StopCoroutine(crossfadeRoutine);
+            crossfadeRoutine = StartCoroutine(CrossFade(currentlyPlaying, emitter));
         }
         else
         {
@@ -109,25 +118,44 @@ public class AmbianceManager : MonoBehaviour
         if (debugLogging) Debug.Log("AmbianceManager: Fading out current ambiance to silence");
     }
 
-    public void PlayAudio(Location location)
+    // Fade out a specific location (used by triggers on exit)
+    public void FadeOutLocation(Location location, float duration = -1f)
     {
         GetLocation(location);
-        if (emitter != null && !IsEmitterActive(emitter))
+        if (emitter == null) return;
+
+        if (duration <= 0f) duration = fadeTime;
+
+        // If this emitter is already being crossfaded out, don't interrupt that fade
+        if (IsCrossfading && emitter == crossfadeOldEmitter)
         {
-            emitter.Play();
-            currentlyPlaying = emitter;
-            if (debugLogging) Debug.Log($"PlayAudio: {location}");
+            if (debugLogging) Debug.Log($"AmbianceManager: FadeOutLocation({location}) skipped - already crossfading out.");
+            return;
         }
+
+        StartCoroutine(FadeOut(emitter, duration));
+        if (currentlyPlaying == emitter) currentlyPlaying = null;
+
+        if (debugLogging) Debug.Log($"AmbianceManager: FadeOutLocation({location}) over {duration:0.##}s");
     }
 
+    // Kept for API compatibility: now performs a fade instead of an immediate stop
     public void StopAudio(Location location)
+    {
+        // If you truly need immediate stop, use StopImmediate instead.
+        FadeOutLocation(location, fadeTime);
+    }
+
+    // Optional: immediate hard stop if you ever need it
+    public void StopImmediate(Location location)
     {
         GetLocation(location);
         if (emitter != null && IsEmitterActive(emitter))
         {
+            emitter.EventInstance.setVolume(0f);
             emitter.Stop();
             if (currentlyPlaying == emitter) currentlyPlaying = null;
-            if (debugLogging) Debug.Log($"StopAudio: {location}");
+            if (debugLogging) Debug.Log($"StopImmediate: {location}");
         }
     }
 
@@ -138,18 +166,26 @@ public class AmbianceManager : MonoBehaviour
     // Crossfade: fade out old while fading in new (uses fadeTime)
     private IEnumerator CrossFade(StudioEventEmitter oldEmitter, StudioEventEmitter newEmitter)
     {
+        crossfadeOldEmitter = oldEmitter;
+        crossfadeNewEmitter = newEmitter;
+
         // Start the new emitter if not running (old script did this)
         if (!IsEmitterActive(newEmitter))
             newEmitter.Play();
+
+        // Ensure starting volumes
+        newEmitter.EventInstance.setVolume(0f);
+        oldEmitter.EventInstance.getVolume(out float oldStartVol);
+        if (oldStartVol <= 0f) oldStartVol = 1f; // fallback
 
         float timer = 0f;
         while (timer < fadeTime)
         {
             timer += Time.deltaTime;
-            float progress = timer / fadeTime;
+            float progress = Mathf.Clamp01(timer / fadeTime);
 
-            // Fade out old (1 -> 0)
-            oldEmitter.EventInstance.setVolume(1f - progress);
+            // Fade out old (oldStartVol -> 0)
+            oldEmitter.EventInstance.setVolume(Mathf.Lerp(oldStartVol, 0f, progress));
 
             // Fade in new (0 -> 1)
             newEmitter.EventInstance.setVolume(progress);
@@ -163,6 +199,11 @@ public class AmbianceManager : MonoBehaviour
 
         // Stop old emitter as in your old script
         oldEmitter.Stop();
+
+        // Clear crossfade state
+        crossfadeOldEmitter = null;
+        crossfadeNewEmitter = null;
+        crossfadeRoutine = null;
     }
 
     // Fade in from silence
@@ -171,11 +212,14 @@ public class AmbianceManager : MonoBehaviour
         if (!IsEmitterActive(targetEmitter))
             targetEmitter.Play();
 
+        // start from 0
+        targetEmitter.EventInstance.setVolume(0f);
+
         float timer = 0f;
         while (timer < fadeTime)
         {
             timer += Time.deltaTime;
-            float progress = timer / fadeTime;
+            float progress = Mathf.Clamp01(timer / fadeTime);
             targetEmitter.EventInstance.setVolume(progress);
             yield return null;
         }
@@ -187,10 +231,14 @@ public class AmbianceManager : MonoBehaviour
     {
         if (!IsEmitterActive(emitterToFade)) yield break;
 
+        // If this emitter is already being crossfaded out, don't double-fade
+        if (IsCrossfading && emitterToFade == crossfadeOldEmitter)
+            yield break;
+
         // get starting volume if available; fallback to 1f if getVolume not available
         float startVolume = 1f;
         FMOD.RESULT volRes = emitterToFade.EventInstance.getVolume(out float currentVol);
-        if (volRes == FMOD.RESULT.OK) startVolume = currentVol;
+        if (volRes == FMOD.RESULT.OK && currentVol > 0f) startVolume = currentVol;
 
         float t = 0f;
         while (t < duration)

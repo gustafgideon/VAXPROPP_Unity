@@ -29153,6 +29153,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 84376f2a0948947b5a6dfe814a1100a0, type: 3}
+--- !u!95 &297403338 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 6972640204651235396, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+  m_PrefabInstance: {fileID: 3689455767964182751}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &304484515 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4546133368181582923, guid: 823bd66d89640da4eac5c1c17d2840d9, type: 3}
@@ -74737,7 +74742,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7328965518094915265, guid: ea3d5f723fc8be04aa6b4cef1cb08db7, type: 3}
       propertyPath: fadeTime
-      value: 5
+      value: 5.16
       objectReference: {fileID: 0}
     - target: {fileID: 7328965518094915265, guid: ea3d5f723fc8be04aa6b4cef1cb08db7, type: 3}
       propertyPath: defaultFadeTime
@@ -111999,6 +112004,10 @@ PrefabInstance:
       propertyPath: m_CullingMask.m_Bits
       value: 4294967295
       objectReference: {fileID: 0}
+    - target: {fileID: 4726437090455838076, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 297403338}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.2

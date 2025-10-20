@@ -2,37 +2,36 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Simplified AmbianceTrigger: only Start and Stop actions remain.
-/// Start now calls ChangeAmbiance(...) so fades/crossfades are used.
+/// Preferred approach:
+/// - Only call ChangeAmbiance(...) on enter to crossfade into the new location.
+/// - Never stop on exit.
+/// - Use a dedicated "silence" trigger (enter) to fade to silence when leaving all zones.
 /// </summary>
 public class AmbianceTrigger : MonoBehaviour
 {
     public enum Action
     {
-        Start, // Start ambiance event (location) — now uses ChangeAmbiance (fades)
-        Stop   // Stop ambiance event (location)
+        Start,         // ChangeAmbiance(location) on enter
+        FadeToSilence  // FadeOutCurrent() on enter (use in a dedicated "silence" volume)
     }
 
     [Serializable]
     public struct AudioSettings
     {
         public Action action;
-        public Location location; // Used for Start / Stop
+        public Location location; // Only used for Action.Start
     }
 
     [Header("Player Tag")]
     [SerializeField] private string playerTag = "Player";
 
-    [Header("Enter Actions")]
+    [Header("Enter Actions (use Start for ambiance zones, FadeToSilence for silence zones)")]
     public AudioSettings[] triggerEnterAudioSettings;
-
-    [Header("Exit Actions")]
-    public AudioSettings[] triggerExitAudioSettings;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogging = true;
 
-    // Local collider counter for this volume
+    // Local collider counter for this volume (prevents duplicate enters with nested colliders)
     private int localCounter = 0;
 
     private void OnTriggerEnter(Collider other)
@@ -45,7 +44,7 @@ public class AmbianceTrigger : MonoBehaviour
         if (localCounter == 1)
         {
             if (debugLogging) Debug.Log($"[AmbianceTrigger:{name}] ENTER (localCounter=1)");
-            ProcessAudioSettings(triggerEnterAudioSettings, entering: true);
+            ProcessEnterAudioSettings(triggerEnterAudioSettings);
         }
         else
         {
@@ -57,21 +56,12 @@ public class AmbianceTrigger : MonoBehaviour
     {
         if (!other.CompareTag(playerTag)) return;
 
+        // We do not perform any audio actions on exit in this approach.
         localCounter = Mathf.Max(0, localCounter - 1);
-
-        // Only when fully exited (localCounter == 0) execute exit actions
-        if (localCounter == 0)
-        {
-            if (debugLogging) Debug.Log($"[AmbianceTrigger:{name}] EXIT (localCounter=0)");
-            ProcessAudioSettings(triggerExitAudioSettings, entering: false);
-        }
-        else
-        {
-            if (debugLogging) Debug.Log($"[AmbianceTrigger:{name}] EXIT (localCounter={localCounter}) - still inside");
-        }
+        if (debugLogging) Debug.Log($"[AmbianceTrigger:{name}] EXIT (localCounter={localCounter})");
     }
 
-    private void ProcessAudioSettings(AudioSettings[] settingsArray, bool entering)
+    private void ProcessEnterAudioSettings(AudioSettings[] settingsArray)
     {
         if (settingsArray == null) return;
 
@@ -80,15 +70,13 @@ public class AmbianceTrigger : MonoBehaviour
             switch (s.action)
             {
                 case Action.Start:
-                    // Use ChangeAmbiance to trigger fades/crossfades
                     AmbianceManager.Instance.ChangeAmbiance(s.location);
-                    if (debugLogging) Debug.Log($"[AmbianceTrigger:{name}] ChangeAmbiance(Start) {s.location} (entering={entering})");
+                    if (debugLogging) Debug.Log($"[AmbianceTrigger:{name}] ChangeAmbiance(Start) {s.location}");
                     break;
 
-                case Action.Stop:
-                    // Stop is immediate by design; see note below if you want a fade-to-silence
-                    AmbianceManager.Instance.StopAudio(s.location);
-                    if (debugLogging) Debug.Log($"[AmbianceTrigger:{name}] Stop {s.location} (entering={entering})");
+                case Action.FadeToSilence:
+                    AmbianceManager.Instance.FadeOutCurrent();
+                    if (debugLogging) Debug.Log($"[AmbianceTrigger:{name}] FadeOutCurrent (FadeToSilence)");
                     break;
             }
         }
