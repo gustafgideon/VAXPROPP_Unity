@@ -6,7 +6,8 @@ using FMOD.Studio;
 public enum Location
 {
     Forest,
-    Factory
+    Desert,
+    Plant
 }
 
 public class AmbianceManager : MonoBehaviour
@@ -15,10 +16,15 @@ public class AmbianceManager : MonoBehaviour
 
     [Header("Ambiance Emitters")]
     [SerializeField] private StudioEventEmitter forestAmbianceEmitter;
-    [SerializeField] private StudioEventEmitter factoryAmbianceEmitter;
+    [SerializeField] private StudioEventEmitter desertAmbianceEmitter;
+    [SerializeField] private StudioEventEmitter plantAmbianceEmitter;
 
     [Header("Fade Settings")]
-    [SerializeField] private float defaultFadeTime = 2f;
+    [SerializeField] private float fadeTime = 2f; // matches your old script's fadeTime
+
+    [Header("Weather Parameters")]
+    [Tooltip("Global FMOD parameter used by WeatherSystemManager to switch rain sounds (use FMOD labels mapped to these numeric values).")]
+    public string rainLocationParameterName = "RainLocation";
 
     [Header("Debug")]
     [SerializeField] private bool debugLogging = true;
@@ -56,12 +62,15 @@ public class AmbianceManager : MonoBehaviour
         switch (location)
         {
             case Location.Forest: emitter = forestAmbianceEmitter; break;
-            case Location.Factory: emitter = factoryAmbianceEmitter; break;
+            case Location.Desert: emitter = desertAmbianceEmitter; break;
+            case Location.Plant: emitter = plantAmbianceEmitter; break;
+            default: emitter = null; break;
         }
     }
 
     #region Ambiance Control
 
+    // This follows your old script behavior (fade loop that directly sets volumes each frame)
     public void ChangeAmbiance(Location newLocation)
     {
         GetLocation(newLocation);
@@ -71,26 +80,39 @@ public class AmbianceManager : MonoBehaviour
             return;
         }
 
-        if (!emitter.IsActive)
-        {
-            emitter.Play();
-            emitter.EventInstance.setVolume(0f);
-        }
-
+        // If there is a different currently playing emitter, crossfade it out while fading this in
         if (currentlyPlaying != null && currentlyPlaying != emitter)
-            StartCoroutine(CrossFade(currentlyPlaying, emitter, defaultFadeTime));
-        else if (currentlyPlaying != emitter)
-            StartCoroutine(FadeIn(emitter, defaultFadeTime));
+        {
+            StartCoroutine(CrossFade(currentlyPlaying, emitter));
+        }
+        else
+        {
+            // Nothing playing or same emitter: fade in this emitter
+            StartCoroutine(FadeIn(emitter));
+        }
 
         currentlyPlaying = emitter;
 
+        // Ensure rain/global parameters match this location (if used)
+        SetRainLocation(newLocation);
+
         if (debugLogging) Debug.Log($"AmbianceManager: Changed ambiance to {newLocation}");
+    }
+
+    // Fade out currently playing emitter to silence (useful when leaving all zones)
+    public void FadeOutCurrent(float duration = -1f)
+    {
+        if (currentlyPlaying == null) return;
+        if (duration <= 0f) duration = fadeTime;
+        StartCoroutine(FadeOut(currentlyPlaying, duration));
+        currentlyPlaying = null;
+        if (debugLogging) Debug.Log("AmbianceManager: Fading out current ambiance to silence");
     }
 
     public void PlayAudio(Location location)
     {
         GetLocation(location);
-        if (emitter != null && !emitter.IsActive)
+        if (emitter != null && !IsEmitterActive(emitter))
         {
             emitter.Play();
             currentlyPlaying = emitter;
@@ -101,7 +123,7 @@ public class AmbianceManager : MonoBehaviour
     public void StopAudio(Location location)
     {
         GetLocation(location);
-        if (emitter != null && emitter.IsActive)
+        if (emitter != null && IsEmitterActive(emitter))
         {
             emitter.Stop();
             if (currentlyPlaying == emitter) currentlyPlaying = null;
@@ -109,105 +131,135 @@ public class AmbianceManager : MonoBehaviour
         }
     }
 
-    // Event-local parameter
-    public void SetParameter(Location location, string parameterName, float parameterValue)
+    #endregion
+
+    #region Fade Logic (matches your working, old implementation)
+
+    // Crossfade: fade out old while fading in new (uses fadeTime)
+    private IEnumerator CrossFade(StudioEventEmitter oldEmitter, StudioEventEmitter newEmitter)
     {
-        if (string.IsNullOrEmpty(parameterName)) return;
-        GetLocation(location);
-        if (emitter == null) return;
+        // Start the new emitter if not running (old script did this)
+        if (!IsEmitterActive(newEmitter))
+            newEmitter.Play();
 
-        if (!emitter.IsActive)
-            emitter.Play();
-
-        emitter.SetParameter(parameterName, parameterValue);
-
-        if (debugLogging) Debug.Log($"Event Parameter {parameterName}->{parameterValue} on {location}");
-    }
-
-    // GLOBAL parameter
-    public void SetGlobalParameter(string parameterName, float value, bool log = true)
-    {
-        if (string.IsNullOrEmpty(parameterName)) return;
-        RuntimeManager.StudioSystem.setParameterByName(parameterName, value);
-        if (debugLogging && log) Debug.Log($"Global Parameter {parameterName} -> {value}");
-    }
-
-    public void SetGlobalParameterFade(string parameterName, float from, float to, float time)
-    {
-        StartCoroutine(FadeGlobalParameter(parameterName, from, to, time));
-    }
-
-    private IEnumerator FadeGlobalParameter(string parameterName, float from, float to, float time)
-    {
-        if (time <= 0f)
+        float timer = 0f;
+        while (timer < fadeTime)
         {
-            SetGlobalParameter(parameterName, to);
-            yield break;
-        }
+            timer += Time.deltaTime;
+            float progress = timer / fadeTime;
 
-        float t = 0f;
-        while (t < time)
-        {
-            t += Time.deltaTime;
-            float v = Mathf.Lerp(from, to, t / time);
-            RuntimeManager.StudioSystem.setParameterByName(parameterName, v);
+            // Fade out old (1 -> 0)
+            oldEmitter.EventInstance.setVolume(1f - progress);
+
+            // Fade in new (0 -> 1)
+            newEmitter.EventInstance.setVolume(progress);
+
             yield return null;
         }
-        RuntimeManager.StudioSystem.setParameterByName(parameterName, to);
-        if (debugLogging) Debug.Log($"Global Parameter (faded) {parameterName} -> {to}");
+
+        // Ensure volumes precise at the end
+        oldEmitter.EventInstance.setVolume(0f);
+        newEmitter.EventInstance.setVolume(1f);
+
+        // Stop old emitter as in your old script
+        oldEmitter.Stop();
     }
 
-    public void DebugReadGlobalParameter(string parameterName)
+    // Fade in from silence
+    private IEnumerator FadeIn(StudioEventEmitter targetEmitter)
     {
-        if (!debugLogging) return;
-        if (RuntimeManager.StudioSystem.getParameterDescriptionByName(parameterName, out var desc) == FMOD.RESULT.OK)
+        if (!IsEmitterActive(targetEmitter))
+            targetEmitter.Play();
+
+        float timer = 0f;
+        while (timer < fadeTime)
         {
-            RuntimeManager.StudioSystem.getParameterByID(desc.id, out float value, out float finalValue);
-            Debug.Log($"[ParamDebug] {parameterName} Raw:{value} Final:{finalValue}");
+            timer += Time.deltaTime;
+            float progress = timer / fadeTime;
+            targetEmitter.EventInstance.setVolume(progress);
+            yield return null;
         }
+        targetEmitter.EventInstance.setVolume(1f);
+    }
+
+    // Fade out to silence
+    private IEnumerator FadeOut(StudioEventEmitter emitterToFade, float duration)
+    {
+        if (!IsEmitterActive(emitterToFade)) yield break;
+
+        // get starting volume if available; fallback to 1f if getVolume not available
+        float startVolume = 1f;
+        FMOD.RESULT volRes = emitterToFade.EventInstance.getVolume(out float currentVol);
+        if (volRes == FMOD.RESULT.OK) startVolume = currentVol;
+
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            emitterToFade.EventInstance.setVolume(Mathf.Lerp(startVolume, 0f, t / duration));
+            yield return null;
+        }
+
+        emitterToFade.EventInstance.setVolume(0f);
+        emitterToFade.Stop();
     }
 
     #endregion
 
-    #region Fade Logic
+    #region Helper: robust "IsActive" check
 
-    private IEnumerator CrossFade(StudioEventEmitter oldEmitter, StudioEventEmitter newEmitter, float duration)
+    // Use IsActive when it works (older setups). Also fallback to playback state check to be robust.
+    private bool IsEmitterActive(StudioEventEmitter e)
     {
-        if (!newEmitter.IsActive) newEmitter.Play();
-        newEmitter.EventInstance.setVolume(0f);
-        oldEmitter.EventInstance.setVolume(1f);
+        if (e == null) return false;
 
-        float t = 0f;
-        while (t < duration)
+        bool isActive = false;
+
+        // Try the simple property first (this was used in your working version)
+        try
         {
-            t += Time.deltaTime;
-            float p = t / duration;
-            oldEmitter.EventInstance.setVolume(1f - p);
-            newEmitter.EventInstance.setVolume(p);
-            yield return null;
+            isActive = e.IsActive;
+        }
+        catch
+        {
+            isActive = false;
         }
 
-        oldEmitter.EventInstance.setVolume(0f);
-        newEmitter.EventInstance.setVolume(1f);
-        oldEmitter.Stop();
+        // If the property is false, double-check playback state (makes it robust across FMOD/Unity versions)
+        if (!isActive)
+        {
+            var result = e.EventInstance.getPlaybackState(out PLAYBACK_STATE state);
+            if (result == FMOD.RESULT.OK)
+            {
+                isActive = (state == PLAYBACK_STATE.PLAYING || state == PLAYBACK_STATE.STARTING);
+            }
+        }
+
+        return isActive;
     }
 
-    private IEnumerator FadeIn(StudioEventEmitter targetEmitter, float duration)
-    {
-        if (!targetEmitter.IsActive)
-        {
-            targetEmitter.Play();
-            targetEmitter.EventInstance.setVolume(0f);
-        }
+    #endregion
 
-        float t = 0f;
-        while (t < duration)
+    #region Rain System Integration
+
+    public void SetRainLocation(Location location)
+    {
+        if (string.IsNullOrEmpty(rainLocationParameterName)) return;
+
+        float mapped = MapLocationToRainValue(location);
+        RuntimeManager.StudioSystem.setParameterByName(rainLocationParameterName, mapped);
+        if (debugLogging) Debug.Log($"SetRainLocation: {location} -> {mapped}");
+    }
+
+    private float MapLocationToRainValue(Location location)
+    {
+        switch (location)
         {
-            t += Time.deltaTime;
-            targetEmitter.EventInstance.setVolume(t / duration);
-            yield return null;
+            case Location.Forest: return 0f;
+            case Location.Desert: return 1f;
+            case Location.Plant: return 2f;
+            default: return 0f;
         }
-        targetEmitter.EventInstance.setVolume(1f);
     }
 
     #endregion
