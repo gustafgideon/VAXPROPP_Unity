@@ -1,12 +1,6 @@
 using System;
 using UnityEngine;
 
-/// <summary>
-/// Preferred approach:
-/// - Only call ChangeAmbiance(...) on enter to crossfade into the new location.
-/// - Never stop on exit.
-/// - Use a dedicated "silence" trigger (enter) to fade to silence when leaving all zones.
-/// </summary>
 public class AmbianceTrigger : MonoBehaviour
 {
     public enum Action
@@ -22,10 +16,10 @@ public class AmbianceTrigger : MonoBehaviour
         public Location location; // Only used for Action.Start
     }
 
-    [Header("Player Tag")]
+    
     [SerializeField] private string playerTag = "Player";
 
-    [Header("Enter Actions (use Start for ambiance zones, FadeToSilence for silence zones)")]
+    [Header("Enter Actions")]
     public AudioSettings[] triggerEnterAudioSettings;
 
     [Header("Debug")]
