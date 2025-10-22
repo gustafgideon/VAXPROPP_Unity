@@ -102461,7 +102461,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cbd26ca88392cdc4fb7154ba7a334c92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rockTag: Rock_Water
+  featureSounds: []
   streamEvent:
     Guid:
       Data1: 2121980038
@@ -102469,20 +102469,12 @@ MonoBehaviour:
       Data3: -184128093
       Data4: 523088097
     Path: event:/AMB/AMB_OBJ/AMB_OBJ_Stream
-  rockSplashEvent:
-    Guid:
-      Data1: 1178322470
-      Data2: 1105757793
-      Data3: -1435205743
-      Data4: 1456919739
-    Path: event:/AMB/AMB_OBJ/AMB_OBJ_Rock_Stream
   baseStreamVolume: 0.8
-  maxRockVolume: 0.7
-  rockCountForMax: 4
-  fadeSpeed: 3
-  detectionArea: 50
+  detectionRadius: 15
   drawGizmos: 1
-  logCountsToConsole: 1
+  debugShowContents: 0
+  logContentsToConsole: 0
+  fadeSpeed: 3
 --- !u!54 &1747866659
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -102529,7 +102521,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1.9947114
+  m_Radius: 15
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1747866661
 MonoBehaviour:

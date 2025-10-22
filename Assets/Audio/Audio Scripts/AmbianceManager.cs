@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using FMODUnity;
 using FMOD.Studio;
+using UnityEngine.Serialization;
 
 public enum Location
 {
@@ -12,20 +13,38 @@ public enum Location
 
 public class AmbianceManager : MonoBehaviour
 {
+    [System.Serializable]
+    private class AmbianceEmitters
+    {
+        public StudioEventEmitter Forest;
+        public StudioEventEmitter Desert;
+        public StudioEventEmitter Plant;
+    }
+
     public static AmbianceManager Instance { get; private set; }
-
+    
+    [FormerlySerializedAs("volumeCrossFadeTime")]
+    [Space(20)]
+    [FormerlySerializedAs("fadeTime")] [SerializeField] private float crossFadeTime = 2f;
+    
     [Header("Ambiance Emitters")]
-    [SerializeField] private StudioEventEmitter forestAmbianceEmitter;
-    [SerializeField] private StudioEventEmitter desertAmbianceEmitter;
-    [SerializeField] private StudioEventEmitter plantAmbianceEmitter;
+    [SerializeField] private AmbianceEmitters ambianceEmitters = new AmbianceEmitters();
 
-    [Header("Fade Settings")]
-    [SerializeField] private float fadeTime = 2f; // matches your old script's fadeTime
-
-    [Header("Weather Parameters")]
+    // Hidden legacy fields kept for safe migration of existing references
+    [HideInInspector, FormerlySerializedAs("forestAmbianceEmitter")]
+    [SerializeField] private StudioEventEmitter legacy_forestAmbianceEmitter;
+    [HideInInspector, FormerlySerializedAs("desertAmbianceEmitter")]
+    [SerializeField] private StudioEventEmitter legacy_desertAmbianceEmitter;
+    [HideInInspector, FormerlySerializedAs("plantAmbianceEmitter")]
+    [SerializeField] private StudioEventEmitter legacy_plantAmbianceEmitter;
+    
+    [Header("FMOD")]
     [Tooltip("Global FMOD parameter used by WeatherSystemManager to switch rain sounds (use FMOD labels mapped to these numeric values).")]
     public string rainLocationParameterName = "RainLocation";
 
+    [Tooltip("Global FMOD parameter used by WeatherSystemManager to switch wind sounds (use FMOD labels mapped to these numeric values).")]
+    public string windLocationParameterName = "WindLocation";
+    
     [Header("Debug")]
     [SerializeField] private bool debugLogging = true;
 
@@ -36,9 +55,24 @@ public class AmbianceManager : MonoBehaviour
     // Track active crossfade to avoid conflicting stops/fades
     private Coroutine crossfadeRoutine;
     private StudioEventEmitter crossfadeOldEmitter;
-    private StudioEventEmitter crossfadeNewEmitter;
 
     public bool IsCrossfading => crossfadeRoutine != null;
+
+    private void OnValidate()
+    {
+        // Migrate old flat fields to the new foldout group automatically
+        if (ambianceEmitters == null)
+            ambianceEmitters = new AmbianceEmitters();
+
+        if (ambianceEmitters.Forest == null && legacy_forestAmbianceEmitter != null)
+            ambianceEmitters.Forest = legacy_forestAmbianceEmitter;
+
+        if (ambianceEmitters.Desert == null && legacy_desertAmbianceEmitter != null)
+            ambianceEmitters.Desert = legacy_desertAmbianceEmitter;
+
+        if (ambianceEmitters.Plant == null && legacy_plantAmbianceEmitter != null)
+            ambianceEmitters.Plant = legacy_plantAmbianceEmitter;
+    }
 
     private void Awake()
     {
@@ -68,9 +102,9 @@ public class AmbianceManager : MonoBehaviour
     {
         switch (location)
         {
-            case Location.Forest: emitter = forestAmbianceEmitter; break;
-            case Location.Desert: emitter = desertAmbianceEmitter; break;
-            case Location.Plant: emitter = plantAmbianceEmitter; break;
+            case Location.Forest: emitter = ambianceEmitters?.Forest; break;
+            case Location.Desert: emitter = ambianceEmitters?.Desert; break;
+            case Location.Plant:  emitter = ambianceEmitters?.Plant;  break;
             default: emitter = null; break;
         }
     }
@@ -87,6 +121,16 @@ public class AmbianceManager : MonoBehaviour
             return;
         }
 
+        // If the same emitter is already active, do nothing to avoid restarting/jumping
+        if (currentlyPlaying == emitter && IsEmitterActive(emitter))
+        {
+            // Still keep weather/global params in sync (no audio restart)
+            SetRainLocation(newLocation);
+            SetWindLocation(newLocation);
+            if (debugLogging) Debug.Log($"AmbianceManager: {newLocation} already playing; skipping restart.");
+            return;
+        }
+
         // If there is a different currently playing emitter, crossfade it out while fading this in
         if (currentlyPlaying != null && currentlyPlaying != emitter)
         {
@@ -96,14 +140,15 @@ public class AmbianceManager : MonoBehaviour
         }
         else
         {
-            // Nothing playing or same emitter: fade in this emitter
+            // Nothing playing or same emitter not active: fade in this emitter
             StartCoroutine(FadeIn(emitter));
         }
 
         currentlyPlaying = emitter;
 
-        // Ensure rain/global parameters match this location (if used)
+        // Ensure weather/global parameters match this location (if used)
         SetRainLocation(newLocation);
+        SetWindLocation(newLocation);
 
         if (debugLogging) Debug.Log($"AmbianceManager: Changed ambiance to {newLocation}");
     }
@@ -112,51 +157,10 @@ public class AmbianceManager : MonoBehaviour
     public void FadeOutCurrent(float duration = -1f)
     {
         if (currentlyPlaying == null) return;
-        if (duration <= 0f) duration = fadeTime;
+        if (duration <= 0f) duration = crossFadeTime;
         StartCoroutine(FadeOut(currentlyPlaying, duration));
         currentlyPlaying = null;
         if (debugLogging) Debug.Log("AmbianceManager: Fading out current ambiance to silence");
-    }
-
-    // Fade out a specific location (used by triggers on exit)
-    public void FadeOutLocation(Location location, float duration = -1f)
-    {
-        GetLocation(location);
-        if (emitter == null) return;
-
-        if (duration <= 0f) duration = fadeTime;
-
-        // If this emitter is already being crossfaded out, don't interrupt that fade
-        if (IsCrossfading && emitter == crossfadeOldEmitter)
-        {
-            if (debugLogging) Debug.Log($"AmbianceManager: FadeOutLocation({location}) skipped - already crossfading out.");
-            return;
-        }
-
-        StartCoroutine(FadeOut(emitter, duration));
-        if (currentlyPlaying == emitter) currentlyPlaying = null;
-
-        if (debugLogging) Debug.Log($"AmbianceManager: FadeOutLocation({location}) over {duration:0.##}s");
-    }
-
-    // Kept for API compatibility: now performs a fade instead of an immediate stop
-    public void StopAudio(Location location)
-    {
-        // If you truly need immediate stop, use StopImmediate instead.
-        FadeOutLocation(location, fadeTime);
-    }
-
-    // Optional: immediate hard stop if you ever need it
-    public void StopImmediate(Location location)
-    {
-        GetLocation(location);
-        if (emitter != null && IsEmitterActive(emitter))
-        {
-            emitter.EventInstance.setVolume(0f);
-            emitter.Stop();
-            if (currentlyPlaying == emitter) currentlyPlaying = null;
-            if (debugLogging) Debug.Log($"StopImmediate: {location}");
-        }
     }
 
     #endregion
@@ -167,7 +171,6 @@ public class AmbianceManager : MonoBehaviour
     private IEnumerator CrossFade(StudioEventEmitter oldEmitter, StudioEventEmitter newEmitter)
     {
         crossfadeOldEmitter = oldEmitter;
-        crossfadeNewEmitter = newEmitter;
 
         // Start the new emitter if not running (old script did this)
         if (!IsEmitterActive(newEmitter))
@@ -179,10 +182,10 @@ public class AmbianceManager : MonoBehaviour
         if (oldStartVol <= 0f) oldStartVol = 1f; // fallback
 
         float timer = 0f;
-        while (timer < fadeTime)
+        while (timer < crossFadeTime)
         {
             timer += Time.deltaTime;
-            float progress = Mathf.Clamp01(timer / fadeTime);
+            float progress = Mathf.Clamp01(timer / crossFadeTime);
 
             // Fade out old (oldStartVol -> 0)
             oldEmitter.EventInstance.setVolume(Mathf.Lerp(oldStartVol, 0f, progress));
@@ -202,7 +205,6 @@ public class AmbianceManager : MonoBehaviour
 
         // Clear crossfade state
         crossfadeOldEmitter = null;
-        crossfadeNewEmitter = null;
         crossfadeRoutine = null;
     }
 
@@ -216,10 +218,10 @@ public class AmbianceManager : MonoBehaviour
         targetEmitter.EventInstance.setVolume(0f);
 
         float timer = 0f;
-        while (timer < fadeTime)
+        while (timer < crossFadeTime)
         {
             timer += Time.deltaTime;
-            float progress = Mathf.Clamp01(timer / fadeTime);
+            float progress = Mathf.Clamp01(timer / crossFadeTime);
             targetEmitter.EventInstance.setVolume(progress);
             yield return null;
         }
@@ -300,6 +302,30 @@ public class AmbianceManager : MonoBehaviour
     }
 
     private float MapLocationToRainValue(Location location)
+    {
+        switch (location)
+        {
+            case Location.Forest: return 0f;
+            case Location.Desert: return 1f;
+            case Location.Plant: return 2f;
+            default: return 0f;
+        }
+    }
+
+    #endregion
+
+    #region Wind System Integration
+
+    public void SetWindLocation(Location location)
+    {
+        if (string.IsNullOrEmpty(windLocationParameterName)) return;
+
+        float mapped = MapLocationToWindValue(location);
+        RuntimeManager.StudioSystem.setParameterByName(windLocationParameterName, mapped);
+        if (debugLogging) Debug.Log($"SetWindLocation: {location} -> {mapped}");
+    }
+
+    private float MapLocationToWindValue(Location location)
     {
         switch (location)
         {

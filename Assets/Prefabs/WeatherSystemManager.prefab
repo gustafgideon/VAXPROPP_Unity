@@ -78,7 +78,7 @@ MonoBehaviour:
       Data2: 1166931283
       Data3: 1163114917
       Data4: -420624929
-    Path: event:/AMB/WeatherSystem/Wind/Weather_Wind
+    Path: event:/AMB/WeatherSystem/Wind/Weather_Wind_Forest
   windDirectionEvent:
     Guid:
       Data1: 0
