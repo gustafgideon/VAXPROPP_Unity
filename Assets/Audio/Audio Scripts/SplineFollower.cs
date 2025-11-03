@@ -22,7 +22,7 @@ public class SplineFollower : MonoBehaviour
     [Tooltip("Which spline in the container to use (0-based).")]
     [Min(0)] public int SplineIndex = 0;
 
-    [Header("Driver")]
+    [Header("Follow Object")]
     [Tooltip("Transform we project onto the spline (usually the Player/Listener).")]
     public Transform Player;
 
