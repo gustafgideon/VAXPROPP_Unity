@@ -3,6 +3,7 @@ using FMODUnity;
 using FMOD.Studio;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 [System.Serializable]
 public class Layers
@@ -26,7 +27,7 @@ public class WeatherSystemManager : MonoBehaviour
     // Intensity 0..1 (TimeManager uses this to scale lightning brightness).
     public event System.Action<float> OnThunderTriggered;
 
-    public Transform player;
+    public Transform playerTransform;
     public GameObject playerObject;
     public ParticleSystem rainParticles;
 
@@ -126,7 +127,7 @@ public class WeatherSystemManager : MonoBehaviour
 
     void Update()
     {
-        if (player == null || rainParticles == null) return;
+        if (playerTransform == null || rainParticles == null) return;
 
         UpdateRainParticles();
         UpdateRainAudio();
@@ -139,7 +140,7 @@ public class WeatherSystemManager : MonoBehaviour
             ApplyWindToParticles();
 
         // Keep rain particles above the player
-        rainParticles.transform.position = player.position + Vector3.up * 10f;
+        rainParticles.transform.position = playerTransform.position + Vector3.up * 10f;
     }
 
     void UpdateRainParticles()
@@ -177,19 +178,19 @@ public class WeatherSystemManager : MonoBehaviour
 
     void UpdateWind3DPosition()
     {
-        if (player == null) return;
+        if (playerTransform == null) return;
 
         float radians = Mathf.Deg2Rad * windDegrees;
         Vector3 windFromDirection = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
-        currentWind3DPosition = player.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
+        currentWind3DPosition = playerTransform.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
     }
 
     // Ensures the XZ of a point is within rainRadius around the player.
     Vector3 ClampToRainRadius(Vector3 point)
     {
-        if (player == null) return point;
+        if (playerTransform == null) return point;
 
-        Vector3 center = player.position;
+        Vector3 center = playerTransform.position;
         Vector3 offsetXZ = new Vector3(point.x - center.x, 0f, point.z - center.z);
         float maxR = rainRadius;
         float maxR2 = maxR * maxR;
@@ -206,13 +207,13 @@ public class WeatherSystemManager : MonoBehaviour
 
     void HandleRainImpacts()
     {
-        if (rainIntensity <= 0f || player == null) return;
+        if (rainIntensity <= 0f || playerTransform == null) return;
 
         impactTimer += Time.deltaTime;
         if (impactTimer < impactRate) return;
         impactTimer = 0f;
 
-        Collider[] colliders = Physics.OverlapSphere(player.position, rainRadius);
+        Collider[] colliders = Physics.OverlapSphere(playerTransform.position, rainRadius);
         List<Collider> targetColliders = new List<Collider>();
 
         foreach (var col in colliders)
@@ -275,9 +276,9 @@ public class WeatherSystemManager : MonoBehaviour
 
     void UpdateRainOcclusion()
     {
-        if (player == null || !isRainValid) return;
+        if (playerTransform == null || !isRainValid) return;
 
-        Vector3 rayOrigin = player.position;
+        Vector3 rayOrigin = playerTransform.position;
         float checkDistance = 3f;
 
         float occlusionEQ = 0f;
@@ -320,7 +321,7 @@ public class WeatherSystemManager : MonoBehaviour
             return;
         }
 
-        Vector3 pos = player ? player.position : Vector3.zero;
+        Vector3 pos = playerTransform ? playerTransform.position : Vector3.zero;
 
         // Trigger lightning visuals for TimeManager
         float intensity =
@@ -374,13 +375,13 @@ public class WeatherSystemManager : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        if (player == null) return;
+        if (playerTransform == null) return;
 
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(player.position, rainRadius);
+        Gizmos.DrawWireSphere(playerTransform.position, rainRadius);
 
         Gizmos.color = Color.yellow;
-        Vector3 origin = player.position + Vector3.up * 2f;
+        Vector3 origin = playerTransform.position + Vector3.up * 2f;
         Vector3 dir = GetBlowingDirectionHorizontal();
         dir = dir.normalized * 2f;
         Gizmos.DrawLine(origin, origin + dir);
@@ -395,7 +396,7 @@ public class WeatherSystemManager : MonoBehaviour
         Gizmos.color = Color.magenta;
         float radians = Mathf.Deg2Rad * windDegrees;
         Vector3 windFromDirection = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
-        Vector3 wind3DPos = player.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
+        Vector3 wind3DPos = playerTransform.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
         Gizmos.DrawWireSphere(wind3DPos, 2f);
 
 #if UNITY_EDITOR
