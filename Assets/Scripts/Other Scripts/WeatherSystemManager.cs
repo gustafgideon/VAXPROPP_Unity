@@ -184,6 +184,26 @@ public class WeatherSystemManager : MonoBehaviour
         currentWind3DPosition = player.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
     }
 
+    // Ensures the XZ of a point is within rainRadius around the player.
+    Vector3 ClampToRainRadius(Vector3 point)
+    {
+        if (player == null) return point;
+
+        Vector3 center = player.position;
+        Vector3 offsetXZ = new Vector3(point.x - center.x, 0f, point.z - center.z);
+        float maxR = rainRadius;
+        float maxR2 = maxR * maxR;
+
+        if (offsetXZ.sqrMagnitude > maxR2)
+        {
+            offsetXZ = offsetXZ.normalized * maxR;
+            point.x = center.x + offsetXZ.x;
+            point.z = center.z + offsetXZ.z;
+        }
+
+        return point;
+    }
+
     void HandleRainImpacts()
     {
         if (rainIntensity <= 0f || player == null) return;
@@ -215,6 +235,9 @@ public class WeatherSystemManager : MonoBehaviour
                 bounds.max.y + 5f,
                 Random.Range(bounds.min.z, bounds.max.z)
             );
+
+            // NEW: Clamp the random origin to always be within the rain radius.
+            randomPoint = ClampToRainRadius(randomPoint);
 
             if (Physics.Raycast(randomPoint, Vector3.down, out RaycastHit hit, 50f))
             {
