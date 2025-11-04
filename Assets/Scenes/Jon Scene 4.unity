@@ -71599,7 +71599,7 @@ MeshRenderer:
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
+  m_StaticShadowCaster: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -79361,7 +79361,6 @@ MonoBehaviour:
   PathContainer: {fileID: 1646136878}
   SplineIndex: 0
   Player: {fileID: 930912995}
-  AutoFindPlayerByTag: 1
   PlayerTag: Player
   MatchPlayerRotationInside: 0
   InvertInsideSign: 0
@@ -79376,8 +79375,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1176123624}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.03755326, y: -0.4794474, z: 0.020541102, w: 0.8765261}
-  m_LocalPosition: {x: -13.010616, y: 16.10562, z: 161.4924}
+  m_LocalRotation: {x: 0.012184263, y: 0.7650252, z: -0.014480266, w: 0.6437223}
+  m_LocalPosition: {x: 2.2696114, y: 18.988934, z: 134.95573}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -79429,7 +79428,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 15
+  m_Radius: 14.999998
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1176123630
 MonoBehaviour:
@@ -112352,11 +112351,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 9
+      value: 19
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 182
+      value: 119
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.w

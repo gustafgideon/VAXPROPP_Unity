@@ -26,10 +26,7 @@ public class SplineFollower : MonoBehaviour
     [Tooltip("Transform we project onto the spline (usually the Player/Listener).")]
     public Transform Player;
 
-    [Tooltip("If true, auto-find Player by tag when missing or destroyed.")]
-    public bool AutoFindPlayerByTag = true;
-
-    [Tooltip("Tag to use when auto-finding the Player.")]
+    [Tooltip("Tag to use when auto-finding the Player (always used if Player is missing).")]
     public string PlayerTag = "Player";
 
     [Header("Zone Options (only used in Zone mode)")]
@@ -66,6 +63,10 @@ public class SplineFollower : MonoBehaviour
     Vector3 _posVel;          // for Vector3.SmoothDamp
     Quaternion _rotCurrent = Quaternion.identity;
 
+    // Run-once-per-frame guard and detach transition
+    int _lastProcessedFrame = -1;
+    bool _wasAttachedLastFrame = false;
+
     void OnValidate()
     {
         if (PathContainer == null)
@@ -82,6 +83,8 @@ public class SplineFollower : MonoBehaviour
         TryAutoAssignPlayerIfMissing();
         Rebuild();
         _rotCurrent = transform.rotation;
+        _lastProcessedFrame = -1;
+        _wasAttachedLastFrame = false;
     }
 
     void OnDisable()
@@ -89,6 +92,8 @@ public class SplineFollower : MonoBehaviour
         _pts = null;
         _segCount = 0;
         _posVel = Vector3.zero;
+        _lastProcessedFrame = -1;
+        _wasAttachedLastFrame = false;
     }
 
     void Update()
@@ -101,13 +106,24 @@ public class SplineFollower : MonoBehaviour
             return;
         }
 
-        // Play Mode: do actual motion in LateUpdate after Player moves.
+        // In Play Mode, try to process here (if Player moves in Update).
+        TryStepOncePerFrame();
     }
 
     void LateUpdate()
     {
         if (!Application.isPlaying) return;
+
+        // In Play Mode, also try to process here (if Player moves in LateUpdate).
+        TryStepOncePerFrame();
+    }
+
+    void TryStepOncePerFrame()
+    {
+        // Ensure we process exactly once per frame, regardless of Update/LateUpdate order.
+        if (_lastProcessedFrame == Time.frameCount) return;
         Step(Time.deltaTime, editorTick: false);
+        _lastProcessedFrame = Time.frameCount;
     }
 
     void Step(float dt, bool editorTick)
@@ -161,15 +177,14 @@ public class SplineFollower : MonoBehaviour
         Vector3 tan = pb - pa;
         if (tan.sqrMagnitude <= Epsilon) tan = transform.forward; else tan.Normalize();
 
-        // 2) Decide final position/rotation based on behavior
+        // 2) Zone inside test (robust) and attach logic
         bool attachedToPlayer = false;
 
         if (Behavior == Mode.Zone)
         {
-            // Stable inside test: use frame right = cross(up, tangent)
-            Vector3 up = WorldUp;
-            Vector3 right = Vector3.Cross(up, tan);
-            if (right.sqrMagnitude <= Epsilon) right = transform.right; else right.Normalize();
+            // Robust up: if tangent is near-vertical vs world up, pick a different up to avoid degeneracy.
+            Vector3 up = (Mathf.Abs(Vector3.Dot(tan, WorldUp)) > 0.95f) ? Vector3.forward : WorldUp;
+            Vector3 right = Vector3.Cross(up, tan).normalized;
 
             float dot = Vector3.Dot(projPos - driverPos, right); // positive => "inside" by default
             if (InvertInsideSign) dot = -dot;
@@ -188,23 +203,25 @@ public class SplineFollower : MonoBehaviour
             }
         }
 
+        // 3) When not attached, place on spline (with a snap on the first frame after detaching)
         if (!attachedToPlayer)
         {
-            // 3) Apply position (optionally smoothed)
-            if (Application.isPlaying && dt > 0f && kPositionSmoothTime > 0f)
-            {
-                transform.position = Vector3.SmoothDamp(transform.position, projPos, ref _posVel, kPositionSmoothTime, Mathf.Infinity, dt);
-            }
-            else
+            bool snapNow = _wasAttachedLastFrame; // just exited zone this frame?
+
+            if (snapNow || !(Application.isPlaying && dt > 0f && kPositionSmoothTime > 0f))
             {
                 _posVel = Vector3.zero;
                 transform.position = projPos;
             }
+            else
+            {
+                transform.position = Vector3.SmoothDamp(transform.position, projPos, ref _posVel, kPositionSmoothTime, Mathf.Infinity, dt);
+            }
 
-            // 4) Apply orientation (always, with simple damping if enabled)
+            // Apply orientation (with simple damping if enabled)
             if (kOrientToSpline)
             {
-                Vector3 up = WorldUp;
+                Vector3 up = (Mathf.Abs(Vector3.Dot(tan, WorldUp)) > 0.95f) ? Vector3.forward : WorldUp;
                 Quaternion targetRot = Quaternion.LookRotation(tan, up);
 
                 if (Application.isPlaying && kRotationDamping > 0f && dt > 0f)
@@ -220,6 +237,8 @@ public class SplineFollower : MonoBehaviour
                 transform.rotation = _rotCurrent;
             }
         }
+
+        _wasAttachedLastFrame = attachedToPlayer;
     }
 
     void Rebuild()
@@ -251,21 +270,31 @@ public class SplineFollower : MonoBehaviour
         _segCount = _pts.Length - 1;
     }
 
+    // Simple toggle without adding any extra Inspector UI
+    public void SetRunInEditMode(bool enabled) => RunInEditMode = enabled;
+
+    [ContextMenu("Toggle Run In Edit Mode")]
+    public void ToggleRunInEditMode() => RunInEditMode = !RunInEditMode;
+
     static bool IsAlive(Object o) => o != null;
 
     void TryAutoAssignPlayerIfMissing()
     {
         if (IsAlive(Player)) return;
-        if (!AutoFindPlayerByTag || string.IsNullOrEmpty(PlayerTag)) return;
 
-        var go = GameObject.FindWithTag(PlayerTag);
-        if (go != null)
+        // Always try to find by tag if provided
+        if (!string.IsNullOrEmpty(PlayerTag))
         {
-            Player = go.transform;
+            var go = GameObject.FindWithTag(PlayerTag);
+            if (go != null)
+            {
+                Player = go.transform;
+                return;
+            }
         }
-        else if (Camera.main != null)
-        {
+
+        // Fallback to main camera
+        if (Camera.main != null)
             Player = Camera.main.transform;
-        }
     }
 }
