@@ -32,16 +32,6 @@ public class SplineFollower : MonoBehaviour
     [Tooltip("Tag to use when auto-finding the Player.")]
     public string PlayerTag = "Player";
 
-    [Header("Behavior")]
-    [Tooltip("Align follower with spline tangent.")]
-    public bool OrientToSpline = true;
-
-    [Tooltip("Position smoothing time (seconds). 0 = no smoothing.")]
-    [Min(0f)] public float PositionSmoothTime = 0.08f;
-
-    [Tooltip("Rotation damping (1/seconds). 0 = snap rotation.")]
-    [Min(0f)] public float RotationDamping = 12f;
-
     [Header("Zone Options (only used in Zone mode)")]
     [Tooltip("When in Zone mode and attached to player, match player's rotation.")]
     public bool MatchPlayerRotationInside = false;
@@ -59,6 +49,11 @@ public class SplineFollower : MonoBehaviour
     [Header("Editor")]
     [Tooltip("Run in Edit Mode (when not playing).")]
     public bool RunInEditMode = true;
+
+    // Hardcoded behavior (change here if you want different defaults)
+    const bool kOrientToSpline = true;
+    const float kPositionSmoothTime = 0.08f; // seconds; set 0 to disable smoothing
+    const float kRotationDamping = 12f;      // 1/seconds; set 0 to snap rotation
 
     // Internal
     const float Epsilon = 1e-6f;
@@ -196,9 +191,9 @@ public class SplineFollower : MonoBehaviour
         if (!attachedToPlayer)
         {
             // 3) Apply position (optionally smoothed)
-            if (Application.isPlaying && dt > 0f && PositionSmoothTime > 0f)
+            if (Application.isPlaying && dt > 0f && kPositionSmoothTime > 0f)
             {
-                transform.position = Vector3.SmoothDamp(transform.position, projPos, ref _posVel, PositionSmoothTime, Mathf.Infinity, dt);
+                transform.position = Vector3.SmoothDamp(transform.position, projPos, ref _posVel, kPositionSmoothTime, Mathf.Infinity, dt);
             }
             else
             {
@@ -206,15 +201,15 @@ public class SplineFollower : MonoBehaviour
                 transform.position = projPos;
             }
 
-            // 4) Apply orientation (optional, with simple damping)
-            if (OrientToSpline)
+            // 4) Apply orientation (always, with simple damping if enabled)
+            if (kOrientToSpline)
             {
                 Vector3 up = WorldUp;
                 Quaternion targetRot = Quaternion.LookRotation(tan, up);
 
-                if (Application.isPlaying && RotationDamping > 0f && dt > 0f)
+                if (Application.isPlaying && kRotationDamping > 0f && dt > 0f)
                 {
-                    float t = 1f - Mathf.Exp(-RotationDamping * dt);
+                    float t = 1f - Mathf.Exp(-kRotationDamping * dt);
                     _rotCurrent = Quaternion.Slerp(_rotCurrent, targetRot, t);
                 }
                 else
