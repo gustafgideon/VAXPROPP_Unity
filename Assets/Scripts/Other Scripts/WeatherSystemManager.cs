@@ -140,7 +140,7 @@ public class WeatherSystemManager : MonoBehaviour
             ApplyWindToParticles();
 
         // Keep rain particles above the player
-        rainParticles.transform.position = playerTransform.position + Vector3.up * 10f;
+        rainParticles.transform.position = playerTransform.position + Vector3.up * 5f;
     }
 
     void UpdateRainParticles()
@@ -279,7 +279,7 @@ public class WeatherSystemManager : MonoBehaviour
         if (playerTransform == null || !isRainValid) return;
 
         Vector3 rayOrigin = playerTransform.position;
-        float checkDistance = 3f;
+        float checkDistance = 10f;
 
         float occlusionEQ = 0f;
         float occlusionVolume = 0f;
