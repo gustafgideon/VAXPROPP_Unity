@@ -18,6 +18,7 @@ TagManager:
   - Metal Solid
   - Rock_Water
   - Waterfall
+  - WaterPuddle
   layers:
   - Default
   - TransparentFX

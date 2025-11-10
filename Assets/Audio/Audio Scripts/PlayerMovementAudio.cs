@@ -177,6 +177,7 @@ public class PlayerMovementAudio : MonoBehaviour
                 case "Concrete": return "Concrete";
                 case "Sand": return "Sand";
                 case "Stone": return "Stone";
+                case "WaterPuddle": return "WaterPuddle";
                 case "Concrete_Stair": return "Concrete_Stair";
                 case "Wood_Stair": return "Wood_Stair";
             }
@@ -215,6 +216,8 @@ public class PlayerMovementAudio : MonoBehaviour
                     case 2: return "Wood";
                     case 3: return "Concrete";
                     case 4: return "Sand";
+                    case 5: return "Stone";
+                    case 6: return "WaterPuddle";
                     default: return "Player";
                 }
             }

@@ -38,8 +38,11 @@ public class PlayerAudio : ScriptableObject
             case "Stone":
                 playerWalkInstance.setParameterByName("Surface", 5f);
                 break;
-            case "Concrete_Stair":
+            case "WaterPuddle":
                 playerWalkInstance.setParameterByName("Surface", 6f);
+                break;
+            case "Concrete_Stair":
+                playerWalkInstance.setParameterByName("Surface", 7f);
                 break;
             case "Player":
                 break;
