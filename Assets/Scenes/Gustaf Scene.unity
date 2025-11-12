@@ -14154,7 +14154,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 29.999983
+  m_Radius: 27.74739
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &38705757
 MonoBehaviour:
@@ -14186,8 +14186,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 38705753}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.008000437, y: 0.72230655, z: -0.008357147, w: 0.6914763}
-  m_LocalPosition: {x: 73.06951, y: -0.55144215, z: 12.702899}
+  m_LocalRotation: {x: 0.021382425, y: 0.829422, z: -0.03182286, w: 0.5573054}
+  m_LocalPosition: {x: 33.854183, y: 1.2342849, z: 17.129223}
   m_LocalScale: {x: 0.6332732, y: 1, z: 0.9988992}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -22053,9 +22053,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   materialName: Glass
-  occlusionMultiplier: 1
-  transmissionFactor: 0.1
-  showMaterialInfo: 0
 --- !u!64 &65262173
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -30749,19 +30746,19 @@ PrefabInstance:
       objectReference: {fileID: 190128697}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1
+      value: -73
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 5.51
+      value: 7.52
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 240.64
+      value: 209.2
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.99961793
+      value: 0.6857014
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.x
@@ -30769,7 +30766,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.02764223
+      value: -0.72788304
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.z
@@ -30781,7 +30778,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: -3.168
+      value: -93.418
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -48182,44 +48179,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d25703d6856242b9a558629381ad765, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  usePlayerTag: 1
-  playerTag: Player
   occlusionLayers:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 4294967295
   maxCheckDistance: 60
-  rayStartOffset: 0.05
-  singleHit: 1
+  playerTag: Player
   updatesPerSecond: 10
-  autoScanForEmitters: 1
-  emitterRescanInterval: 5
-  volumeParameterName: Volume
-  lowpassParameterName: Lowpass
-  materialSettings:
-  - materialName: Default
-    volumeMultiplier: 0.85
-    lowpassValue: 0.3
-    fullyOcclude: 0
+  debugDraw: 0
+  materials:
+  - materialName: Silent
+    volume: 1
+    lowpass: 1
   - materialName: Wood
-    volumeMultiplier: 0.75
-    lowpassValue: 0.5
-    fullyOcclude: 0
+    volume: 0.076
+    lowpass: 0.156
   - materialName: Concrete
-    volumeMultiplier: 0.6
-    lowpassValue: 0.65
-    fullyOcclude: 0
+    volume: 0.288
+    lowpass: 0.204
   - materialName: Glass
-    volumeMultiplier: 0.9
-    lowpassValue: 0.2
-    fullyOcclude: 0
+    volume: 0.236
+    lowpass: 0.172
   - materialName: Metal
-    volumeMultiplier: 0.5
-    lowpassValue: 0.7
-    fullyOcclude: 0
-  useOcclusionMaterialComponent: 1
-  fallbackToColliderTag: 1
-  debugRays: 0
-  debugLog: 0
+    volume: 0.32
+    lowpass: 0.236
 --- !u!4 &504708093 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 416178, guid: fe546dac68b4ae943a161dec60c98fed, type: 3}
@@ -54050,9 +54032,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   materialName: Wood
-  occlusionMultiplier: 1
-  transmissionFactor: 0.1
-  showMaterialInfo: 0
 --- !u!64 &667204195
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -77857,7 +77836,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 24.999935
+  m_Radius: 22.24804
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &833379101
 MonoBehaviour:
@@ -77889,8 +77868,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 833379097}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.006012648, y: 0.71405965, z: -0.00613313, w: 0.70003223}
-  m_LocalPosition: {x: 72.418396, y: -0.72665215, z: 44.50422}
+  m_LocalRotation: {x: 0.052118246, y: 0.8534581, z: -0.087013, w: 0.51119643}
+  m_LocalPosition: {x: 67.274796, y: -0.2708521, z: 45.24848}
   m_LocalScale: {x: 0.6329243, y: 1, z: 0.9997679}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -78806,7 +78785,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 29.999992
+  m_Radius: 26.981237
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &843124785
 MonoBehaviour:
@@ -78838,8 +78817,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 843124781}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.0017737439, y: 0.73703516, z: 0.0019343242, w: 0.6758493}
-  m_LocalPosition: {x: 77.87431, y: -1.3980885, z: 30.307499}
+  m_LocalRotation: {x: 0.040034823, y: 0.8500845, z: -0.06531685, w: 0.5210445}
+  m_LocalPosition: {x: 57.501213, y: -0.03511381, z: 34.102577}
   m_LocalScale: {x: 0.6345727, y: 1, z: 0.9956827}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -80668,9 +80647,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   materialName: Concrete
-  occlusionMultiplier: 1
-  transmissionFactor: 0.1
-  showMaterialInfo: 0
 --- !u!64 &906024727
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -111623,7 +111599,7 @@ MonoBehaviour:
       Data2: 1130100668
       Data3: 12701366
       Data4: -1214248760
-    Path: event:/Test/OcclusionTest
+    Path: event:/Occlusion/OcclusionTest
   Event: 
   EventPlayTrigger: 1
   EventStopTrigger: 2
