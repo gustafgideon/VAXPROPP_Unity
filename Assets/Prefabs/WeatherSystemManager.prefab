@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60fd9bc934fffbe49a15c9c89f5da726, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  player: {fileID: 0}
+  playerTransform: {fileID: 0}
   playerObject: {fileID: 0}
   rainParticles: {fileID: 0}
   rainIntensity: 0
@@ -78,7 +78,7 @@ MonoBehaviour:
       Data2: 1166931283
       Data3: 1163114917
       Data4: -420624929
-    Path: event:/AMB/WeatherSystem/Wind/Weather_Wind_Forest
+    Path: event:/AMB/WeatherSystem/Wind/Weather_Wind_Events/Weather_Wind_Forest
   windDirectionEvent:
     Guid:
       Data1: 0
@@ -92,7 +92,7 @@ MonoBehaviour:
       Data2: 1281292602
       Data3: 115634052
       Data4: 1757522054
-    Path: event:/AMB/WeatherSystem/Weather_Thunder
+    Path: event:/AMB/WeatherSystem/Thunder/Weather_Thunder
   rainParameterName: RainIntensity
   windParameterName: WindStrength
   windDegreesParameterName: WindDegrees

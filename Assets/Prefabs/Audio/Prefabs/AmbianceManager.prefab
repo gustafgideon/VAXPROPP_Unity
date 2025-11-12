@@ -47,11 +47,11 @@ MonoBehaviour:
   CollisionTag: 
   EventReference:
     Guid:
-      Data1: 627678234
-      Data2: 1078709686
-      Data3: -2052395341
-      Data4: 1296524606
-    Path: event:/AMB/AMB_Factory
+      Data1: 2049046798
+      Data2: 1327418027
+      Data3: 1722587827
+      Data4: -8949375
+    Path: event:/AMB/AMBEvents/Desert/AMB_Bed_Desert_Dawn
   Event: 
   EventPlayTrigger: 0
   EventStopTrigger: 0
@@ -236,10 +236,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de115cb6cfbad3146b0c1faf9c9ddfa8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  forestAmbianceEmitter: {fileID: 8788483779575935490}
-  desertAmbianceEmitter: {fileID: 3284282817277353809}
-  plantAmbianceEmitter: {fileID: 1388415834475908609}
-  fadeTime: 5
+  crossFadeTime: 5
+  ambianceEmitters:
+    Forest: {fileID: 8788483779575935490}
+    Desert: {fileID: 3284282817277353809}
+    Plant: {fileID: 1388415834475908609}
+  legacy_forestAmbianceEmitter: {fileID: 8788483779575935490}
+  legacy_desertAmbianceEmitter: {fileID: 3284282817277353809}
+  legacy_plantAmbianceEmitter: {fileID: 1388415834475908609}
   rainLocationParameterName: RainLocation
   windLocationParameterName: WindLocation
   debugLogging: 1

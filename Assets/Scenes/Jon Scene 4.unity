@@ -1692,31 +1692,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d25703d6856242b9a558629381ad765, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxOcclusionDistance: 50
-  updateFrequency: 10
+  usePlayerTag: 1
+  playerTag: Player
   occlusionLayers:
     serializedVersion: 2
     m_Bits: 8
-  usePlayerTag: 1
-  playerTag: Player
-  materialProperties:
+  maxCheckDistance: 60
+  rayStartOffset: 0.05
+  singleHit: 1
+  updatesPerSecond: 10
+  autoScanForEmitters: 1
+  emitterRescanInterval: 5
+  volumeParameterName: Volume
+  lowpassParameterName: Lowpass
+  materialSettings:
   - materialName: Default
-    occlusionMultiplier: 1
-    transmissionFactor: 0.1
+    volumeMultiplier: 0.85
+    lowpassValue: 0.3
+    fullyOcclude: 0
   - materialName: Wood
-    occlusionMultiplier: 0.8
-    transmissionFactor: 0.2
+    volumeMultiplier: 0.75
+    lowpassValue: 0.5
+    fullyOcclude: 0
   - materialName: Concrete
-    occlusionMultiplier: 1.2
-    transmissionFactor: 0.05
+    volumeMultiplier: 0.6
+    lowpassValue: 0.65
+    fullyOcclude: 0
   - materialName: Glass
-    occlusionMultiplier: 0.3
-    transmissionFactor: 0.7
+    volumeMultiplier: 0.9
+    lowpassValue: 0.2
+    fullyOcclude: 0
   - materialName: Metal
-    occlusionMultiplier: 1.5
-    transmissionFactor: 0.02
-  showDebugRays: 1
-  showDebugInfo: 1
+    volumeMultiplier: 0.5
+    lowpassValue: 0.7
+    fullyOcclude: 0
+  useOcclusionMaterialComponent: 1
+  fallbackToColliderTag: 1
+  debugRays: 0
+  debugLog: 0
 --- !u!4 &3923331
 Transform:
   m_ObjectHideFlags: 0
@@ -21472,6 +21485,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windEvent.Path
+      value: event:/AMB/WeatherSystem/Wind/Weather_Wind_Events_Nested/Weather_Wind_Events_Nested
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: playerTransform
       value: 
       objectReference: {fileID: 930912995}
@@ -21482,6 +21499,22 @@ PrefabInstance:
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: rainLoopEvent.Path
       value: event:/AMB/WeatherSystem/Rain/Weather_Rain_Nested_Events/Weather_Rain_Nested_Events
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windEvent.Guid.Data1
+      value: 1242730625
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windEvent.Guid.Data2
+      value: 1249726463
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windEvent.Guid.Data3
+      value: -1074657369
+      objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: windEvent.Guid.Data4
+      value: 329856434
       objectReference: {fileID: 0}
     - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
       propertyPath: customFromAngleDegrees
@@ -43618,7 +43651,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: fullDayLengthMinutes
-      value: 10
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: rainToOvercastExponent
@@ -67979,13 +68012,25 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 12
       objectReference: {fileID: 0}
+    - target: {fileID: 117012, guid: 802fd2656e039404983843d958c03dce, type: 3}
+      propertyPath: m_TagString
+      value: Metal Solid
+      objectReference: {fileID: 0}
     - target: {fileID: 188630, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_Layer
       value: 12
       objectReference: {fileID: 0}
+    - target: {fileID: 188630, guid: 802fd2656e039404983843d958c03dce, type: 3}
+      propertyPath: m_TagString
+      value: Metal Solid
+      objectReference: {fileID: 0}
     - target: {fileID: 192616, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_Layer
       value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 192616, guid: 802fd2656e039404983843d958c03dce, type: 3}
+      propertyPath: m_TagString
+      value: Metal Solid
       objectReference: {fileID: 0}
     - target: {fileID: 401466, guid: 802fd2656e039404983843d958c03dce, type: 3}
       propertyPath: m_LocalScale.x
@@ -74154,6 +74199,95 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 484144, guid: 0605deaa6afb37547a376b965328a405, type: 3}
   m_PrefabInstance: {fileID: 542314992}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1105162989
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 309616745694788549, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_Name
+      value: AmbianceTrigger_Desert
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 13.2883
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 281
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 446055836138102803, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3150835355122854291, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: triggerEnterAudioSettings.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3150835355122854291, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: triggerEnterAudioSettings.Array.data[0].location
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3766797728569517965, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_Size.x
+      value: 39.372414
+      objectReference: {fileID: 0}
+    - target: {fileID: 3766797728569517965, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_Size.y
+      value: 18
+      objectReference: {fileID: 0}
+    - target: {fileID: 3766797728569517965, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_Size.z
+      value: 4.5056458
+      objectReference: {fileID: 0}
+    - target: {fileID: 3766797728569517965, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_Center.x
+      value: -13.186207
+      objectReference: {fileID: 0}
+    - target: {fileID: 3766797728569517965, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_Center.y
+      value: 8.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3766797728569517965, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
+      propertyPath: m_Center.z
+      value: -9.247177
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 7e86ffe71f69f484dad223bd6f6a2af8, type: 3}
 --- !u!4 &1105453062 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 486490, guid: 5f8119929abe75e4e8f9da64a6263f12, type: 3}
@@ -128976,38 +129110,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8afc27e34d8cf4731884f5cd4758fdad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  occlusionParameterName: Occlusion
-  maxOcclusionStrength: 0.545
-  transitionSpeed: 2
-  occlusionCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  useUnityVolumeControl: 1
-  useFMODParameterControl: 1
-  minVolumeWhenOccluded: 0.2
-  autoRestartStoppedEvents: 1
-  showDebugInfo: 0
 --- !u!114 &2029598338
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -129027,7 +129129,7 @@ MonoBehaviour:
       Data2: 1130100668
       Data3: 12701366
       Data4: -1214248760
-    Path: event:/Test/OcclusionTest
+    Path: event:/Occlusion/OcclusionTest
   Event: 
   EventPlayTrigger: 1
   EventStopTrigger: 2
@@ -132336,7 +132438,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 278
+      value: 271.62
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.w
@@ -132668,3 +132770,4 @@ SceneRoots:
   - {fileID: 1803818705}
   - {fileID: 386534710}
   - {fileID: 563882864}
+  - {fileID: 1105162989}
