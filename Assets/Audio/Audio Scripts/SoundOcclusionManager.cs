@@ -1,296 +1,351 @@
 using UnityEngine;
 using System.Collections.Generic;
 using FMODUnity;
+using FMOD.Studio;
 
 [System.Serializable]
-public class MaterialOcclusionProperties
+public class MaterialOcclusionSetting
 {
     public string materialName = "Default";
-    public float occlusionMultiplier = 1.0f;
+
     [Range(0f, 1f)]
-    public float transmissionFactor = 0.1f;
+    [Tooltip("Volume multiplier when occluded by this material (0 = silent, 1 = unchanged). Ignored if fullyOcclude = true.")]
+    public float volumeMultiplier = 0.7f;
+
+    [Range(0f, 1f)]
+    [Tooltip("Lowpass parameter value (0 = no lowpass, 1 = full lowpass). Ignored if fullyOcclude = true.")]
+    public float lowpassValue = 0.5f;
+
+    [Tooltip("If true, volume forced to 0 and lowpass forced to 1 when this material occludes.")]
+    public bool fullyOcclude = false;
 }
 
 public class SoundOcclusionManager : MonoBehaviour
 {
-    [Header("Occlusion Settings")]
-    [SerializeField] private float maxOcclusionDistance = 50f;
-    [SerializeField] private float updateFrequency = 10f;
-    [SerializeField] private LayerMask occlusionLayers = -1;
+    public static SoundOcclusionManager Instance { get; private set; }
+
+    [Header("Listener Settings")]
     [SerializeField] private bool usePlayerTag = true;
     [SerializeField] private string playerTag = "Player";
-    
-    [Header("Material Properties")]
-    [SerializeField] private MaterialOcclusionProperties[] materialProperties = {
-        new MaterialOcclusionProperties { materialName = "Default", occlusionMultiplier = 1.0f, transmissionFactor = 0.1f },
-        new MaterialOcclusionProperties { materialName = "Wood", occlusionMultiplier = 0.8f, transmissionFactor = 0.2f },
-        new MaterialOcclusionProperties { materialName = "Concrete", occlusionMultiplier = 1.2f, transmissionFactor = 0.05f },
-        new MaterialOcclusionProperties { materialName = "Glass", occlusionMultiplier = 0.3f, transmissionFactor = 0.7f },
-        new MaterialOcclusionProperties { materialName = "Metal", occlusionMultiplier = 1.5f, transmissionFactor = 0.02f }
+
+    [Header("Occlusion Ray")]
+    [SerializeField] private LayerMask occlusionLayers = ~0;
+    [SerializeField] private float maxCheckDistance = 60f;
+    [SerializeField] private float rayStartOffset = 0.05f;
+    [SerializeField] private bool singleHit = true;
+
+    [Header("Update")]
+    [SerializeField, Tooltip("Occlusion recalculations per second.")]
+    private float updatesPerSecond = 10f;
+
+    [SerializeField, Tooltip("If true, the manager will scan for new emitters automatically.")]
+    private bool autoScanForEmitters = true;
+
+    [SerializeField, Tooltip("Seconds between automatic full scans if autoScanForEmitters is enabled.")]
+    private float emitterRescanInterval = 5f;
+
+    [Header("FMOD Parameter Names")]
+    [SerializeField] private string volumeParameterName = "Volume";
+    [SerializeField] private string lowpassParameterName = "Lowpass";
+
+    [Header("Material Settings")]
+    [SerializeField] private MaterialOcclusionSetting[] materialSettings = {
+        new MaterialOcclusionSetting { materialName = "Default", volumeMultiplier = 0.85f, lowpassValue = 0.3f, fullyOcclude = false },
+        new MaterialOcclusionSetting { materialName = "Wood", volumeMultiplier = 0.75f, lowpassValue = 0.5f, fullyOcclude = false },
+        new MaterialOcclusionSetting { materialName = "Concrete", volumeMultiplier = 0.6f, lowpassValue = 0.65f, fullyOcclude = false },
+        new MaterialOcclusionSetting { materialName = "Glass", volumeMultiplier = 0.9f, lowpassValue = 0.2f, fullyOcclude = false },
+        new MaterialOcclusionSetting { materialName = "Metal", volumeMultiplier = 0.5f, lowpassValue = 0.7f, fullyOcclude = false }
     };
-    
+
+    [Header("Lookup Mode")]
+    [SerializeField] private bool useOcclusionMaterialComponent = true;
+    [SerializeField] private bool fallbackToColliderTag = true;
+
     [Header("Debug")]
-    [SerializeField] private bool showDebugRays = false;
-    [SerializeField] private bool showDebugInfo = false;
-    
-    private static SoundOcclusionManager instance;
+    [SerializeField] private bool debugRays = false;
+    [SerializeField] private bool debugLog = false;
+
     private Transform listenerTransform;
-    private List<OccludableFMODEvent> registeredSounds = new List<OccludableFMODEvent>();
-    private Dictionary<string, MaterialOcclusionProperties> materialLookup = new Dictionary<string, MaterialOcclusionProperties>();
+    private readonly List<StudioEventEmitter> emitters = new List<StudioEventEmitter>();
+    private readonly Dictionary<string, MaterialOcclusionSetting> materialLookup = new Dictionary<string, MaterialOcclusionSetting>();
+
     private float updateTimer;
-    
-    public static SoundOcclusionManager Instance => instance;
-    
+    private float scanTimer;
+
     private void Awake()
     {
-        if (instance == null)
-        {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-            InitializeMaterialLookup();
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
+            return;
         }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+        BuildMaterialLookup();
     }
-    
+
     private void Start()
     {
         FindListener();
-        
-        if (showDebugInfo)
-        {
-            Debug.Log($"SoundOcclusionManager started. Listener found: {(listenerTransform != null ? listenerTransform.name : "NULL")}");
-            Debug.Log($"Occlusion Layers: {occlusionLayers.value}");
-        }
+        FullScanEmitters();
     }
-    
+
     private void Update()
     {
-        // Try to find listener if we don't have one
         if (listenerTransform == null)
         {
             FindListener();
+            if (listenerTransform == null) return;
         }
-        
+
+        // Periodic occlusion update
         updateTimer += Time.deltaTime;
-        if (updateTimer >= 1f / updateFrequency)
+        if (updateTimer >= (1f / Mathf.Max(0.01f, updatesPerSecond)))
         {
             updateTimer = 0f;
-            UpdateOcclusion();
+            UpdateOcclusions();
         }
-    }
-    
-    private void InitializeMaterialLookup()
-    {
-        materialLookup.Clear();
-        foreach (var material in materialProperties)
+
+        // Periodic emitter scanning
+        if (autoScanForEmitters)
         {
-            if (!materialLookup.ContainsKey(material.materialName))
+            scanTimer += Time.deltaTime;
+            if (scanTimer >= emitterRescanInterval)
             {
-                materialLookup.Add(material.materialName, material);
+                scanTimer = 0f;
+                FullScanEmitters();
             }
         }
     }
-    
+
+    private void BuildMaterialLookup()
+    {
+        materialLookup.Clear();
+        foreach (var m in materialSettings)
+        {
+            if (!materialLookup.ContainsKey(m.materialName))
+                materialLookup.Add(m.materialName, m);
+        }
+
+        if (!materialLookup.ContainsKey("Default"))
+        {
+            materialLookup.Add("Default", new MaterialOcclusionSetting
+            {
+                materialName = "Default",
+                volumeMultiplier = 0.85f,
+                lowpassValue = 0.3f,
+                fullyOcclude = false
+            });
+        }
+    }
+
     private void FindListener()
     {
         listenerTransform = null;
-        
-        // Try to find by player tag first
+
         if (usePlayerTag)
         {
-            GameObject player = GameObject.FindGameObjectWithTag(playerTag);
-            if (player != null)
-            {
-                listenerTransform = player.transform;
-                if (showDebugInfo)
-                {
-                    Debug.Log($"Found player by tag: {player.name}");
-                }
-            }
+            var player = GameObject.FindGameObjectWithTag(playerTag);
+            if (player) listenerTransform = player.transform;
         }
-        
-        // Fallback to Camera.main
+
+        if (listenerTransform == null && Camera.main != null)
+            listenerTransform = Camera.main.transform;
+
         if (listenerTransform == null)
         {
-            Camera mainCamera = Camera.main;
-            if (mainCamera != null)
+            var anyCam = FindObjectOfType<Camera>();
+            if (anyCam) listenerTransform = anyCam.transform;
+        }
+
+        if (debugLog && listenerTransform != null)
+            Debug.Log($"[SoundOcclusionManager] Listener set to {listenerTransform.name}");
+    }
+
+    public void RegisterEmitter(StudioEventEmitter emitter)
+    {
+        if (emitter == null || emitters.Contains(emitter)) return;
+        emitters.Add(emitter);
+        if (debugLog) Debug.Log($"[SoundOcclusionManager] Registered emitter {emitter.name}");
+    }
+
+    public void UnregisterEmitter(StudioEventEmitter emitter)
+    {
+        if (emitters.Remove(emitter) && debugLog)
+            Debug.Log($"[SoundOcclusionManager] Unregistered emitter {emitter.name}");
+    }
+
+    private void FullScanEmitters()
+    {
+        var found = FindObjectsOfType<StudioEventEmitter>(true);
+        int added = 0;
+        foreach (var e in found)
+        {
+            if (!emitters.Contains(e))
             {
-                listenerTransform = mainCamera.transform;
-                if (showDebugInfo)
-                {
-                    Debug.Log($"Using main camera as listener: {mainCamera.name}");
-                }
+                emitters.Add(e);
+                added++;
             }
         }
-        
-        // Last resort: find any camera
-        if (listenerTransform == null)
+        if (debugLog)
+            Debug.Log($"[SoundOcclusionManager] Full scan: {found.Length} emitters found, {added} newly added.");
+        CleanupNulls();
+    }
+
+    private void CleanupNulls()
+    {
+        for (int i = emitters.Count - 1; i >= 0; i--)
         {
-            Camera anyCamera = FindObjectOfType<Camera>();
-            if (anyCamera != null)
-            {
-                listenerTransform = anyCamera.transform;
-                if (showDebugInfo)
-                {
-                    Debug.Log($"Using any camera as listener: {anyCamera.name}");
-                }
-            }
-        }
-        
-        if (listenerTransform == null && showDebugInfo)
-        {
-            Debug.LogWarning("SoundOcclusionManager: Could not find listener position!");
+            if (emitters[i] == null)
+                emitters.RemoveAt(i);
         }
     }
-    
-    public void RegisterSound(OccludableFMODEvent sound)
+
+    private void UpdateOcclusions()
     {
-        if (!registeredSounds.Contains(sound))
+        if (listenerTransform == null) return;
+
+        Vector3 listenerPos = listenerTransform.position;
+        CleanupNulls();
+
+        foreach (var emitter in emitters)
         {
-            registeredSounds.Add(sound);
-            if (showDebugInfo)
+            if (emitter == null) continue;
+
+            // Only process playing instances
+            if (!emitter.IsPlaying())
             {
-                Debug.Log($"Registered sound: {sound.name}");
-            }
-        }
-    }
-    
-    public void UnregisterSound(OccludableFMODEvent sound)
-    {
-        if (registeredSounds.Remove(sound) && showDebugInfo)
-        {
-            Debug.Log($"Unregistered sound: {sound.name}");
-        }
-    }
-    
-    private void UpdateOcclusion()
-    {
-        if (listenerTransform == null)
-        {
-            return;
-        }
-        
-        Vector3 listenerPosition = listenerTransform.position;
-        
-        for (int i = registeredSounds.Count - 1; i >= 0; i--)
-        {
-            if (registeredSounds[i] == null)
-            {
-                registeredSounds.RemoveAt(i);
+                // Optional: Could reset parameters if desired
                 continue;
             }
-            
-            CalculateOcclusion(registeredSounds[i], listenerPosition);
+
+            ApplyOcclusionToEmitter(emitter, listenerPos);
         }
     }
-    
-    private void CalculateOcclusion(OccludableFMODEvent occludableSound, Vector3 listenerPosition)
+
+    private void ApplyOcclusionToEmitter(StudioEventEmitter emitter, Vector3 listenerPos)
     {
-        Vector3 soundPosition = occludableSound.transform.position;
-        float distance = Vector3.Distance(listenerPosition, soundPosition);
-        
-        if (distance > maxOcclusionDistance)
+        Vector3 soundPos = emitter.transform.position;
+        float distance = Vector3.Distance(listenerPos, soundPos);
+
+        if (distance > maxCheckDistance)
         {
-            occludableSound.SetOcclusionValue(0f);
+            // Beyond range: treat as clear
+            SetEmitterParameters(emitter, 1f, 0f);
             return;
         }
-        
-        Vector3 direction = (soundPosition - listenerPosition).normalized;
-        
-        // Use a slightly offset start position to avoid hitting the listener's collider
-        Vector3 rayStart = listenerPosition + direction * 0.1f;
-        float rayDistance = distance - 0.1f;
-        
-        if (showDebugInfo)
+
+        Vector3 dir = (soundPos - listenerPos).normalized;
+        Vector3 origin = listenerPos + dir * rayStartOffset;
+        float rayLength = Mathf.Max(0f, distance - rayStartOffset);
+
+        // Single or multi-hit
+        if (singleHit)
         {
-            Debug.Log($"Checking occlusion for {occludableSound.name} - Distance: {distance:F2}");
-        }
-        
-        RaycastHit[] hits = Physics.RaycastAll(rayStart, direction, rayDistance, occlusionLayers);
-        
-        float totalOcclusion = 0f;
-        int occluderCount = 0;
-        
-        foreach (RaycastHit hit in hits)
-        {
-            // Skip if we hit the sound source itself or its children
-            if (hit.collider.transform == occludableSound.transform || 
-                hit.collider.transform.IsChildOf(occludableSound.transform) ||
-                occludableSound.transform.IsChildOf(hit.collider.transform))
+            if (Physics.Raycast(origin, dir, out RaycastHit hit, rayLength, occlusionLayers))
             {
-                continue;
+                ProcessHit(emitter, hit, origin, soundPos);
             }
-            
-            // Get material properties
-            MaterialOcclusionProperties materialProps = GetMaterialProperties(hit.collider);
-            
-            // Calculate occlusion based on material
-            float hitOcclusion = materialProps.occlusionMultiplier * (1f - materialProps.transmissionFactor);
-            totalOcclusion += hitOcclusion;
-            occluderCount++;
-            
-            if (showDebugInfo)
+            else
             {
-                Debug.Log($"Hit occluder: {hit.collider.name}, Material: {materialProps.materialName}, Occlusion: {hitOcclusion:F2}");
-            }
-            
-            if (showDebugRays)
-            {
-                Debug.DrawLine(rayStart, hit.point, Color.red, 0.1f);
-                Debug.DrawLine(hit.point, soundPosition, Color.yellow, 0.1f);
+                ClearOcclusion(emitter, listenerPos, soundPos);
             }
         }
-        
-        if (showDebugRays && occluderCount == 0)
+        else
         {
-            Debug.DrawLine(listenerPosition, soundPosition, Color.green, 0.1f);
-        }
-        
-        // Clamp and apply occlusion
-        float normalizedOcclusion = Mathf.Clamp01(totalOcclusion);
-        occludableSound.SetOcclusionValue(normalizedOcclusion);
-        
-        if (showDebugInfo)
-        {
-            Debug.Log($"Final occlusion for {occludableSound.name}: {normalizedOcclusion:F2} (Occluders: {occluderCount})");
+            var hits = Physics.RaycastAll(origin, dir, rayLength, occlusionLayers);
+            if (hits.Length == 0)
+            {
+                ClearOcclusion(emitter, listenerPos, soundPos);
+            }
+            else
+            {
+                // Use closest valid hit
+                RaycastHit? chosen = null;
+                float bestDist = float.MaxValue;
+                foreach (var h in hits)
+                {
+                    float hd = (h.point - origin).sqrMagnitude;
+                    if (hd < bestDist)
+                    {
+                        bestDist = hd;
+                        chosen = h;
+                    }
+                }
+                if (chosen.HasValue)
+                    ProcessHit(emitter, chosen.Value, origin, soundPos);
+                else
+                    ClearOcclusion(emitter, listenerPos, soundPos);
+            }
         }
     }
-    
-    private MaterialOcclusionProperties GetMaterialProperties(Collider collider)
+
+    private void ProcessHit(StudioEventEmitter emitter, RaycastHit hit, Vector3 origin, Vector3 soundPos)
     {
-        // Try to get material from OcclusionMaterial component first
-        OcclusionMaterial occMaterial = collider.GetComponent<OcclusionMaterial>();
-        if (occMaterial != null && materialLookup.ContainsKey(occMaterial.MaterialName))
+        if (debugRays)
         {
-            return materialLookup[occMaterial.MaterialName];
+            Debug.DrawLine(origin, hit.point, Color.red, 0.05f);
+            Debug.DrawLine(hit.point, soundPos, Color.yellow, 0.05f);
         }
-        
-        // Return default material properties
-        return materialLookup.ContainsKey("Default") ? materialLookup["Default"] : materialProperties[0];
+
+        var setting = ResolveMaterial(hit.collider);
+
+        if (setting.fullyOcclude)
+        {
+            SetEmitterParameters(emitter, 0f, 1f);
+            if (debugLog)
+                Debug.Log($"[SoundOcclusionManager] Fully occluding {emitter.name} via {hit.collider.name} ({setting.materialName})");
+            return;
+        }
+
+        SetEmitterParameters(emitter, setting.volumeMultiplier, setting.lowpassValue);
+
+        if (debugLog)
+        {
+            Debug.Log($"[SoundOcclusionManager] Occluding {emitter.name} | Mat:{setting.materialName} Vol:{setting.volumeMultiplier:F2} LP:{setting.lowpassValue:F2}");
+        }
     }
-    
-    public MaterialOcclusionProperties GetMaterialPropertiesByName(string materialName)
+
+    private void ClearOcclusion(StudioEventEmitter emitter, Vector3 listenerPos, Vector3 soundPos)
     {
-        return materialLookup.ContainsKey(materialName) ? materialLookup[materialName] : materialProperties[0];
+        SetEmitterParameters(emitter, 1f, 0f);
+        if (debugRays)
+            Debug.DrawLine(listenerPos, soundPos, Color.green, 0.05f);
     }
-    
+
+    private MaterialOcclusionSetting ResolveMaterial(Collider col)
+    {
+        if (useOcclusionMaterialComponent)
+        {
+            var comp = col.GetComponent<OcclusionMaterial>();
+            if (comp != null && materialLookup.TryGetValue(comp.MaterialName, out var s1))
+                return s1;
+        }
+
+        if (fallbackToColliderTag && materialLookup.TryGetValue(col.tag, out var s2))
+            return s2;
+
+        return materialLookup["Default"];
+    }
+
+    private void SetEmitterParameters(StudioEventEmitter emitter, float volumeValue, float lowpassValue)
+    {
+        var inst = emitter.EventInstance;
+        volumeValue = Mathf.Clamp01(volumeValue);
+        lowpassValue = Mathf.Clamp01(lowpassValue);
+        inst.setParameterByName(volumeParameterName, volumeValue);
+        inst.setParameterByName(lowpassParameterName, lowpassValue);
+    }
+
+    public MaterialOcclusionSetting GetMaterialSetting(string name)
+    {
+        return materialLookup.TryGetValue(name, out var m) ? m : materialLookup["Default"];
+    }
+
     private void OnDrawGizmosSelected()
     {
-        if (!showDebugRays || listenerTransform == null) return;
-        
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(listenerTransform.position, maxOcclusionDistance);
-        
-        foreach (var sound in registeredSounds)
-        {
-            if (sound != null)
-            {
-                Gizmos.color = Color.Lerp(Color.green, Color.red, sound.CurrentOcclusionValue);
-                Gizmos.DrawLine(listenerTransform.position, sound.transform.position);
-            }
-        }
+        if (listenerTransform == null) return;
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(listenerTransform.position, maxCheckDistance);
     }
 }
