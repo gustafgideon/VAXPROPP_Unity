@@ -1692,44 +1692,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d25703d6856242b9a558629381ad765, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  usePlayerTag: 1
-  playerTag: Player
   occlusionLayers:
     serializedVersion: 2
     m_Bits: 8
   maxCheckDistance: 60
-  rayStartOffset: 0.05
-  singleHit: 1
+  playerTag: Player
   updatesPerSecond: 10
-  autoScanForEmitters: 1
-  emitterRescanInterval: 5
-  volumeParameterName: Volume
-  lowpassParameterName: Lowpass
-  materialSettings:
+  debugDraw: 0
+  materials:
   - materialName: Default
-    volumeMultiplier: 0.85
-    lowpassValue: 0.3
-    fullyOcclude: 0
+    volume: 0
+    lowpass: 0
   - materialName: Wood
-    volumeMultiplier: 0.75
-    lowpassValue: 0.5
-    fullyOcclude: 0
+    volume: 0.5
+    lowpass: 0.5
   - materialName: Concrete
-    volumeMultiplier: 0.6
-    lowpassValue: 0.65
-    fullyOcclude: 0
+    volume: 0.7
+    lowpass: 0.65
   - materialName: Glass
-    volumeMultiplier: 0.9
-    lowpassValue: 0.2
-    fullyOcclude: 0
+    volume: 0.2
+    lowpass: 0.2
   - materialName: Metal
-    volumeMultiplier: 0.5
-    lowpassValue: 0.7
-    fullyOcclude: 0
-  useOcclusionMaterialComponent: 1
-  fallbackToColliderTag: 1
-  debugRays: 0
-  debugLog: 0
+    volume: 0.8
+    lowpass: 0.7
 --- !u!4 &3923331
 Transform:
   m_ObjectHideFlags: 0
@@ -6559,9 +6544,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   materialName: Concrete
-  occlusionMultiplier: 1
-  transmissionFactor: 0.1
-  showMaterialInfo: 0
 --- !u!64 &161990058
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -39934,9 +39916,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   materialName: Wood
-  occlusionMultiplier: 1
-  transmissionFactor: 0.1
-  showMaterialInfo: 0
 --- !u!64 &615080346
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -80769,9 +80748,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   materialName: Glass
-  occlusionMultiplier: 1
-  transmissionFactor: 0.1
-  showMaterialInfo: 0
 --- !u!64 &1220037901
 MeshCollider:
   m_ObjectHideFlags: 0
