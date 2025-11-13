@@ -47,11 +47,11 @@ MonoBehaviour:
   CollisionTag: 
   EventReference:
     Guid:
-      Data1: 2049046798
-      Data2: 1327418027
-      Data3: 1722587827
-      Data4: -8949375
-    Path: event:/AMB/AMBEvents/Desert/AMB_Bed_Desert_Dawn
+      Data1: 650048626
+      Data2: 1211972429
+      Data3: -358262885
+      Data4: 2066050906
+    Path: event:/AMB/AMBNested_Events/AMB_Desert
   Event: 
   EventPlayTrigger: 0
   EventStopTrigger: 0
