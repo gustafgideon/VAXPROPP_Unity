@@ -32,9 +32,9 @@ public class SplineFollowerAudioController : MonoBehaviour
     private int SplineIndex = 0;
 
     [Tooltip("Mirror the Closed flag from the selected spline (recommended).")]
-    public bool UseSplineClosedFlag = true;
+    private bool UseSplineClosedFlag = true;
 
-    [SerializeField] private bool ClosedLoop = true;
+    private bool ClosedLoop = true;
 
     [Min(8)]
     private int Samples = 512;

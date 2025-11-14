@@ -13049,8 +13049,6 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 0
   PathContainer: {fileID: 1804035154}
-  UseSplineClosedFlag: 1
-  ClosedLoop: 1
   detectionRadius: 15
   audioEvent:
     Guid:
@@ -32952,8 +32950,6 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 1
   PathContainer: {fileID: 295258568}
-  UseSplineClosedFlag: 0
-  ClosedLoop: 0
   detectionRadius: 15
   audioEvent:
     Guid:
@@ -33013,7 +33009,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 14.999993
+  m_Radius: 14.999998
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &310264923
 PrefabInstance:
@@ -68313,8 +68309,6 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 0
   PathContainer: {fileID: 1726879416}
-  UseSplineClosedFlag: 1
-  ClosedLoop: 1
   detectionRadius: 15
   audioEvent:
     Guid:
@@ -78875,8 +78869,6 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 0
   PathContainer: {fileID: 2055376644}
-  UseSplineClosedFlag: 1
-  ClosedLoop: 1
   detectionRadius: 15
   audioEvent:
     Guid:
@@ -79898,8 +79890,6 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 0
   PathContainer: {fileID: 1150000613}
-  UseSplineClosedFlag: 1
-  ClosedLoop: 1
   detectionRadius: 15
   audioEvent:
     Guid:
