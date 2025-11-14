@@ -64,7 +64,7 @@ public class SplineFollowerAudioController : MonoBehaviour
 
     [FormerlySerializedAs("streamEvent")] [Header("FMOD")]
     public EventReference audioEvent;
-    private float baseStreamVolume = 1f;
+    private float baseAudioVolume = 1f;
     public List<FeatureEvents> featureEvents = new List<FeatureEvents>();
 
     [System.Serializable]
@@ -99,9 +99,9 @@ public class SplineFollowerAudioController : MonoBehaviour
     // --- Audio internals ---
     Rigidbody rb;
     SphereCollider sphere;
-    EventInstance streamInst;
-    float streamVol;
-    bool streamCreated;
+    EventInstance audioInst;
+    float audioVol;
+    bool audioCreated;
 
     Dictionary<Collider, Dictionary<string, EventInstance>> activeFeatureInstances = new Dictionary<Collider, Dictionary<string, EventInstance>>();
     List<Collider> _collidersInside = new List<Collider>();
@@ -141,7 +141,7 @@ public class SplineFollowerAudioController : MonoBehaviour
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
         ApplyRadiusToCollider();
-        CreateStreamInstance();
+        CreateAudioInstance();
     }
 
     void OnEnable()
@@ -149,9 +149,9 @@ public class SplineFollowerAudioController : MonoBehaviour
         TryAutoAssignPlayerIfMissing();
         BuildFeatureTagSet();
 
-        streamVol = baseStreamVolume;
-        SetVolume(streamInst, streamVol);
-        EnsureStartedIfAudible(streamInst, streamVol);
+        audioVol = baseAudioVolume;
+        SetVolume(audioInst, audioVol);
+        EnsureStartedIfAudible(audioInst, audioVol);
 
         var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
         foreach (var h in hits) TryStartFeatureEvents(h);
@@ -199,8 +199,8 @@ public class SplineFollowerAudioController : MonoBehaviour
             TryStepOncePerFrame();
             Update3DAttributes();
 
-            streamVol = MoveVolumeToward(streamInst, streamVol, baseStreamVolume);
-            HandleStartStop(streamInst, streamVol, baseStreamVolume);
+            audioVol = MoveVolumeToward(audioInst, audioVol, baseAudioVolume);
+            HandleStartStop(audioInst, audioVol, baseAudioVolume);
 
             foreach (var entry in activeFeatureInstances)
             {
@@ -433,20 +433,20 @@ public class SplineFollowerAudioController : MonoBehaviour
         }
     }
 
-    // --- Audio: Base stream ---
-    void CreateStreamInstance()
+    // --- Audio ---
+    void CreateAudioInstance()
     {
-        if (!streamCreated && !audioEvent.IsNull)
+        if (!audioCreated && !audioEvent.IsNull)
         {
-            streamInst = RuntimeManager.CreateInstance(audioEvent);
-            streamCreated = true;
+            audioInst = RuntimeManager.CreateInstance(audioEvent);
+            audioCreated = true;
             Update3DAttributes();
         }
     }
 
     void Update3DAttributes()
     {
-        if (streamCreated) streamInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
+        if (audioCreated) audioInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
     }
 
     float MoveVolumeToward(EventInstance inst, float current, float target)
@@ -494,12 +494,12 @@ public class SplineFollowerAudioController : MonoBehaviour
     void StopAllInstances(bool allowFadeout)
     {
         var mode = allowFadeout ? FMOD.Studio.STOP_MODE.ALLOWFADEOUT : FMOD.Studio.STOP_MODE.IMMEDIATE;
-        if (streamCreated) streamInst.stop(mode);
+        if (audioCreated) audioInst.stop(mode);
     }
 
     void ReleaseAllInstances()
     {
-        if (streamCreated) { streamInst.release(); streamCreated = false; }
+        if (audioCreated) { audioInst.release(); audioCreated = false; }
         foreach (var dict in activeFeatureInstances.Values)
             foreach (var inst in dict.Values)
                 if (inst.isValid()) inst.release();
