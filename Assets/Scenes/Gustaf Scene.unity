@@ -13027,8 +13027,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 38705753}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.0016103466, y: -0.7277817, z: -0.0017089132, w: 0.68580484}
-  m_LocalPosition: {x: 69.935684, y: -0.5876112, z: 91.6992}
+  m_LocalRotation: {x: 0.0060435957, y: 0.7123403, z: -0.006134527, w: 0.7017814}
+  m_LocalPosition: {x: 72.40622, y: 4.2856994, z: 278.49268}
   m_LocalScale: {x: 0.6332732, y: 1, z: 0.9988992}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13049,6 +13049,8 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 0
   PathContainer: {fileID: 1804035154}
+  UseSplineClosedFlag: 1
+  ClosedLoop: 1
   detectionRadius: 15
   audioEvent:
     Guid:
@@ -13108,7 +13110,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 14.985915
+  m_Radius: 14.990761
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &42023074
 PrefabInstance:
@@ -67987,6 +67989,8 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 0
   PathContainer: {fileID: 1726879416}
+  UseSplineClosedFlag: 1
+  ClosedLoop: 1
   detectionRadius: 15
   audioEvent:
     Guid:
@@ -78525,8 +78529,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 833379097}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.040130343, y: -0.7417811, z: -0.044565756, w: 0.6679553}
-  m_LocalPosition: {x: 76.09014, y: 2.7400622, z: 62.088192}
+  m_LocalRotation: {x: 0.006011743, y: 0.7140596, z: -0.0061322073, w: 0.7000323}
+  m_LocalPosition: {x: 73.78946, y: 7.774245, z: 280.52304}
   m_LocalScale: {x: 0.6329243, y: 1, z: 0.9997679}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -78547,6 +78551,8 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 0
   PathContainer: {fileID: 2055376644}
+  UseSplineClosedFlag: 1
+  ClosedLoop: 1
   detectionRadius: 15
   audioEvent:
     Guid:
@@ -78606,7 +78612,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 14.910453
+  m_Radius: 14.999961
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &833848651
 PrefabInstance:
@@ -79546,8 +79552,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 843124781}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.020938348, y: -0.7291278, z: -0.022329811, w: 0.6836927}
-  m_LocalPosition: {x: 72.02014, y: -0.18155432, z: 73.87887}
+  m_LocalRotation: {x: -0.004156839, y: 0.72469705, z: 0.0043719434, w: 0.6890413}
+  m_LocalPosition: {x: 79.298965, y: 4.017325, z: 278.28708}
   m_LocalScale: {x: 0.6345727, y: 1, z: 0.9956827}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -79568,6 +79574,8 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 0
   PathContainer: {fileID: 1150000613}
+  UseSplineClosedFlag: 1
+  ClosedLoop: 1
   detectionRadius: 15
   audioEvent:
     Guid:
@@ -79627,7 +79635,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 14.9815445
+  m_Radius: 14.972802
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!4 &846029601 stripped
 Transform:
@@ -84972,6 +84980,8 @@ MonoBehaviour:
   Player: {fileID: 45962769}
   Behavior: 1
   PathContainer: {fileID: 1618077038}
+  UseSplineClosedFlag: 1
+  ClosedLoop: 0
   detectionRadius: 15
   audioEvent:
     Guid:
