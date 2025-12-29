@@ -43,8 +43,8 @@ Material:
     - _ImageType: 0
     - _Layout: 0
     - _MirrorOnBack: 0
-    - _Rotation1: 56.28721
-    - _Rotation2: 56.28721
+    - _Rotation1: 24.046762
+    - _Rotation2: 24.046762
     - _TimeOfDayLerp: 1
     m_Colors:
     - _Tint1: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
