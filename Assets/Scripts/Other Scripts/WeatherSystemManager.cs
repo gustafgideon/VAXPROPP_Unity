@@ -393,18 +393,18 @@ public class WeatherSystemManager : MonoBehaviour
         Gizmos.DrawLine(origin + dir, origin + dir + left);
 
         // Show 3D wind source position
-        Gizmos.color = Color.magenta;
+        /*Gizmos.color = Color.magenta;
         float radians = Mathf.Deg2Rad * windDegrees;
         Vector3 windFromDirection = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
         Vector3 wind3DPos = playerTransform.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
-        Gizmos.DrawWireSphere(wind3DPos, 2f);
+        Gizmos.DrawWireSphere(wind3DPos, 2f);*/
 
 #if UNITY_EDITOR
         UnityEditor.Handles.color = Color.yellow;
         UnityEditor.Handles.Label(origin + dir + Vector3.up * 0.2f, $"Wind Direction: {windDegrees:F0}°");
 
-        UnityEditor.Handles.color = Color.magenta;
-        UnityEditor.Handles.Label(wind3DPos + Vector3.up * 0.5f, "Directional Sound");
+        //UnityEditor.Handles.color = Color.magenta;
+        //UnityEditor.Handles.Label(wind3DPos + Vector3.up * 0.5f, "Directional Sound");
 #endif
     }
 

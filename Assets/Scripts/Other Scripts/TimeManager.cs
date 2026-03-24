@@ -1,38 +1,63 @@
 using UnityEngine;
-using UnityEngine.Rendering; // For RenderSettings.ambientMode
+using UnityEngine.Rendering;
 using FMODUnity;
 using System.Collections;
 
 public class TimeManager : MonoBehaviour
 {
-    [Header("Day Cycle")] [Tooltip("Real-time minutes for a full 24h in-game day.")] [Range(1f, 60f)] [SerializeField]
+    [Header("Day Cycle")]
+    [Tooltip("Real-time minutes for a full 24h in-game day.")]
+    [Range(1f, 60f)]
+    [SerializeField]
     private float fullDayLengthMinutes = 20f;
 
-    [Header("Skybox Textures")] 
+    [Header("Time Override (Demo Mode)")]
+    [Tooltip("Lock time to a specific day state for demonstration purposes.")]
+    [SerializeField] private bool lockTimeOfDay = false;
+
+    [Tooltip("Which day state to lock to when lockTimeOfDay is enabled.")]
+    [SerializeField] private DayState lockedState = DayState.Day;
+
+    [Tooltip("Specific hour to set when locked (used for sun position and lighting). " +
+             "Dawn=6, Day=12, Dusk=19, Night=0 are good defaults.")]
+    [Range(0, 23)]
+    [SerializeField] private int lockedHour = 12;
+
+    [Tooltip("Specific minute to set when locked.")]
+    [Range(0, 59)]
+    [SerializeField] private int lockedMinute = 0;
+
+    [Header("Skybox Textures")]
     [SerializeField] private Texture2D skyboxNightTexture;
     [SerializeField] private Texture2D skyboxDawnTexture;
     [SerializeField] private Texture2D skyboxDayTexture;
     [SerializeField] private Texture2D skyboxDuskTexture;
-    
-    [Header("Overcast Texture")] 
+
+    [Header("Overcast Texture")]
     [SerializeField] private Texture2D overcastTexture;
 
-    [Header("Main Skybox Material")] 
+    [Header("Main Skybox Material")]
     [SerializeField] private Material skyboxMaterial;
 
-    [Header("Skybox Settings")] [Tooltip("Should the skybox rotate?")] [SerializeField]
+    [Header("Skybox Settings")]
+    [Tooltip("Should the skybox rotate?")]
+    [SerializeField]
     private bool enableSkyboxRotation = true;
 
-    [Tooltip("Rotation speed of skybox in degrees per second")] [SerializeField]
+    [Tooltip("Rotation speed of skybox in degrees per second")]
+    [SerializeField]
     private float skyboxRotationSpeed = 0.5f;
 
-    [Tooltip("How long skybox transitions take in minutes")] [Range(0.1f, 5f)] [SerializeField]
+    [Tooltip("How long skybox transitions take in minutes")]
+    [Range(0.1f, 5f)]
+    [SerializeField]
     private float skyboxBlendDurationMinutes = 1f;
 
-    [Header("Sun / Main Directional Light")] [SerializeField]
+    [Header("Sun / Main Directional Light")]
+    [SerializeField]
     private Light globalLight;
 
-    [Header("Moon / Secondary Light")] 
+    [Header("Moon / Secondary Light")]
     [SerializeField] private Light moonLight;
 
     [Header("Sun Path")]
@@ -71,14 +96,16 @@ public class TimeManager : MonoBehaviour
     [Tooltip("Normal shadow bias value during clear weather")]
     [SerializeField][Range(0f, 5f)] private float clearShadowNormalBias = 0.2f;
 
-    [Header("Light Color Gradients (Per Segment)")] [SerializeField]
+    [Header("Light Color Gradients (Per Segment)")]
+    [SerializeField]
     private Gradient gradientNightToDawn;
 
     [SerializeField] private Gradient gradientDawnToDay;
     [SerializeField] private Gradient gradientDayToDusk;
     [SerializeField] private Gradient gradientDuskToNight;
 
-    [Header("Overcast Color Gradients (Per Segment)")] [SerializeField]
+    [Header("Overcast Color Gradients (Per Segment)")]
+    [SerializeField]
     private Gradient overcastGradientNight;
 
     [SerializeField] private Gradient overcastGradientDawn;
@@ -109,10 +136,11 @@ public class TimeManager : MonoBehaviour
     [Tooltip("Extra intensity multiplier applied when thunderLevel == 3")]
     [SerializeField] private float closeLightningIntensityMultiplier = 1.3f;
 
-    [Header("FMOD Settings")] [SerializeField]
+    [Header("FMOD Settings")]
+    [SerializeField]
     private string timeOfDayParameterName = "TimeOfDay";
 
-    [Header("Weather System")] 
+    [Header("Weather System")]
     [SerializeField] private WeatherSystemManager weatherSystem;
 
     [Header("Rain Visual Response")]
@@ -150,13 +178,14 @@ public class TimeManager : MonoBehaviour
     [Tooltip("Multiplier applied to moon light intensity.")]
     [SerializeField][Range(0f, 3f)] private float moonLightMultiplier = 1.5f;
 
-    [Header("Debug Options")] [SerializeField]
+    [Header("Debug Options")]
+    [SerializeField]
     private bool debugDayStateChanges = true;
 
     [SerializeField] private bool debugSkybox = false;
 
     private int minutes;
-    private int hours = 5; // start at dawn
+    private int hours = 5;
     private float tempSecond;
     private float skyboxRotationValue = 0f;
 
@@ -180,7 +209,7 @@ public class TimeManager : MonoBehaviour
 
     // Cached sun height (0..1, 0 night, 1 high noon)
     private float sunHeight01 = 0f;
-    
+
     // Lightning effect
     private Color originalLightColor;
     private float originalLightIntensity;
@@ -193,23 +222,39 @@ public class TimeManager : MonoBehaviour
     private float lightTransitionStartTime;
     private float lightTransitionProgress = 1f;
 
+    // Track if lock was active last frame (for detecting changes in editor)
+    private bool wasLocked = false;
+    private DayState lastLockedState;
+
     // UI Helpers for debug phase logging
     private static string GetPhaseIcon(DayState s) => s switch
     {
         DayState.Dawn => "🌅",
-        DayState.Day  => "☀️",
+        DayState.Day => "☀️",
         DayState.Dusk => "🌇",
-        DayState.Night=> "🌙",
+        DayState.Night => "🌙",
         _ => ""
     };
 
     private static string GetPhaseText(DayState s) => s switch
     {
         DayState.Dawn => "DAWN",
-        DayState.Day  => "DAY",
+        DayState.Day => "DAY",
         DayState.Dusk => "DUSK",
-        DayState.Night=> "NIGHT",
+        DayState.Night => "NIGHT",
         _ => "UNKNOWN"
+    };
+
+    /// <summary>
+    /// Returns a sensible default hour for the middle of each day state.
+    /// </summary>
+    private static int GetDefaultHourForState(DayState s) => s switch
+    {
+        DayState.Dawn => 6,
+        DayState.Day => 12,
+        DayState.Dusk => 19,
+        DayState.Night => 0,
+        _ => 12
     };
 
     private void Start()
@@ -233,6 +278,12 @@ public class TimeManager : MonoBehaviour
             Debug.LogWarning("TimeManager: Skybox material doesn't use the Dual Panoramic shader. Blending might not work properly.");
         }
 
+        // If locked at start, apply the locked time immediately
+        if (lockTimeOfDay)
+        {
+            ApplyLockedTime();
+        }
+
         currentState = GetCurrentDayState(hours);
         previousState = currentState;
 
@@ -245,7 +296,7 @@ public class TimeManager : MonoBehaviour
         skyboxMaterial.SetTexture("_Texture2", textureFrom);
         skyboxMaterial.SetTexture("_OvercastTexture", overcastTexture);
         skyboxMaterial.SetFloat("_TimeOfDayLerp", 0);
-        
+
         // Set the skybox material
         RenderSettings.skybox = skyboxMaterial;
 
@@ -260,15 +311,20 @@ public class TimeManager : MonoBehaviour
         previousLightColor = initialColor;
         targetLightColor = initialColor;
         globalLight.color = initialColor;
-        
+
         UpdateLightingContinuous();
 
         SetTimeOfDayParameter(currentState);
 
         if (debugDayStateChanges)
-            Debug.Log($"[TimeManager] {GetPhaseIcon(currentState)} {GetPhaseText(currentState)} at {hours:00}:{minutes:00}");
-            
-        // Subscribe to thunder visuals (manual trigger comes from WeatherSystemManager.GenerateThunder)
+            Debug.Log($"[TimeManager] {GetPhaseIcon(currentState)} {GetPhaseText(currentState)} at {hours:00}:{minutes:00}" +
+                      (lockTimeOfDay ? " (LOCKED)" : ""));
+
+        // Track lock state
+        wasLocked = lockTimeOfDay;
+        lastLockedState = lockedState;
+
+        // Subscribe to thunder visuals
         if (weatherSystem != null)
         {
             weatherSystem.OnThunderTriggered += CreateLightningEffect;
@@ -281,7 +337,15 @@ public class TimeManager : MonoBehaviour
 
     private void Update()
     {
-        AdvanceTime();
+        // Check if lock settings changed at runtime (useful in editor)
+        HandleLockChanges();
+
+        if (!lockTimeOfDay)
+        {
+            // Normal time progression
+            AdvanceTime();
+        }
+
         UpdateSunRotation();
         UpdateState();
 
@@ -303,6 +367,49 @@ public class TimeManager : MonoBehaviour
         }
 
         UpdateLightingContinuous();
+    }
+
+    /// <summary>
+    /// Sets hours and minutes to match the locked state configuration.
+    /// </summary>
+    private void ApplyLockedTime()
+    {
+        hours = lockedHour;
+        minutes = lockedMinute;
+        tempSecond = 0f;
+
+        if (debugDayStateChanges)
+            Debug.Log($"[TimeManager] 🔒 Time locked to {GetPhaseIcon(lockedState)} {GetPhaseText(lockedState)} ({hours:00}:{minutes:00})");
+    }
+
+    /// <summary>
+    /// Detects changes to the lock settings and reapplies time if needed.
+    /// </summary>
+    private void HandleLockChanges()
+    {
+        if (lockTimeOfDay && (!wasLocked || lockedState != lastLockedState))
+        {
+            // Lock was just enabled or locked state changed
+            ApplyLockedTime();
+
+            DayState newState = GetCurrentDayState(hours);
+            if (newState != currentState)
+            {
+                previousState = currentState;
+                currentState = newState;
+                StartSkyboxBlend(previousState, currentState);
+                SetTimeOfDayParameter(currentState);
+            }
+        }
+        else if (!lockTimeOfDay && wasLocked)
+        {
+            // Lock was just disabled – resume from current time
+            if (debugDayStateChanges)
+                Debug.Log($"[TimeManager] 🔓 Time unlocked, resuming from {hours:00}:{minutes:00}");
+        }
+
+        wasLocked = lockTimeOfDay;
+        lastLockedState = lockedState;
     }
 
     private void AdvanceTime()
@@ -353,28 +460,23 @@ public class TimeManager : MonoBehaviour
     {
         if (skyboxMaterial == null) return;
 
-        // Set the appropriate textures based on states
         textureFrom = GetTextureForState(fromState);
         textureTo = GetTextureForState(toState);
-        
+
         skyboxMaterial.SetTexture("_Texture1", textureFrom);
         skyboxMaterial.SetTexture("_Texture2", textureTo);
-        
-        // Set overcast texture
+
         skyboxMaterial.SetTexture("_OvercastTexture", overcastTexture);
-        
-        // Set rain blend with fast overcast response
+
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
         skyboxMaterial.SetFloat("_Blend", ComputeOvercastBlend(rain));
-        
-        // Initialize blend
+
         blendFactor = 0f;
         blendStartTime = Time.time;
         isBlending = true;
-        
-        // Update shader with initial blend value
+
         skyboxMaterial.SetFloat("_TimeOfDayLerp", blendFactor);
-        
+
         if (debugSkybox)
             Debug.Log($"[TimeManager] Started skybox blend: {fromState} -> {toState}, rain={rain:F2}");
     }
@@ -383,22 +485,17 @@ public class TimeManager : MonoBehaviour
     {
         if (!isBlending || skyboxMaterial == null) return;
 
-        // Calculate blend progress over time
         float elapsedMinutes = (Time.time - blendStartTime) / 60f;
         blendFactor = Mathf.Clamp01(elapsedMinutes / skyboxBlendDurationMinutes);
 
-        // Update the shader's time of day lerp parameter
         skyboxMaterial.SetFloat("_TimeOfDayLerp", blendFactor);
 
-        // Check if blend complete
         if (blendFactor >= 1.0f)
         {
             isBlending = false;
-            
-            // When blend is complete, set Texture1 to the destination texture
-            // for smooth transitions to the next state
+
             skyboxMaterial.SetTexture("_Texture1", textureTo);
-            
+
             if (debugSkybox)
                 Debug.Log($"[TimeManager] Completed skybox blend to {currentState}");
         }
@@ -408,12 +505,10 @@ public class TimeManager : MonoBehaviour
     {
         if (skyboxMaterial == null) return;
 
-        // Simple continuous rotation for the skybox
         skyboxRotationValue += skyboxRotationSpeed * Time.deltaTime;
         if (skyboxRotationValue >= 360f)
             skyboxRotationValue -= 360f;
 
-        // Apply rotation to both texture rotations in the shader
         skyboxMaterial.SetFloat("_Rotation1", skyboxRotationValue);
         skyboxMaterial.SetFloat("_Rotation2", skyboxRotationValue);
     }
@@ -431,21 +526,16 @@ public class TimeManager : MonoBehaviour
     {
         float dayProgress = GetDayProgress();
 
-        // sin-based daily curve
         float t = (dayProgress - 0.25f) * Mathf.PI * 2f;
         float sunCurve = Mathf.Sin(t);
 
-        // Cache [0..1] height for downstream lighting calcs
         sunHeight01 = Mathf.Clamp01(sunCurve * 0.5f + 0.5f);
 
-        // IMPORTANT: Preserve sign before applying fractional power to avoid NaN
         float signedPow = Mathf.Sign(sunCurve) * Mathf.Pow(Mathf.Abs(sunCurve), 0.9f);
         float altitudeAngle = signedPow * maxSunAltitude;
 
-        // Azimuth with slight offset
         float sunAngle = (dayProgress * 360f) + 15f;
 
-        // Safety guards (belt-and-suspenders)
         if (float.IsNaN(altitudeAngle) || float.IsInfinity(altitudeAngle)) altitudeAngle = 0f;
         if (float.IsNaN(sunAngle) || float.IsInfinity(sunAngle)) sunAngle = 0f;
 
@@ -455,148 +545,122 @@ public class TimeManager : MonoBehaviour
     private void UpdateLightingContinuous()
     {
         if (!globalLight) return;
-        
-        // Skip lighting updates if lightning is active
+
         if (isLightningActive) return;
 
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
 
-        // Calculate the target color using continuous time instead of discrete states
         Color newTargetColor = CalculateContinuousLightColor(rain);
-        
-        // Handle smooth transitions when day state changes or weather changes significantly
-        float colorDifference = Mathf.Abs(newTargetColor.r - targetLightColor.r) + 
-                              Mathf.Abs(newTargetColor.g - targetLightColor.g) + 
+
+        float colorDifference = Mathf.Abs(newTargetColor.r - targetLightColor.r) +
+                              Mathf.Abs(newTargetColor.g - targetLightColor.g) +
                               Mathf.Abs(newTargetColor.b - targetLightColor.b);
-        
+
         if (colorDifference > 0.05f && !isTransitioningLight)
         {
-            // Start a new transition
             previousLightColor = globalLight.color;
             targetLightColor = newTargetColor;
             isTransitioningLight = true;
             lightTransitionStartTime = Time.time;
             lightTransitionProgress = 0f;
         }
-        
-        // Update transition progress
+
         if (isTransitioningLight)
         {
             lightTransitionProgress = (Time.time - lightTransitionStartTime) / lightTransitionDuration;
-            
+
             if (lightTransitionProgress >= 1f)
             {
-                // Transition complete
                 isTransitioningLight = false;
                 lightTransitionProgress = 1f;
                 globalLight.color = targetLightColor;
             }
             else
             {
-                // Smooth transition in progress
-                globalLight.color = Color.Lerp(previousLightColor, targetLightColor, 
+                globalLight.color = Color.Lerp(previousLightColor, targetLightColor,
                     Mathf.SmoothStep(0f, 1f, lightTransitionProgress));
             }
         }
         else
         {
-            // No transition needed, update normally but smoothly
             targetLightColor = newTargetColor;
             globalLight.color = Color.Lerp(globalLight.color, targetLightColor, Time.deltaTime * 2f);
         }
 
-        // Dramatic light intensity change with a night floor
         float baseIntensity;
-        if (sunHeight01 > 0.15f) {
-            // Day/dusk intensity
+        if (sunHeight01 > 0.15f)
+        {
             baseIntensity = Mathf.Lerp(0.3f, dayLightIntensity, Mathf.Pow(sunHeight01, 0.7f));
-        } else {
-            // Night intensity (less dark than before)
+        }
+        else
+        {
             baseIntensity = Mathf.Lerp(nightLightIntensity, 0.35f, sunHeight01 / 0.15f);
         }
 
-        // Reduce intensity in rain using configurable reduction factor
         float rainDarkening = Mathf.Lerp(1f, 1f - rainLightReduction, rain);
         float finalDirectional = baseIntensity * rainDarkening;
 
-        // Enforce a minimum floor at night so it's not too dark
         if (sunHeight01 < 0.2f)
             finalDirectional = Mathf.Max(finalDirectional, minNightDirectionalIntensity);
 
         globalLight.intensity = finalDirectional;
-        
-        // Update shadow properties based on time of day AND weather
+
         UpdateShadowSettings(rain);
-
-        // Handle moon light
         UpdateMoonLight();
-
-        // Update ambient lighting
         UpdateAmbientLighting();
-        
-        // Update fog settings
         UpdateFogSettings();
     }
 
     private Color CalculateContinuousLightColor(float rain)
     {
         float totalMinutes = GetTotalMinutes();
-        
-        // Create smooth transitions across the entire day using a continuous curve
+
         Color normalColor = GetContinuousNormalColor(totalMinutes);
         Color overcastColor = GetContinuousOvercastColor(totalMinutes);
-        
-        // Blend between normal and overcast based on rain
+
         float overcastBlend = ComputeOvercastBlend(rain);
         Color baseColor = Color.Lerp(normalColor, overcastColor, overcastBlend);
 
-        // Apply cold tint during rain
         float tintStrength = (rain > 0f)
             ? Mathf.Clamp01(Mathf.Pow(rain, rainColdTintExponent) * rainColdTintMaxStrength)
             : 0f;
-        
+
         return Color.Lerp(baseColor, rainColdLightTint, tintStrength);
     }
 
     private Color GetContinuousNormalColor(float totalMinutes)
     {
-        // Define the color points for the day cycle
-        float dawn = 5f * 60f;      // 5:00 AM
-        float day = 7f * 60f;       // 7:00 AM
-        float dusk = 18f * 60f;     // 6:00 PM
-        float night = 21f * 60f;    // 9:00 PM
-        
-        // Handle the 24-hour wrap-around
+        float dawn = 5f * 60f;
+        float day = 7f * 60f;
+        float dusk = 18f * 60f;
+        float night = 21f * 60f;
+
         float adjustedMinutes = totalMinutes;
         if (totalMinutes < dawn)
-            adjustedMinutes += 1440f; // Add 24 hours for night calculation
-        
+            adjustedMinutes += 1440f;
+
         Color resultColor;
-        
+
         if (adjustedMinutes >= dawn && adjustedMinutes < day)
         {
-            // Dawn period
             float progress = (adjustedMinutes - dawn) / (day - dawn);
             resultColor = gradientNightToDawn.Evaluate(progress);
         }
         else if (adjustedMinutes >= day && adjustedMinutes < dusk)
         {
-            // Day period
             float progress = (adjustedMinutes - day) / (dusk - day);
             resultColor = gradientDawnToDay.Evaluate(progress);
         }
         else if (adjustedMinutes >= dusk && adjustedMinutes < night)
         {
-            // Dusk period
             float progress = (adjustedMinutes - dusk) / (night - dusk);
             resultColor = gradientDayToDusk.Evaluate(progress);
         }
         else
         {
-            // Night period - this is where we fix the red-to-blue transition
-            float nightDuration = dawn + 1440f - night; // Total night duration
+            float nightDuration = dawn + 1440f - night;
             float nightProgress;
-            
+
             if (adjustedMinutes >= night)
             {
                 nightProgress = (adjustedMinutes - night) / nightDuration;
@@ -605,31 +669,29 @@ public class TimeManager : MonoBehaviour
             {
                 nightProgress = (adjustedMinutes + 1440f - night) / nightDuration;
             }
-            
-            // Apply the dusk-to-night transition speed to make blue appear faster
+
             nightProgress = Mathf.Pow(nightProgress, 1f / duskToNightTintSpeed);
             nightProgress = Mathf.Clamp01(nightProgress);
-            
+
             resultColor = gradientDuskToNight.Evaluate(nightProgress);
         }
-        
+
         return resultColor;
     }
 
     private Color GetContinuousOvercastColor(float totalMinutes)
     {
-        // Similar logic but using overcast gradients
         float dawn = 5f * 60f;
         float day = 7f * 60f;
         float dusk = 18f * 60f;
         float night = 21f * 60f;
-        
+
         float adjustedMinutes = totalMinutes;
         if (totalMinutes < dawn)
             adjustedMinutes += 1440f;
-        
+
         Color resultColor;
-        
+
         if (adjustedMinutes >= dawn && adjustedMinutes < day)
         {
             float progress = (adjustedMinutes - dawn) / (day - dawn);
@@ -649,7 +711,7 @@ public class TimeManager : MonoBehaviour
         {
             float nightDuration = dawn + 1440f - night;
             float nightProgress;
-            
+
             if (adjustedMinutes >= night)
             {
                 nightProgress = (adjustedMinutes - night) / nightDuration;
@@ -658,60 +720,52 @@ public class TimeManager : MonoBehaviour
             {
                 nightProgress = (adjustedMinutes + 1440f - night) / nightDuration;
             }
-            
-            // Apply same speed adjustment for overcast night colors
+
             nightProgress = Mathf.Pow(nightProgress, 1f / duskToNightTintSpeed);
             nightProgress = Mathf.Clamp01(nightProgress);
-            
+
             resultColor = overcastGradientNight.Evaluate(nightProgress);
         }
-        
+
         return resultColor;
     }
 
     private void UpdateShadowSettings(float rainIntensity)
     {
-        // Calculate shadow strength based on both time of day and rain intensity
         float clearWeatherShadowStrength = Mathf.Lerp(nightShadowStrength, dayShadowStrength, sunHeight01);
         float overcastShadowStrength = Mathf.Lerp(overcastNightShadowStrength, overcastDayShadowStrength, sunHeight01);
-        
-        // Blend between clear and overcast shadow strengths based on rain intensity
+
         float targetShadowStrength = Mathf.Lerp(clearWeatherShadowStrength, overcastShadowStrength, Mathf.Clamp01(rainIntensity * 2f));
-        
-        // Apply shadow strength to global light
+
         globalLight.shadowStrength = targetShadowStrength;
-        
-        // Adjust shadow normal bias for softer shadows during rain (available on the Light component)
+
         float targetNormalBias = Mathf.Lerp(clearShadowNormalBias, overcastShadowNormalBias, Mathf.Clamp01(rainIntensity * 2f));
         globalLight.shadowNormalBias = targetNormalBias;
     }
 
     private void UpdateMoonLight()
     {
-        // Only show moon when sun is down
-        if (sunHeight01 < 0.2f && moonLight != null) {
-            // Activate the moon light
+        if (sunHeight01 < 0.2f && moonLight != null)
+        {
             moonLight.gameObject.SetActive(true);
-            
-            // Position moon opposite to sun (approximately)
-            moonLight.transform.rotation = Quaternion.Euler(-globalLight.transform.eulerAngles.x, 
-                                                         (globalLight.transform.eulerAngles.y + 180) % 360, 
+
+            moonLight.transform.rotation = Quaternion.Euler(-globalLight.transform.eulerAngles.x,
+                                                         (globalLight.transform.eulerAngles.y + 180) % 360,
                                                          0f);
-            
-            // Dim blue-tinted light with a multiplier
+
             float actualMoonIntensity = moonLightIntensity * (1 - sunHeight01 * 5) * moonLightMultiplier;
-            
-            // Reduce moon intensity in rain too
+
             float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-            float rainDarkening = Mathf.Lerp(1f, 1f - (rainLightReduction * 0.7f), rain);  // slightly less reduction than sun
-            
+            float rainDarkening = Mathf.Lerp(1f, 1f - (rainLightReduction * 0.7f), rain);
+
             moonLight.intensity = actualMoonIntensity * rainDarkening;
             moonLight.color = new Color(0.6f, 0.65f, 1f);
-            
-            // Ensure moon has shadows enabled but less detailed
+
             moonLight.shadows = LightShadows.Soft;
             moonLight.shadowStrength = 0.6f;
-        } else if (moonLight != null) {
+        }
+        else if (moonLight != null)
+        {
             moonLight.gameObject.SetActive(false);
         }
     }
@@ -719,38 +773,31 @@ public class TimeManager : MonoBehaviour
     private void UpdateAmbientLighting()
     {
         float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-        
-        // Ambient intensity with a higher floor at night
+
         float ambientIntensity = Mathf.Lerp(nightAmbientFloor, 1.0f, Mathf.Pow(sunHeight01, 0.5f));
-        
-        // Reduce ambient intensity further in rain
+
         ambientIntensity *= Mathf.Lerp(1f, 0.7f, rain);
-        
-        // Blend between day and night ambient settings
+
         RenderSettings.ambientSkyColor = Color.Lerp(nightSkyColor, daySkyColor, ambientIntensity) * ambientIntensity;
         RenderSettings.ambientEquatorColor = Color.Lerp(nightEquatorColor, dayEquatorColor, ambientIntensity) * ambientIntensity;
         RenderSettings.ambientGroundColor = Color.Lerp(nightGroundColor, dayGroundColor, ambientIntensity) * ambientIntensity;
-        
-        // Apply global multiplier (lets you brighten nights without oversaturating colors)
+
         RenderSettings.ambientIntensity = ambientIntensity * ambientGlobalMultiplier;
     }
 
     private void UpdateFogSettings()
     {
-        if (RenderSettings.fog) {
-            // Get rain intensity
+        if (RenderSettings.fog)
+        {
             float rain = weatherSystem ? weatherSystem.rainIntensity : 0f;
-            
-            // Use the same smooth color calculation for fog
+
             Color targetColor = CalculateContinuousLightColor(rain);
-            
-            // Apply fog color (slightly darker than sky)
+
             RenderSettings.fogColor = targetColor * 0.7f;
-            
-            // Make fog thicker at night and even thicker during rain
+
             float baseFogDensity = Mathf.Lerp(nightFogDensity, dayFogDensity, sunHeight01);
             float rainAddedFog = rain * rainFogDensityAdditive;
-            
+
             RenderSettings.fogDensity = baseFogDensity + rainAddedFog;
         }
     }
@@ -792,16 +839,13 @@ public class TimeManager : MonoBehaviour
         _ => overcastGradientNight
     };
 
-    // Fast overcast response curve with gain + minimum floor when raining
     private float ComputeOvercastBlend(float rain)
     {
         if (rain <= 0f) return 0f;
 
-        // Apply gain before exponent so small rain values already look overcast
         float x = Mathf.Clamp01(rain * rainToOvercastGain);
         float nonLinear = Mathf.Pow(x, rainToOvercastExponent);
 
-        // Enforce a minimum overcast blend once threshold is crossed
         float floor = (rain >= rainOvercastThreshold) ? minOvercastBlend : 0f;
 
         return Mathf.Clamp01(Mathf.Max(nonLinear, floor));
@@ -836,10 +880,8 @@ public class TimeManager : MonoBehaviour
 
     #region Lightning Effect
 
-    // Called by WeatherSystemManager when thunder occurs, intensity is 0..1
     public void CreateLightningEffect(float intensity)
     {
-        // Visual lightning for Distant, Mid, and Close. Level 3 is stronger.
         if (weatherSystem != null && weatherSystem.thunderLevel != ThunderLevel.None)
         {
             if (!isLightningActive)
@@ -848,63 +890,52 @@ public class TimeManager : MonoBehaviour
             }
         }
     }
-    
+
     private IEnumerator LightningFlashCoroutine(float intensity)
     {
         if (globalLight == null) yield break;
-        
+
         isLightningActive = true;
-        
-        // Store original values
+
         originalLightColor = globalLight.color;
         originalLightIntensity = globalLight.intensity;
-        
-        // Base intensity from provided hint
+
         float actualIntensity = Mathf.Lerp(lightningMinIntensity, lightningMaxIntensity, Mathf.Clamp01(intensity));
 
-        // Exaggerate if close thunder (level 3)
         bool isClose = weatherSystem != null && weatherSystem.thunderLevel == ThunderLevel.Close;
         if (isClose)
         {
             actualIntensity *= Mathf.Max(1f, closeLightningIntensityMultiplier);
-            // Clamp to a reasonable upper bound (up to 1.5x max)
             actualIntensity = Mathf.Min(actualIntensity, lightningMaxIntensity * 1.5f);
         }
-        
-        // First flash - brightest
+
         globalLight.color = lightningColor;
         globalLight.intensity = actualIntensity;
         yield return new WaitForSeconds(lightningDuration * 0.4f);
-        
-        // Dim briefly
+
         globalLight.intensity = originalLightIntensity;
         yield return new WaitForSeconds(lightningDuration * 0.1f);
-        
-        // Second flash - less bright
+
         float secondFlash = actualIntensity * 0.6f;
         globalLight.intensity = secondFlash;
         yield return new WaitForSeconds(lightningDuration * 0.3f);
-        
-        // Dim briefly
+
         globalLight.intensity = originalLightIntensity * 0.7f;
         yield return new WaitForSeconds(lightningDuration * 0.05f);
-        
-        // Third flash - even less bright (slightly stronger if close)
+
         float thirdFlash = actualIntensity * (isClose ? 0.45f : 0.3f);
         globalLight.intensity = thirdFlash;
         yield return new WaitForSeconds(lightningDuration * 0.2f);
-        
-        // Optional tiny extra pop for close
+
         if (isClose)
         {
             globalLight.intensity = actualIntensity * 0.3f;
             yield return new WaitForSeconds(lightningDuration * 0.12f);
         }
 
-        // Restore original light settings
         globalLight.color = originalLightColor;
         globalLight.intensity = originalLightIntensity;
-        
+
         isLightningActive = false;
     }
 
@@ -924,14 +955,12 @@ public class TimeManager : MonoBehaviour
         skyboxBlendDurationMinutes = Mathf.Max(0.1f, skyboxBlendDurationMinutes);
         skyboxRotationSpeed = Mathf.Max(0f, skyboxRotationSpeed);
         maxSunAltitude = Mathf.Clamp(maxSunAltitude, 0f, 90f);
-        
-        // Validate light intensities
+
         dayLightIntensity = Mathf.Max(0.1f, dayLightIntensity);
         nightLightIntensity = Mathf.Max(0.001f, nightLightIntensity);
         moonLightIntensity = Mathf.Max(0.001f, moonLightIntensity);
         rainLightReduction = Mathf.Clamp01(rainLightReduction);
 
-        // Validate new smooth transition settings
         lightTransitionDuration = Mathf.Clamp(lightTransitionDuration, 0.5f, 10f);
         duskToNightTintSpeed = Mathf.Clamp(duskToNightTintSpeed, 0.1f, 5f);
 
@@ -948,6 +977,13 @@ public class TimeManager : MonoBehaviour
         nightAmbientFloor = Mathf.Clamp01(nightAmbientFloor);
         ambientGlobalMultiplier = Mathf.Clamp(ambientGlobalMultiplier, 0f, 2f);
         moonLightMultiplier = Mathf.Clamp(moonLightMultiplier, 0f, 3f);
+
+        // Auto-set hour when locked state changes in editor
+        if (lockTimeOfDay)
+        {
+            lockedHour = GetDefaultHourForState(lockedState);
+            lockedMinute = 0;
+        }
     }
 #endif
 }
