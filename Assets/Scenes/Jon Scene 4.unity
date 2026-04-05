@@ -21356,6 +21356,10 @@ PrefabInstance:
       propertyPath: rainOcclusionLayers.Array.size
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4828661247229373177, guid: 76c33e06dfae6a7418b45f99b006f229, type: 3}
+      propertyPath: surfaceTypeMappings.Array.size
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
