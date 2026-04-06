@@ -9,8 +9,8 @@ using UnityEngine.Serialization;
 public class Layers
 {
     public string layerName;
-    public float occlusionEQ = 1.0f;
-    public float occlusionVolume = 1.0f;
+    public float occlusionEQ = 1.0f;      // EQ adjustment (e.g., 0 = muffled, 1 = bright)
+    public float occlusionVolume = 1.0f;  // Volume adjustment (e.g., 0 = silent, 1 = full)
 }
 
 public enum ThunderLevel
@@ -23,6 +23,8 @@ public enum ThunderLevel
 
 public class WeatherSystemManager : MonoBehaviour
 {
+    // Fired when a lightning visual should occur (used by TimeManager).
+    // Intensity 0..1 (TimeManager uses this to scale lightning brightness).
     public event System.Action<float> OnThunderTriggered;
 
     public Transform playerTransform;
@@ -42,12 +44,12 @@ public class WeatherSystemManager : MonoBehaviour
     [Space(10)]
     [Header("Wind Settings")]
     [Range(0f, 1f)] public float windStrength = 0.3f;
-    [Range(-90f, 90f)] public float windDegrees = 0f;
+    [Range(-180f, 180f)] public float windDegrees = 0f;
     private float windSourceDistance = 5f;
     private float windSourceHeight = 0f;
     private float windParticleStrengthMultiplier = 12f;
     private bool applyWindToParticles = true;
-    [Min(0.01f)] private float windParticleLerpSpeed = 4f;
+    private float windParticleLerpSpeed = 4f;
 
     [Space(10)]
     [Header("Thunder Settings")]
@@ -67,6 +69,8 @@ public class WeatherSystemManager : MonoBehaviour
     public string windDegreesParameterName = "WindDegrees";
     public string rainOcclusionEQParameterName = "RainOcclusionEQ";
     public string rainOcclusionVolumeParameterName = "RainOcclusionVolume";
+
+    // Only set when GenerateThunder() is called (never on inspector change).
     public string thunderLevelParameterName = "ThunderLevel";
 
     private EventInstance rainLoopInstance;
@@ -80,27 +84,19 @@ public class WeatherSystemManager : MonoBehaviour
     private Vector3 currentAppliedWind = Vector3.zero;
     private Vector3 currentWind3DPosition;
 
-    [SerializeField] private bool debug = false;
-
-    // Pre-allocated buffers to avoid per-frame GC allocations
-    private Collider[] overlapBuffer = new Collider[64];
-    private List<Collider> targetColliders = new List<Collider>();
-
-    // Fast tag lookup built once at Start
-    private HashSet<string> rainImpactTagSet;
+    private bool debug = false;
 
     void Start()
     {
         if (rainParticles == null)
             rainParticles = GetComponentInChildren<ParticleSystem>();
 
-        rainImpactTagSet = new HashSet<string>(rainImpactTags ?? new List<string>());
-
         SetupAudio();
     }
 
     void SetupAudio()
     {
+        // Rain loop
         rainLoopInstance = RuntimeManager.CreateInstance(rainLoopEvent);
         if (rainLoopInstance.isValid())
         {
@@ -109,6 +105,7 @@ public class WeatherSystemManager : MonoBehaviour
             RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
         }
 
+        // Wind loop
         windInstance = RuntimeManager.CreateInstance(windEvent);
         if (windInstance.isValid())
         {
@@ -117,6 +114,7 @@ public class WeatherSystemManager : MonoBehaviour
             RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
         }
 
+        // 3D Wind event
         windDirectionInstance = RuntimeManager.CreateInstance(windDirectionEvent);
         if (windDirectionInstance.isValid())
         {
@@ -141,6 +139,7 @@ public class WeatherSystemManager : MonoBehaviour
         if (applyWindToParticles)
             ApplyWindToParticles();
 
+        // Keep rain particles above the player
         rainParticles.transform.position = playerTransform.position + Vector3.up * 5f;
     }
 
@@ -161,11 +160,17 @@ public class WeatherSystemManager : MonoBehaviour
 
     void UpdateWindAudio()
     {
-        if (isWindValid)
-        {
-            RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
-            RuntimeManager.StudioSystem.setParameterByName(windDegreesParameterName, windDegrees);
-        }
+         if (isWindValid)
+    {
+        RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
+
+        float playerYaw = playerTransform.eulerAngles.y;
+        float relativeWindDegrees = Mathf.DeltaAngle(playerYaw, windDegrees);
+
+        //Debug.Log($"playerYaw: {playerYaw:F1} | windDegrees: {windDegrees:F1} | relative: {relativeWindDegrees:F1}");
+
+        RuntimeManager.StudioSystem.setParameterByName(windDegreesParameterName, relativeWindDegrees);
+    }
     }
 
     void UpdateWind3DAudio()
@@ -182,15 +187,11 @@ public class WeatherSystemManager : MonoBehaviour
         if (playerTransform == null) return;
 
         float radians = Mathf.Deg2Rad * windDegrees;
-
-        // Direction is relative to where the player is facing
-        // 0° = in front, 90° = to the right, -90° = to the left
-        Vector3 windFromDirection = playerTransform.forward * Mathf.Cos(radians)
-                                  + playerTransform.right * Mathf.Sin(radians);
-
+        Vector3 windFromDirection = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
         currentWind3DPosition = playerTransform.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
     }
 
+    // Ensures the XZ of a point is within rainRadius around the player.
     Vector3 ClampToRainRadius(Vector3 point)
     {
         if (playerTransform == null) return point;
@@ -216,15 +217,15 @@ public class WeatherSystemManager : MonoBehaviour
 
         impactTimer += Time.deltaTime;
         if (impactTimer < impactRate) return;
-        impactTimer -= impactRate;
+        impactTimer = 0f;
 
-        int hitCount = Physics.OverlapSphereNonAlloc(playerTransform.position, rainRadius, overlapBuffer);
-        targetColliders.Clear();
+        Collider[] colliders = Physics.OverlapSphere(playerTransform.position, rainRadius);
+        List<Collider> targetColliders = new List<Collider>();
 
-        for (int c = 0; c < hitCount; c++)
+        foreach (var col in colliders)
         {
-            if (rainImpactTagSet.Contains(overlapBuffer[c].tag))
-                targetColliders.Add(overlapBuffer[c]);
+            if (rainImpactTags.Contains(col.tag))
+                targetColliders.Add(col);
         }
 
         int raysThisBurst = Mathf.CeilToInt(raysPerFrame * rainIntensity);
@@ -242,11 +243,12 @@ public class WeatherSystemManager : MonoBehaviour
                 Random.Range(bounds.min.z, bounds.max.z)
             );
 
+            // NEW: Clamp the random origin to always be within the rain radius.
             randomPoint = ClampToRainRadius(randomPoint);
 
             if (Physics.Raycast(randomPoint, Vector3.down, out RaycastHit hit, 50f))
             {
-                if (!rainImpactTagSet.Contains(hit.collider.tag)) continue;
+                if (!rainImpactTags.Contains(hit.collider.tag)) continue;
 
                 Debug.DrawLine(randomPoint, hit.point, Color.red, 5f);
 
@@ -315,6 +317,7 @@ public class WeatherSystemManager : MonoBehaviour
         currentOcclusionVolume = occlusionVolume;
     }
 
+    // Manual thunder trigger. Call from UI Button or click the Inspector context menu in Play Mode.
     [ContextMenu("Generate Thunder")]
     public void GenerateThunder()
     {
@@ -324,25 +327,22 @@ public class WeatherSystemManager : MonoBehaviour
             return;
         }
 
-        if (playerObject == null)
-        {
-            Debug.LogError("[WeatherSystemManager] playerObject is not assigned. Cannot play thunder.");
-            return;
-        }
-
         Vector3 pos = playerTransform ? playerTransform.position : Vector3.zero;
 
+        // Trigger lightning visuals for TimeManager
         float intensity =
             (thunderLevel == ThunderLevel.Distant) ? 0.2f :
             (thunderLevel == ThunderLevel.Mid) ? 0.66f :
-                                                     1.0f;
+                                                     1.0f; // Close
         OnThunderTriggered?.Invoke(intensity);
 
+        // Set FMOD parameter at trigger time (not on inspector change)
         if (!string.IsNullOrEmpty(thunderLevelParameterName))
         {
             RuntimeManager.StudioSystem.setParameterByName(thunderLevelParameterName, (float)thunderLevel);
         }
 
+        // Play thunder event now; any delay is authored in FMOD
         if (!thunderEvent.IsNull)
         {
             RuntimeManager.PlayOneShotAttached(thunderEvent, playerObject);
@@ -353,15 +353,8 @@ public class WeatherSystemManager : MonoBehaviour
 
     Vector3 GetBlowingDirectionHorizontal()
     {
-        if (playerTransform == null) return Vector3.right;
-
         float radians = Mathf.Deg2Rad * windDegrees;
-
-        // Direction wind is coming FROM, relative to player facing
-        Vector3 fromVec = playerTransform.forward * Mathf.Cos(radians)
-                        + playerTransform.right * Mathf.Sin(radians);
-
-        // Blowing direction is the opposite
+        Vector3 fromVec = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
         Vector3 blowingDir = -fromVec;
         blowingDir.y = 0f;
         if (blowingDir.sqrMagnitude < 0.0001f) blowingDir = Vector3.right;
@@ -375,7 +368,7 @@ public class WeatherSystemManager : MonoBehaviour
 
         Vector3 dir = GetBlowingDirectionHorizontal();
         Vector3 desiredWind = dir * (windStrength * windParticleStrengthMultiplier);
-        currentAppliedWind = Vector3.Lerp(currentAppliedWind, desiredWind, Time.deltaTime * windParticleLerpSpeed);
+        currentAppliedWind = Vector3.Lerp(currentAppliedWind, desiredWind, Time.deltaTime * Mathf.Max(1f, windParticleLerpSpeed));
 
         var vel = rainParticles.velocityOverLifetime;
         vel.enabled = true;
@@ -405,9 +398,19 @@ public class WeatherSystemManager : MonoBehaviour
         Gizmos.DrawLine(origin + dir, origin + dir + right);
         Gizmos.DrawLine(origin + dir, origin + dir + left);
 
+        // Show 3D wind source position
+        /*Gizmos.color = Color.magenta;
+        float radians = Mathf.Deg2Rad * windDegrees;
+        Vector3 windFromDirection = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
+        Vector3 wind3DPos = playerTransform.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
+        Gizmos.DrawWireSphere(wind3DPos, 2f);*/
+
 #if UNITY_EDITOR
         UnityEditor.Handles.color = Color.yellow;
         UnityEditor.Handles.Label(origin + dir + Vector3.up * 0.2f, $"Wind Direction: {windDegrees:F0}°");
+
+        //UnityEditor.Handles.color = Color.magenta;
+        //UnityEditor.Handles.Label(wind3DPos + Vector3.up * 0.5f, "Directional Sound");
 #endif
     }
 

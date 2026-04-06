@@ -37,14 +37,14 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Blend: 1
+    - _Blend: 0
     - _Exposure1: 0.99998385
     - _Exposure2: 0.99998385
     - _ImageType: 0
     - _Layout: 0
     - _MirrorOnBack: 0
-    - _Rotation1: 176.87169
-    - _Rotation2: 176.87169
+    - _Rotation1: 7.567104
+    - _Rotation2: 7.567104
     - _TimeOfDayLerp: 0
     m_Colors:
     - _Tint1: {r: 0.5, g: 0.5, b: 0.5, a: 0.5}
