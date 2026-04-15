@@ -51,7 +51,7 @@ MonoBehaviour:
       Data2: 1280223676
       Data3: -1350968177
       Data4: 464667020
-    Path: event:/BlaBla
+    Path: event:/Misc/BlaBla
   Event: 
   EventPlayTrigger: 1
   EventStopTrigger: 0

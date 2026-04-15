@@ -19,6 +19,8 @@ TagManager:
   - Rock_Water
   - Waterfall
   - WaterPuddle
+  - Road
+  - Pavement
   layers:
   - Default
   - TransparentFX

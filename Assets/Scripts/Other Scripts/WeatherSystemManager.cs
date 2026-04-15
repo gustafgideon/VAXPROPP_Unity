@@ -9,8 +9,8 @@ using UnityEngine.Serialization;
 public class Layers
 {
     public string layerName;
-    public float occlusionEQ = 1.0f;      // EQ adjustment (e.g., 0 = muffled, 1 = bright)
-    public float occlusionVolume = 1.0f;  // Volume adjustment (e.g., 0 = silent, 1 = full)
+    [Range(0f, 1f)]  public float occlusionEQ = 1.0f;
+    [Range(0f, 1f)]  public float occlusionVolume = 1.0f;
 }
 
 public enum ThunderLevel
@@ -23,8 +23,6 @@ public enum ThunderLevel
 
 public class WeatherSystemManager : MonoBehaviour
 {
-    // Fired when a lightning visual should occur (used by TimeManager).
-    // Intensity 0..1 (TimeManager uses this to scale lightning brightness).
     public event System.Action<float> OnThunderTriggered;
 
     public Transform playerTransform;
@@ -70,7 +68,6 @@ public class WeatherSystemManager : MonoBehaviour
     public string rainOcclusionEQParameterName = "RainOcclusionEQ";
     public string rainOcclusionVolumeParameterName = "RainOcclusionVolume";
 
-    // Only set when GenerateThunder() is called (never on inspector change).
     public string thunderLevelParameterName = "ThunderLevel";
 
     private EventInstance rainLoopInstance;
@@ -84,6 +81,8 @@ public class WeatherSystemManager : MonoBehaviour
     private Vector3 currentAppliedWind = Vector3.zero;
     private Vector3 currentWind3DPosition;
 
+    private FMOD.Studio.System studioSystem;
+
     private bool debug = false;
 
     void Start()
@@ -91,30 +90,30 @@ public class WeatherSystemManager : MonoBehaviour
         if (rainParticles == null)
             rainParticles = GetComponentInChildren<ParticleSystem>();
 
+        RuntimeManager.StudioSystem.getCoreSystem(out FMOD.System coreSystem);
+        studioSystem = RuntimeManager.StudioSystem;
+
         SetupAudio();
     }
 
     void SetupAudio()
     {
-        // Rain loop
         rainLoopInstance = RuntimeManager.CreateInstance(rainLoopEvent);
         if (rainLoopInstance.isValid())
         {
             isRainValid = true;
             rainLoopInstance.start();
-            RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
+            studioSystem.setParameterByName(rainParameterName, rainIntensity);
         }
 
-        // Wind loop
         windInstance = RuntimeManager.CreateInstance(windEvent);
         if (windInstance.isValid())
         {
             isWindValid = true;
             windInstance.start();
-            RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
+            studioSystem.setParameterByName(windParameterName, windStrength);
         }
 
-        // 3D Wind event
         windDirectionInstance = RuntimeManager.CreateInstance(windDirectionEvent);
         if (windDirectionInstance.isValid())
         {
@@ -139,7 +138,6 @@ public class WeatherSystemManager : MonoBehaviour
         if (applyWindToParticles)
             ApplyWindToParticles();
 
-        // Keep rain particles above the player
         rainParticles.transform.position = playerTransform.position + Vector3.up * 5f;
     }
 
@@ -155,22 +153,20 @@ public class WeatherSystemManager : MonoBehaviour
     void UpdateRainAudio()
     {
         if (isRainValid)
-            RuntimeManager.StudioSystem.setParameterByName(rainParameterName, rainIntensity);
+            studioSystem.setParameterByName(rainParameterName, rainIntensity);
     }
 
     void UpdateWindAudio()
     {
-         if (isWindValid)
-    {
-        RuntimeManager.StudioSystem.setParameterByName(windParameterName, windStrength);
+        if (isWindValid)
+        {
+            studioSystem.setParameterByName(windParameterName, windStrength);
 
-        float playerYaw = playerTransform.eulerAngles.y;
-        float relativeWindDegrees = Mathf.DeltaAngle(playerYaw, windDegrees);
+            float playerYaw = playerTransform.eulerAngles.y;
+            float relativeWindDegrees = Mathf.DeltaAngle(playerYaw, windDegrees);
 
-        //Debug.Log($"playerYaw: {playerYaw:F1} | windDegrees: {windDegrees:F1} | relative: {relativeWindDegrees:F1}");
-
-        RuntimeManager.StudioSystem.setParameterByName(windDegreesParameterName, relativeWindDegrees);
-    }
+            studioSystem.setParameterByName(windDegreesParameterName, relativeWindDegrees);
+        }
     }
 
     void UpdateWind3DAudio()
@@ -191,7 +187,6 @@ public class WeatherSystemManager : MonoBehaviour
         currentWind3DPosition = playerTransform.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
     }
 
-    // Ensures the XZ of a point is within rainRadius around the player.
     Vector3 ClampToRainRadius(Vector3 point)
     {
         if (playerTransform == null) return point;
@@ -243,7 +238,6 @@ public class WeatherSystemManager : MonoBehaviour
                 Random.Range(bounds.min.z, bounds.max.z)
             );
 
-            // NEW: Clamp the random origin to always be within the rain radius.
             randomPoint = ClampToRainRadius(randomPoint);
 
             if (Physics.Raycast(randomPoint, Vector3.down, out RaycastHit hit, 50f))
@@ -265,8 +259,6 @@ public class WeatherSystemManager : MonoBehaviour
                     if (instance.isValid())
                     {
                         instance.setParameterByName("RainSurfaceType", surfaceParam);
-                        instance.setParameterByName(rainOcclusionEQParameterName, currentOcclusionEQ);
-                        instance.setParameterByName(rainOcclusionVolumeParameterName, currentOcclusionVolume);
                         instance.set3DAttributes(RuntimeUtils.To3DAttributes(hit.point));
                         instance.start();
                         instance.release();
@@ -282,7 +274,7 @@ public class WeatherSystemManager : MonoBehaviour
 
     void UpdateRainOcclusion()
     {
-        if (playerTransform == null || !isRainValid) return;
+        if (playerTransform == null) return;
 
         Vector3 rayOrigin = playerTransform.position;
         float checkDistance = 10f;
@@ -310,14 +302,13 @@ public class WeatherSystemManager : MonoBehaviour
             Debug.DrawLine(rayOrigin, rayOrigin + Vector3.up * checkDistance, Color.red, 0.1f);
         }
 
-        rainLoopInstance.setParameterByName(rainOcclusionEQParameterName, occlusionEQ);
-        rainLoopInstance.setParameterByName(rainOcclusionVolumeParameterName, occlusionVolume);
+        studioSystem.setParameterByName(rainOcclusionEQParameterName, occlusionEQ);
+        studioSystem.setParameterByName(rainOcclusionVolumeParameterName, occlusionVolume);
 
         currentOcclusionEQ = occlusionEQ;
         currentOcclusionVolume = occlusionVolume;
     }
 
-    // Manual thunder trigger. Call from UI Button or click the Inspector context menu in Play Mode.
     [ContextMenu("Generate Thunder")]
     public void GenerateThunder()
     {
@@ -329,20 +320,17 @@ public class WeatherSystemManager : MonoBehaviour
 
         Vector3 pos = playerTransform ? playerTransform.position : Vector3.zero;
 
-        // Trigger lightning visuals for TimeManager
         float intensity =
             (thunderLevel == ThunderLevel.Distant) ? 0.2f :
             (thunderLevel == ThunderLevel.Mid) ? 0.66f :
-                                                     1.0f; // Close
+                                                     1.0f;
         OnThunderTriggered?.Invoke(intensity);
 
-        // Set FMOD parameter at trigger time (not on inspector change)
         if (!string.IsNullOrEmpty(thunderLevelParameterName))
         {
-            RuntimeManager.StudioSystem.setParameterByName(thunderLevelParameterName, (float)thunderLevel);
+            studioSystem.setParameterByName(thunderLevelParameterName, (float)thunderLevel);
         }
 
-        // Play thunder event now; any delay is authored in FMOD
         if (!thunderEvent.IsNull)
         {
             RuntimeManager.PlayOneShotAttached(thunderEvent, playerObject);
@@ -398,19 +386,9 @@ public class WeatherSystemManager : MonoBehaviour
         Gizmos.DrawLine(origin + dir, origin + dir + right);
         Gizmos.DrawLine(origin + dir, origin + dir + left);
 
-        // Show 3D wind source position
-        /*Gizmos.color = Color.magenta;
-        float radians = Mathf.Deg2Rad * windDegrees;
-        Vector3 windFromDirection = new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
-        Vector3 wind3DPos = playerTransform.position + windFromDirection * windSourceDistance + Vector3.up * windSourceHeight;
-        Gizmos.DrawWireSphere(wind3DPos, 2f);*/
-
 #if UNITY_EDITOR
         UnityEditor.Handles.color = Color.yellow;
         UnityEditor.Handles.Label(origin + dir + Vector3.up * 0.2f, $"Wind Direction: {windDegrees:F0}°");
-
-        //UnityEditor.Handles.color = Color.magenta;
-        //UnityEditor.Handles.Label(wind3DPos + Vector3.up * 0.5f, "Directional Sound");
 #endif
     }
 
@@ -438,7 +416,6 @@ public class WeatherSystemManager : MonoBehaviour
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        // No automatic FMOD parameter syncing here to avoid unintended triggers.
     }
 #endif
 }

@@ -29,13 +29,13 @@ public class PlayerAudio : ScriptableObject
             case "Wood":
                 playerWalkInstance.setParameterByName("Surface", 2f);
                 break;
-            case "Concrete":
+            case "Road":
                 playerWalkInstance.setParameterByName("Surface", 3f);
                 break;
             case "Sand":
                 playerWalkInstance.setParameterByName("Surface", 4f);
                 break;
-            case "Stone":
+            case "Pavement":
                 playerWalkInstance.setParameterByName("Surface", 5f);
                 break;
             case "WaterPuddle":
@@ -77,13 +77,13 @@ public class PlayerAudio : ScriptableObject
             case "Wood":
                 playerRunInstance.setParameterByName("Surface", 2f);
                 break;
-            case "Concrete":
+            case "Road":
                 playerRunInstance.setParameterByName("Surface", 3f);
                 break;
             case "Sand":
                 playerRunInstance.setParameterByName("Surface", 4f);
                 break;
-            case "Stone":
+            case "Pavement":
                 playerRunInstance.setParameterByName("Surface", 5f);
                 break;
             case "Concrete_Stair":
