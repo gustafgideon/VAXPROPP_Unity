@@ -25017,7 +25017,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 418067457}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 642ebe10e78e440948673d5408274e9c, type: 3}
   m_Name: 
@@ -43431,6 +43431,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: c051fe5a20f72814f9643eb10ebbd2fc, type: 2}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: lockedHour
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: skyboxDawn
       value: 
       objectReference: {fileID: 2100000, guid: 023808db2bfa00d44929aa2176d29c76, type: 2}
@@ -43442,6 +43446,10 @@ PrefabInstance:
       propertyPath: globalLight
       value: 
       objectReference: {fileID: 545497711}
+    - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
+      propertyPath: lockedState
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: overcastDay
       value: 
@@ -67104,7 +67112,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 909990400}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 642ebe10e78e440948673d5408274e9c, type: 3}
   m_Name: 
@@ -114422,7 +114430,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1882199673}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 642ebe10e78e440948673d5408274e9c, type: 3}
   m_Name: 
