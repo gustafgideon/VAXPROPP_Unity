@@ -11,61 +11,50 @@ using UnityEditor;
 [RequireComponent(typeof(Rigidbody))]
 public class SplineGenerativeAudioController : MonoBehaviour
 {
-    [Header("Environment Features")]
-    [Tooltip("Define object tags and their corresponding FMOD Events.")]
-    public List<FeatureSound> featureSounds = new List<FeatureSound>();
+    [Header("Spline Main Audio")]
+    [Tooltip("Core sounds of this spline object. All play automatically while this component is active.")]
+    public List<SplineMainSound> splineMainAudio = new List<SplineMainSound>();
 
     [System.Serializable]
-    public class FeatureSound
+    public class SplineMainSound
+    {
+        public EventReference fmodEvent;
+    }
+
+    [Header("Spline Proximity Audio")]
+    [Tooltip("Detail sounds triggered by tagged objects within the spline's detection radius.")]
+    public List<ProximitySound> splineProximityAudio = new List<ProximitySound>();
+
+    [System.Serializable]
+    public class ProximitySound
     {
         public string tag;
         public EventReference fmodEvent;
-        [Range(0f, 1f)]
-        public float maxVolume = 0.7f;
     }
 
-    [Header("FMOD Event: Base Stream")]
-    [SerializeField] private EventReference streamEvent;
-    [Range(0f, 1f)] public float baseStreamVolume = 0.8f;
-
     [Header("Detection Area")]
-    [Tooltip("Detection radius in meters (used for the SphereCollider world radius and scene queries).")]
-    [Min(0.1f)] public float detectionRadius = 15f;
-    [Tooltip("Draw the detection gizmo (wire sphere).")]
-    public bool drawGizmos = true;
+    [Tooltip("Detection radius in meters.")]
+    [Min(0.1f)] public float detectionRadius = 5f;
 
     [Header("Debug")]
-    [Tooltip("If enabled, draw small markers for objects currently inside the detection radius (only feature-tagged objects).")]
     public bool debugShowContents = false;
-    [Tooltip("If enabled, log contents to the Console when the set of colliders inside changes (only feature-tagged objects).")]
     public bool logContentsToConsole = false;
-
-    [Header("Fades")]
-    public float fadeSpeed = 3f;
 
     private Rigidbody rb;
     private SphereCollider sphere;
 
-    // Stream sound
-    private EventInstance streamInst;
-    private float streamVol;
-    private bool streamCreated;
+    private List<EventInstance> mainInstances = new List<EventInstance>();
 
-    // Feature object FMOD instances
-    // Key: Collider instance. Value: Per-tag dictionary of FMOD event instance
-    private Dictionary<Collider, Dictionary<string, EventInstance>> activeFeatureInstances = new Dictionary<Collider, Dictionary<string, EventInstance>>();
+    private Dictionary<Collider, Dictionary<string, EventInstance>> activeProximityInstances
+        = new Dictionary<Collider, Dictionary<string, EventInstance>>();
 
-    // Runtime cache for debug/list detection
     private List<Collider> _collidersInside = new List<Collider>();
     private string _lastInsideDigest = "";
-
-    // Fast lookup of configured feature tags
-    private HashSet<string> _featureTagSet = new HashSet<string>();
+    private HashSet<string> _proximityTagSet = new HashSet<string>();
 
     void OnValidate()
     {
-        BuildFeatureTagSet();
-
+        BuildProximityTagSet();
         if (!sphere) sphere = GetComponent<SphereCollider>();
         if (sphere)
         {
@@ -76,7 +65,7 @@ public class SplineGenerativeAudioController : MonoBehaviour
 
     void Awake()
     {
-        BuildFeatureTagSet();
+        BuildProximityTagSet();
 
         sphere = GetComponent<SphereCollider>();
         sphere.isTrigger = true;
@@ -88,260 +77,163 @@ public class SplineGenerativeAudioController : MonoBehaviour
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
         ApplyRadiusToCollider();
-        CreateStreamInstance();
+        CreateMainInstances();
     }
 
     void OnEnable()
     {
-        BuildFeatureTagSet();
+        BuildProximityTagSet();
 
-        streamVol = baseStreamVolume;
-        SetVolume(streamInst, streamVol);
-        EnsureStartedIfAudible(streamInst, streamVol);
+        foreach (var inst in mainInstances)
+        {
+            if (inst.isValid())
+            {
+                inst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
+                inst.start();
+            }
+        }
 
-        // Prime: detect all objects already in area (use world radius) but only start events for tagged features
         var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
         foreach (var h in hits)
-            TryStartFeatureEvents(h);
+            TryStartProximityEvents(h);
 
-        // prime debug cache
         if (debugShowContents || logContentsToConsole)
             UpdateInsideCacheAndMaybeLog();
     }
 
     void Update()
     {
-        Update3DAttributes();
+        foreach (var inst in mainInstances)
+            if (inst.isValid())
+                inst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
 
-        streamVol = MoveVolumeToward(streamInst, streamVol, baseStreamVolume);
-        HandleStartStop(streamInst, streamVol, baseStreamVolume);
-
-        // Update 3D positions for all active feature instances
-        foreach (var entry in activeFeatureInstances)
+        foreach (var entry in activeProximityInstances)
         {
             var col = entry.Key;
-            if (!col || !col.gameObject.activeInHierarchy)
-                continue;
+            if (!col || !col.gameObject.activeInHierarchy) continue;
             foreach (var pair in entry.Value)
-            {
-                var inst = pair.Value;
-                if (inst.isValid())
-                    inst.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
-            }
+                if (pair.Value.isValid())
+                    pair.Value.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
         }
 
-        // Update debug/list cache periodically (we do this every frame only if debug/log enabled)
         if (debugShowContents || logContentsToConsole)
             UpdateInsideCacheAndMaybeLog();
     }
 
     void OnDisable()
     {
-        StopAllInstances(true);
-        // Release and clear all feature object instances
-        foreach (var dict in activeFeatureInstances.Values)
+        foreach (var inst in mainInstances)
+            if (inst.isValid())
+                inst.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+
+        foreach (var dict in activeProximityInstances.Values)
             foreach (var inst in dict.Values)
                 if (inst.isValid())
                     inst.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-        activeFeatureInstances.Clear();
+
+        activeProximityInstances.Clear();
     }
 
     void OnDestroy()
     {
-        ReleaseAllInstances();
-    }
+        foreach (var inst in mainInstances)
+            if (inst.isValid())
+                inst.release();
+        mainInstances.Clear();
 
-    void OnTriggerEnter(Collider other)
-    {
-        TryStartFeatureEvents(other);
-    }
-
-    void OnTriggerExit(Collider other)
-    {
-        TryStopFeatureEvents(other);
-    }
-
-    // --- Feature Sound Control ---
-
-    void TryStartFeatureEvents(Collider col)
-    {
-        // Only consider feature-specified tags
-        foreach (var feature in featureSounds)
-        {
-            if (string.IsNullOrEmpty(feature.tag)) continue;
-            if (col.CompareTag(feature.tag))
-            {
-                if (!activeFeatureInstances.TryGetValue(col, out var taggedInstances))
-                {
-                    taggedInstances = new Dictionary<string, EventInstance>();
-                    activeFeatureInstances[col] = taggedInstances;
-                }
-                // Only create if not already playing for this tag
-                if (!taggedInstances.ContainsKey(feature.tag))
-                {
-                    var inst = RuntimeManager.CreateInstance(feature.fmodEvent);
-                    inst.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
-                    inst.setVolume(feature.maxVolume);
-                    inst.start();
-                    taggedInstances[feature.tag] = inst;
-                }
-            }
-        }
-    }
-
-    void TryStopFeatureEvents(Collider col)
-    {
-        if (activeFeatureInstances.TryGetValue(col, out var taggedInstances))
-        {
-            foreach (var inst in taggedInstances.Values)
-            {
-                if (inst.isValid())
-                    inst.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-            }
-            activeFeatureInstances.Remove(col);
-        }
-    }
-
-    // --- Stream Base Sound ---
-
-    private void CreateStreamInstance()
-    {
-        if (!streamCreated && !streamEvent.IsNull)
-        {
-            streamInst = RuntimeManager.CreateInstance(streamEvent);
-            streamCreated = true;
-            Update3DAttributes();
-        }
-    }
-
-    private void Update3DAttributes()
-    {
-        if (streamCreated)
-            streamInst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
-    }
-
-    private float MoveVolumeToward(EventInstance inst, float current, float target)
-    {
-        if (!IsValid(inst)) return 0f;
-        float next = Mathf.MoveTowards(current, Mathf.Clamp01(target), fadeSpeed * Time.deltaTime);
-        if (!Mathf.Approximately(next, current))
-            SetVolume(inst, next);
-        return next;
-    }
-
-    private void SetVolume(EventInstance inst, float vol)
-    {
-        if (!IsValid(inst)) return;
-        inst.setVolume(Mathf.Clamp01(vol));
-    }
-
-    private void EnsureStartedIfAudible(EventInstance inst, float vol)
-    {
-        if (!IsValid(inst)) return;
-        if (vol > 0.001f)
-        {
-            inst.getPlaybackState(out PLAYBACK_STATE state);
-            if (state != PLAYBACK_STATE.PLAYING && state != PLAYBACK_STATE.STARTING)
-                inst.start();
-        }
-    }
-
-    private void HandleStartStop(EventInstance inst, float currentVol, float targetVol)
-    {
-        if (!IsValid(inst)) return;
-        inst.getPlaybackState(out PLAYBACK_STATE state);
-
-        if (targetVol > 0.001f && (state != PLAYBACK_STATE.PLAYING && state != PLAYBACK_STATE.STARTING))
-        {
-            inst.start();
-            return;
-        }
-
-        if (targetVol <= 0.001f && currentVol <= 0.001f && (state == PLAYBACK_STATE.PLAYING || state == PLAYBACK_STATE.STARTING))
-        {
-            inst.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
-        }
-    }
-
-    private void StopAllInstances(bool allowFadeout)
-    {
-        var mode = allowFadeout ? FMOD.Studio.STOP_MODE.ALLOWFADEOUT : FMOD.Studio.STOP_MODE.IMMEDIATE;
-        if (streamCreated) streamInst.stop(mode);
-    }
-
-    private void ReleaseAllInstances()
-    {
-        if (streamCreated) { streamInst.release(); streamCreated = false; }
-        // Also release all feature instances
-        foreach (var dict in activeFeatureInstances.Values)
+        foreach (var dict in activeProximityInstances.Values)
             foreach (var inst in dict.Values)
                 if (inst.isValid())
                     inst.release();
-        activeFeatureInstances.Clear();
+        activeProximityInstances.Clear();
     }
 
-    private static bool IsValid(EventInstance inst)
+    void OnTriggerEnter(Collider other) => TryStartProximityEvents(other);
+    void OnTriggerExit(Collider other) => TryStopProximityEvents(other);
+
+    // --- Main Audio ---
+
+    private void CreateMainInstances()
     {
-        return inst.isValid();
+        mainInstances.Clear();
+        foreach (var sound in splineMainAudio)
+        {
+            if (sound.fmodEvent.IsNull) continue;
+            var inst = RuntimeManager.CreateInstance(sound.fmodEvent);
+            inst.set3DAttributes(RuntimeUtils.To3DAttributes(gameObject, rb));
+            mainInstances.Add(inst);
+        }
     }
 
-    // --- Area Utilities ---
+    // --- Proximity Audio ---
+
+    void TryStartProximityEvents(Collider col)
+    {
+        foreach (var proximity in splineProximityAudio)
+        {
+            if (string.IsNullOrEmpty(proximity.tag)) continue;
+            if (!col.CompareTag(proximity.tag)) continue;
+
+            if (!activeProximityInstances.TryGetValue(col, out var taggedInstances))
+            {
+                taggedInstances = new Dictionary<string, EventInstance>();
+                activeProximityInstances[col] = taggedInstances;
+            }
+
+            if (!taggedInstances.ContainsKey(proximity.tag))
+            {
+                var inst = RuntimeManager.CreateInstance(proximity.fmodEvent);
+                inst.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
+                inst.start();
+                taggedInstances[proximity.tag] = inst;
+            }
+        }
+    }
+
+    void TryStopProximityEvents(Collider col)
+    {
+        if (!activeProximityInstances.TryGetValue(col, out var taggedInstances)) return;
+        foreach (var inst in taggedInstances.Values)
+            if (inst.isValid())
+                inst.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+        activeProximityInstances.Remove(col);
+    }
+
+    // --- Collider Setup ---
 
     private void ApplyRadiusToCollider()
     {
         if (!sphere) sphere = GetComponent<SphereCollider>();
         if (!sphere) return;
-
-        float maxAxisScale = GetMaxLossyScale();
-        float localRadius = detectionRadius / Mathf.Max(0.0001f, maxAxisScale);
-        sphere.radius = localRadius;
+        float maxScale = Mathf.Max(transform.lossyScale.x, transform.lossyScale.y, transform.lossyScale.z);
+        sphere.radius = detectionRadius / Mathf.Max(0.0001f, maxScale);
     }
 
-    private float GetWorldRadius()
-    {
-        return detectionRadius;
-    }
+    // --- Debug ---
 
-    private float GetMaxLossyScale()
-    {
-        var ls = transform.lossyScale;
-        return Mathf.Max(ls.x, Mathf.Max(ls.y, ls.z));
-    }
-
-    // Debug helpers: update list of colliders inside detectionRadius and optionally log changes
-    // Now only includes colliders with tags that appear in featureSounds
     private void UpdateInsideCacheAndMaybeLog()
     {
         var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
         _collidersInside.Clear();
-        for (int i = 0; i < hits.Length; ++i)
-        {
-            var c = hits[i];
-            if (c == null) continue;
-            // Only include colliders whose tag is in the configured featureTags
-            if (_featureTagSet.Contains(c.gameObject.tag))
+        foreach (var c in hits)
+            if (c != null && _proximityTagSet.Contains(c.gameObject.tag))
                 _collidersInside.Add(c);
-        }
 
-        // create a simple digest (sorted instanceIDs) to detect change
         _collidersInside.Sort((a, b) => a.GetInstanceID().CompareTo(b.GetInstanceID()));
-        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        var sb = new System.Text.StringBuilder();
         foreach (var c in _collidersInside)
-        {
             if (c) sb.Append(c.gameObject.name).Append("|");
-        }
         string digest = sb.ToString();
 
         if (digest != _lastInsideDigest)
         {
-            // changed
             if (logContentsToConsole)
             {
                 if (_collidersInside.Count == 0)
                     Debug.Log($"[SplineGenerativeAudio] Detection radius ({detectionRadius}m) now contains: (none)", this);
                 else
                 {
-                    Debug.Log($"[SplineGenerativeAudio] Detection radius ({detectionRadius}m) contains {_collidersInside.Count} feature object(s):", this);
+                    Debug.Log($"[SplineGenerativeAudio] Detection radius ({detectionRadius}m) contains {_collidersInside.Count} proximity object(s):", this);
                     foreach (var c in _collidersInside)
                         Debug.Log($"  - {c.gameObject.name} (tag={c.gameObject.tag})", this);
                 }
@@ -350,47 +242,29 @@ public class SplineGenerativeAudioController : MonoBehaviour
         }
     }
 
-    // Build HashSet of configured feature tags for quick lookup
-    private void BuildFeatureTagSet()
+    private void BuildProximityTagSet()
     {
-        _featureTagSet.Clear();
-        if (featureSounds == null) return;
-        foreach (var f in featureSounds)
-        {
-            if (!string.IsNullOrEmpty(f.tag))
-                _featureTagSet.Add(f.tag);
-        }
+        _proximityTagSet.Clear();
+        if (splineProximityAudio == null) return;
+        foreach (var p in splineProximityAudio)
+            if (!string.IsNullOrEmpty(p.tag))
+                _proximityTagSet.Add(p.tag);
     }
 
 #if UNITY_EDITOR
     void OnDrawGizmosSelected()
     {
-        if (!drawGizmos) return;
+        if (!debugShowContents) return;
 
-        // detection radius (wire)
-        Gizmos.color = new Color(0f, 0.8f, 1f, 0.9f);
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
-
-        // optionally draw small markers for feature-tagged objects only
-        if (debugShowContents)
+        var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
+        Gizmos.color = new Color(1f, 0.5f, 0.7f, 0.9f);
+        foreach (var c in hits)
         {
-            var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
-            Gizmos.color = new Color(1f, 0.5f, 0.7f, 0.9f);
-            for (int i = 0; i < hits.Length; ++i)
-            {
-                var c = hits[i];
-                if (c == null) continue;
-                if (!_featureTagSet.Contains(c.gameObject.tag)) continue; // <- only feature-tagged objects
-
-                Vector3 p = c.bounds.center;
-                Gizmos.DrawSphere(p, 0.08f);
-
-#if UNITY_EDITOR
-                // label with name + tag
-                Handles.color = new Color(1f, 0.9f, 0.2f, 1f);
-                Handles.Label(p + Vector3.up * 0.12f, $"{c.gameObject.name} [{c.gameObject.tag}]");
-#endif
-            }
+            if (c == null || !_proximityTagSet.Contains(c.gameObject.tag)) continue;
+            Vector3 p = c.bounds.center;
+            Gizmos.DrawSphere(p, 0.08f);
+            Handles.color = new Color(1f, 0.9f, 0.2f, 1f);
+            Handles.Label(p + Vector3.up * 0.12f, $"{c.gameObject.name} [{c.gameObject.tag}]");
         }
     }
 #endif

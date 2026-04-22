@@ -21,6 +21,7 @@ TagManager:
   - WaterPuddle
   - Road
   - Pavement
+  - Water_Friction
   layers:
   - Default
   - TransparentFX

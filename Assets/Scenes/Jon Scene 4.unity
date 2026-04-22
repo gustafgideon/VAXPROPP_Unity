@@ -4637,10 +4637,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: rock3
       objectReference: {fileID: 0}
-    - target: {fileID: 100000, guid: 24be8e1643b8a474fbb57fcda8a1c454, type: 3}
-      propertyPath: m_TagString
-      value: Rock_Water
-      objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 24be8e1643b8a474fbb57fcda8a1c454, type: 3}
       propertyPath: m_LocalScale.x
       value: 2.0418
@@ -25119,8 +25115,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 418067457}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.019306468, y: -0.72239465, z: -0.020186063, w: 0.6909167}
-  m_LocalPosition: {x: 73.92462, y: -0.29411983, z: 73.946724}
+  m_LocalRotation: {x: -0.021399736, y: -0.73070973, z: -0.022929238, w: 0.6819675}
+  m_LocalPosition: {x: 71.65282, y: -0.15842438, z: 73.86279}
   m_LocalScale: {x: 0.6345727, y: 1, z: 0.9956827}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -25133,7 +25129,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 418067457}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 642ebe10e78e440948673d5408274e9c, type: 3}
   m_Name: 
@@ -25200,7 +25196,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 14.9697275
+  m_Radius: 14.984975
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!43 &418581168
 Mesh:
@@ -43549,7 +43545,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: c051fe5a20f72814f9643eb10ebbd2fc, type: 2}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: lockedHour
-      value: 0
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: skyboxDawn
@@ -43565,7 +43561,7 @@ PrefabInstance:
       objectReference: {fileID: 545497711}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: lockedState
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2080212725268272909, guid: dcbc82e5a592e8e459c5bdc4084a2cde, type: 3}
       propertyPath: overcastDay
@@ -67215,8 +67211,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 909990400}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.04596939, y: -0.7298788, z: -0.04932364, w: 0.6802433}
-  m_LocalPosition: {x: 77.50136, y: 2.558815, z: 62.169266}
+  m_LocalRotation: {x: -0.040136438, y: -0.7417256, z: -0.044565096, w: 0.66801655}
+  m_LocalPosition: {x: 76.17224, y: 2.7301064, z: 62.09364}
   m_LocalScale: {x: 0.6329243, y: 1, z: 0.9997679}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -67229,7 +67225,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 909990400}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 642ebe10e78e440948673d5408274e9c, type: 3}
   m_Name: 
@@ -67245,7 +67241,15 @@ MonoBehaviour:
       Data3: -508117337
       Data4: 972932351
     Path: event:/AMB/AMB_OBJ/AMB_Fog_Inner
-  featureEvents: []
+  featureEvents:
+  - tag: 
+    featureEvent:
+      Guid:
+        Data1: 0
+        Data2: 0
+        Data3: 0
+        Data4: 0
+      Path: 
   debugShowContents: 1
   logContentsToConsole: 0
   RunInEditMode: 1
@@ -67296,7 +67300,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 14.961346
+  m_Radius: 14.910743
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &914322614
 GameObject:
@@ -79187,7 +79191,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1176123627}
-  - component: {fileID: 1176123626}
   - component: {fileID: 1176123630}
   - component: {fileID: 1176123629}
   - component: {fileID: 1176123628}
@@ -79198,28 +79201,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1176123626
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1176123624}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a1fd5d82a0cc534cb2e78e8cf50e697, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Behavior: 0
-  PathContainer: {fileID: 1646136878}
-  SplineIndex: 0
-  Player: {fileID: 930912995}
-  PlayerTag: Player
-  MatchPlayerRotationInside: 0
-  InvertInsideSign: 0
-  ClosedLoop: 1
-  Samples: 512
-  RunInEditMode: 0
 --- !u!4 &1176123627
 Transform:
   m_ObjectHideFlags: 0
@@ -79257,11 +79238,11 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 1
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 3
 --- !u!135 &1176123629
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -79281,7 +79262,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 14.999998
+  m_Radius: 4.9999995
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1176123630
 MonoBehaviour:
@@ -79292,32 +79273,33 @@ MonoBehaviour:
   m_GameObject: {fileID: 1176123624}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cbd26ca88392cdc4fb7154ba7a334c92, type: 3}
+  m_Script: {fileID: 11500000, guid: 642ebe10e78e440948673d5408274e9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  featureSounds:
-  - tag: Rock_Water
-    fmodEvent:
-      Guid:
-        Data1: 1178322470
-        Data2: 1105757793
-        Data3: -1435205743
-        Data4: 1456919739
-      Path: event:/AMB/AMB_OBJ/AMB_OBJ_Rock_Stream
-    maxVolume: 1
-  streamEvent:
+  Player: {fileID: 930912995}
+  Behavior: 0
+  PathContainer: {fileID: 1646136878}
+  detectionRadius: 5
+  audioEvent:
     Guid:
       Data1: 2121980038
       Data2: 1264849609
       Data3: -184128093
       Data4: 523088097
     Path: event:/AMB/AMB_OBJ/AMB_OBJ_Stream
-  baseStreamVolume: 0.8
-  detectionRadius: 15
-  drawGizmos: 1
+  featureEvents:
+  - tag: Water_Friction
+    featureEvent:
+      Guid:
+        Data1: 1178322470
+        Data2: 1105757793
+        Data3: -1435205743
+        Data4: 1456919739
+      Path: event:/AMB/AMB_OBJ/AMB_OBJ_Water Friction
   debugShowContents: 0
   logContentsToConsole: 0
-  fadeSpeed: 3
+  RunInEditMode: 0
+  InvertInsideSign: 0
 --- !u!4 &1179163280 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 476602, guid: 6af6d0b9ef2bca54cb04f979d921648d, type: 3}
@@ -114533,8 +114515,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1882199673}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.007428091, y: -0.72339267, z: 0.007783593, w: 0.69035304}
-  m_LocalPosition: {x: 72.813614, y: -0.5659151, z: 91.79767}
+  m_LocalRotation: {x: 0.009457217, y: 0.7311279, z: -0.010136988, w: 0.6820995}
+  m_LocalPosition: {x: 69.297104, y: -0.45459938, z: 12.839632}
   m_LocalScale: {x: 0.6332732, y: 1, z: 0.9988992}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -114547,7 +114529,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1882199673}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 642ebe10e78e440948673d5408274e9c, type: 3}
   m_Name: 
@@ -114566,7 +114548,7 @@ MonoBehaviour:
   featureEvents: []
   debugShowContents: 0
   logContentsToConsole: 0
-  RunInEditMode: 1
+  RunInEditMode: 0
   InvertInsideSign: 0
 --- !u!54 &1882199676
 Rigidbody:
@@ -114614,7 +114596,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 14.997549
+  m_Radius: 14.974834
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1884466869
 PrefabInstance:
@@ -130034,7 +130016,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: a2d308598386f4a0797f87a4b95b9dd1, type: 3}
       propertyPath: m_TagString
-      value: Rock_Water
+      value: Water_Friction
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: a2d308598386f4a0797f87a4b95b9dd1, type: 3}
       propertyPath: m_LocalScale.x
@@ -138954,6 +138936,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 2320691866140973593, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1
+      objectReference: {fileID: 0}
     - target: {fileID: 2814412425116880205, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: wadeEffect
       value: 
@@ -138976,7 +138962,7 @@ PrefabInstance:
       objectReference: {fileID: 297403338}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.93
+      value: -3
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.y
@@ -138984,7 +138970,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 466.45
+      value: 464
       objectReference: {fileID: 0}
     - target: {fileID: 5944023254701551784, guid: 67c54d0377fa448f0be95eb8f232ae81, type: 3}
       propertyPath: m_LocalRotation.w
