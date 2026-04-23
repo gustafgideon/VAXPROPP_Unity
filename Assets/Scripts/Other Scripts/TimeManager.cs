@@ -27,6 +27,9 @@ public class TimeManager : MonoBehaviour
     [Range(0, 59)]
     [SerializeField] private int lockedMinute = 0;
 
+    // Expose current night state for other scripts
+    public bool IsNight => currentState == DayState.Night;
+
     [Header("Skybox Textures")]
     [SerializeField] private Texture2D skyboxNightTexture;
     [SerializeField] private Texture2D skyboxDawnTexture;

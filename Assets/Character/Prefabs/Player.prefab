@@ -2676,6 +2676,9 @@ MonoBehaviour:
   surfaceLayerMask:
     serializedVersion: 2
     m_Bits: 65
+  animator: {fileID: 0}
+  animEventLayer: 0
+  footstepMinInterval: 0.12
 --- !u!137 &6227706201886142797
 SkinnedMeshRenderer:
   m_ObjectHideFlags: 0
@@ -2781,8 +2784,8 @@ SkinnedMeshRenderer:
   m_BlendShapeWeights: []
   m_RootBone: {fileID: 3051671392599481129}
   m_AABB:
-    m_Center: {x: 0.000043600798, y: -0.14017668, z: 0.040811814}
-    m_Extent: {x: 0.8960048, y: 0.9475409, z: 0.28971007}
+    m_Center: {x: 0.0000436306, y: -0.07685551, z: 0.040811807}
+    m_Extent: {x: 0.8960048, y: 0.88421977, z: 0.28971007}
   m_DirtyAABB: 0
 --- !u!1 &8909751862589676179
 GameObject:
