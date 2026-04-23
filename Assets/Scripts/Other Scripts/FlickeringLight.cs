@@ -12,9 +12,12 @@ public class FlickeringLight : MonoBehaviour
     [Range(0f, 1f)]
     public float offChance = 0.15f;
 
+    [Header("Bulb Settings")]
+    public Renderer bulbRenderer;
+    public float emissionIntensity = 2f;
+
     [Header("Audio")]
     public FlickeringLightAudio flickeringLightAudio;
-   
 
     [Header("Time Manager")]
     public TimeManager timeManager;
@@ -22,6 +25,8 @@ public class FlickeringLight : MonoBehaviour
     private float _timer;
     private float _nextFlickerTime;
     private bool _isNightActive = false;
+    private Material _bulbMaterial;
+    private static readonly int EmissionColor = Shader.PropertyToID("_EmissionColor");
 
     void Start()
     {
@@ -29,6 +34,9 @@ public class FlickeringLight : MonoBehaviour
 
         if (timeManager == null)
             timeManager = FindObjectOfType<TimeManager>();
+
+        if (bulbRenderer != null)
+            _bulbMaterial = bulbRenderer.material;
 
         streetLight.enabled = false;
         ScheduleNextFlicker();
@@ -57,6 +65,13 @@ public class FlickeringLight : MonoBehaviour
 
         _isNightActive = shouldBeOn;
         streetLight.enabled = _isNightActive;
+
+        // Turn bulb emission on/off with the light
+        if (_bulbMaterial != null)
+        {
+            Color emissionColor = _isNightActive ? streetLight.color * emissionIntensity : Color.black;
+            _bulbMaterial.SetColor(EmissionColor, emissionColor);
+        }
     }
 
     private void DoFlicker()
@@ -64,6 +79,13 @@ public class FlickeringLight : MonoBehaviour
         streetLight.intensity = Random.value < offChance
             ? 0f
             : Random.Range(baseIntensity * 0.4f, baseIntensity * 1.1f);
+
+        // Sync bulb emission with light intensity
+        if (_bulbMaterial != null)
+        {
+            Color emissionColor = streetLight.color * (streetLight.intensity > 0 ? emissionIntensity : 0f);
+            _bulbMaterial.SetColor(EmissionColor, emissionColor);
+        }
 
         if (flickeringLightAudio != null)
             flickeringLightAudio.LightFlickeringAudio(transform);
