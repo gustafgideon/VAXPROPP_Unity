@@ -5,7 +5,7 @@ using FMODUnity;
 [CreateAssetMenu(fileName = "PlayerAudio", menuName = "Scriptable Objects/PlayerAudio")]
 public class PlayerAudio : ScriptableObject
 {
-    [SerializeField] private EventReference playerWalk, playerRun, playerJump, playerLand, playerWalkStair;
+    [SerializeField] private EventReference playerWalk, playerRun, playerJump, playerLand, playerWalkStair, playerFlashlightButton;
 
     
     
@@ -102,5 +102,10 @@ public class PlayerAudio : ScriptableObject
         
         playerRunInstance.start();
         playerRunInstance.release();
+    }
+
+    public void PlayerFlashlightButtonAudio(GameObject flashlightObj)
+    {
+        RuntimeManager.PlayOneShotAttached(playerFlashlightButton, flashlightObj);
     }
 }

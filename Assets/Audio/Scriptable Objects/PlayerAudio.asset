@@ -47,3 +47,10 @@ MonoBehaviour:
       Data3: -97543746
       Data4: 1421951051
     Path: event:/Player/PlayerMovement/Player_Walk_Stairs
+  playerFlashlightButton:
+    Guid:
+      Data1: 1768422624
+      Data2: 1275374515
+      Data3: 651587773
+      Data4: 725317577
+    Path: event:/Player/Player Utility/Flashlight Button On Off
