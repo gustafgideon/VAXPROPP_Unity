@@ -10391,7 +10391,7 @@ GameObject:
   - component: {fileID: 280308858}
   m_Layer: 0
   m_Name: industryBuildingLarge
-  m_TagString: Untagged
+  m_TagString: WoodFloor
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -112326,14 +112326,6 @@ PrefabInstance:
     - target: {fileID: 197834, guid: cee6ec354385167478bb8354736f38f5, type: 3}
       propertyPath: m_Name
       value: IndBuilding2_Mid_A
-      objectReference: {fileID: 0}
-    - target: {fileID: 197834, guid: cee6ec354385167478bb8354736f38f5, type: 3}
-      propertyPath: m_Layer
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 197834, guid: cee6ec354385167478bb8354736f38f5, type: 3}
-      propertyPath: m_TagString
-      value: Wood
       objectReference: {fileID: 0}
     - target: {fileID: 403376, guid: cee6ec354385167478bb8354736f38f5, type: 3}
       propertyPath: m_LocalPosition.x

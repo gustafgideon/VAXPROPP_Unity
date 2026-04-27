@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 6550140}
   m_Layer: 0
   m_Name: IndBuilding1_Floor_Mid_A_4x
-  m_TagString: Untagged
+  m_TagString: WoodFloor
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

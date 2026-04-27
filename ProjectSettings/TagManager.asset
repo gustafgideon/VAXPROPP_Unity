@@ -22,6 +22,7 @@ TagManager:
   - Road
   - Pavement
   - Water_Friction
+  - WoodFloor
   layers:
   - Default
   - TransparentFX
