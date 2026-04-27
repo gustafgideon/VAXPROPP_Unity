@@ -2826,7 +2826,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerAudio: {fileID: 11400000, guid: bf2230818dad30a469ed1d2012b3f270, type: 2}
   playerFoot: {fileID: 4428851560239054765}
-  rayDistance: 0.25
+  rayDistance: 0.5
   surfaceLayerMask:
     serializedVersion: 2
     m_Bits: 65
