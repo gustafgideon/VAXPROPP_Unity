@@ -43,7 +43,7 @@ public class SplineFollowerAudioController : MonoBehaviour
     private bool MatchPlayerRotationInside = false;
 
     [Min(0.1f)]
-    public float detectionRadius = 15f;
+    public float DetectionRadius = 15f;
     
     [Tooltip("If true, use only XZ (horizontal) to compute nearest point so jumping doesn't affect attachment.")]
     private bool ProjectDriverHorizontally = true;
@@ -62,26 +62,26 @@ public class SplineFollowerAudioController : MonoBehaviour
     [Min(0f)]
     private float RotationDamping = 12f;
 
-    [FormerlySerializedAs("streamEvent")] [Header("FMOD")]
-    public EventReference audioEvent;
+    [Header("FMOD")]
+    public EventReference mainAudioEvent;
     private float baseAudioVolume = 1f;
-    public List<FeatureEvents> featureEvents = new List<FeatureEvents>();
+    public List<FeatureAudioEvent> featureAudioEvents = new List<FeatureAudioEvent>();
 
     [System.Serializable]
-    public class FeatureEvents
+    public class FeatureAudioEvent
     {
         public string tag;
-        public EventReference featureEvent;
+        public EventReference featureAudioEvent;
         [Range(0f, 1f)]
         private float maxVolume = 1f;
     }
 
     [Header("Debug")]
-    public bool debugShowContents = false;
-    public bool logContentsToConsole = false;
-    public bool RunInEditMode = true;
+    private bool debugShowContents = false;
+    private bool logContentsToConsole = false;
+    private bool RunInEditMode = true;
     private bool drawGizmos = false;
-    public bool InvertInsideSign = false;
+    private bool InvertInsideSign = false;
 
     private float fadeSpeed = 3f;
 
@@ -153,7 +153,7 @@ public class SplineFollowerAudioController : MonoBehaviour
         SetVolume(audioInst, audioVol);
         EnsureStartedIfAudible(audioInst, audioVol);
 
-        var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
+        var hits = Physics.OverlapSphere(transform.position, DetectionRadius, ~0, QueryTriggerInteraction.Collide);
         foreach (var h in hits) TryStartFeatureEvents(h);
 
         if (debugShowContents || logContentsToConsole)
@@ -401,7 +401,7 @@ public class SplineFollowerAudioController : MonoBehaviour
     // --- Audio: Feature control ---
     void TryStartFeatureEvents(Collider col)
     {
-        foreach (var feature in featureEvents)
+        foreach (var feature in featureAudioEvents)
         {
             if (string.IsNullOrEmpty(feature.tag)) continue;
             if (col.CompareTag(feature.tag))
@@ -413,7 +413,7 @@ public class SplineFollowerAudioController : MonoBehaviour
                 }
                 if (!taggedInstances.ContainsKey(feature.tag))
                 {
-                    var inst = RuntimeManager.CreateInstance(feature.featureEvent);
+                    var inst = RuntimeManager.CreateInstance(feature.featureAudioEvent);
                     inst.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
                     //inst.setVolume(feature.maxVolume);
                     inst.start();
@@ -436,9 +436,9 @@ public class SplineFollowerAudioController : MonoBehaviour
     // --- Audio ---
     void CreateAudioInstance()
     {
-        if (!audioCreated && !audioEvent.IsNull)
+        if (!audioCreated && !mainAudioEvent.IsNull)
         {
-            audioInst = RuntimeManager.CreateInstance(audioEvent);
+            audioInst = RuntimeManager.CreateInstance(mainAudioEvent);
             audioCreated = true;
             Update3DAttributes();
         }
@@ -514,7 +514,7 @@ public class SplineFollowerAudioController : MonoBehaviour
         if (!sphere) sphere = GetComponent<SphereCollider>();
         if (!sphere) return;
         float maxAxisScale = GetMaxLossyScale();
-        float localRadius = detectionRadius / Mathf.Max(0.0001f, maxAxisScale);
+        float localRadius = DetectionRadius / Mathf.Max(0.0001f, maxAxisScale);
         sphere.radius = localRadius;
     }
 
@@ -526,7 +526,7 @@ public class SplineFollowerAudioController : MonoBehaviour
 
     void UpdateInsideCacheAndMaybeLog()
     {
-        var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
+        var hits = Physics.OverlapSphere(transform.position, DetectionRadius, ~0, QueryTriggerInteraction.Collide);
         _collidersInside.Clear();
         for (int i = 0; i < hits.Length; ++i)
         {
@@ -548,10 +548,10 @@ public class SplineFollowerAudioController : MonoBehaviour
             if (logContentsToConsole)
             {
                 if (_collidersInside.Count == 0)
-                    Debug.Log($"[SplineGenerativeAudio] Detection radius ({detectionRadius}m) now contains: (none)", this);
+                    Debug.Log($"[SplineGenerativeAudio] Detection radius ({DetectionRadius}m) now contains: (none)", this);
                 else
                 {
-                    Debug.Log($"[SplineGenerativeAudio] Detection radius ({detectionRadius}m) contains {_collidersInside.Count} feature object(s):", this);
+                    Debug.Log($"[SplineGenerativeAudio] Detection radius ({DetectionRadius}m) contains {_collidersInside.Count} feature object(s):", this);
                     foreach (var c in _collidersInside)
                         Debug.Log($"  - {c.gameObject.name} (tag={c.gameObject.tag})", this);
                 }
@@ -563,8 +563,8 @@ public class SplineFollowerAudioController : MonoBehaviour
     void BuildFeatureTagSet()
     {
         _featureTagSet.Clear();
-        if (featureEvents == null) return;
-        foreach (var f in featureEvents)
+        if (featureAudioEvents == null) return;
+        foreach (var f in featureAudioEvents)
         {
             if (!string.IsNullOrEmpty(f.tag))
                 _featureTagSet.Add(f.tag);
@@ -579,10 +579,10 @@ public class SplineFollowerAudioController : MonoBehaviour
     {
         if (!drawGizmos) return;
         Gizmos.color = new Color(0f, 0.8f, 1f, 0.9f);
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        Gizmos.DrawWireSphere(transform.position, DetectionRadius);
         if (debugShowContents)
         {
-            var hits = Physics.OverlapSphere(transform.position, detectionRadius, ~0, QueryTriggerInteraction.Collide);
+            var hits = Physics.OverlapSphere(transform.position, DetectionRadius, ~0, QueryTriggerInteraction.Collide);
             Gizmos.color = new Color(1f, 0.5f, 0.7f, 0.9f);
             for (int i = 0; i < hits.Length; ++i)
             {

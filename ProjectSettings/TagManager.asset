@@ -23,6 +23,7 @@ TagManager:
   - Pavement
   - Water_Friction
   - WoodFloor
+  - Spline_Feature_Building
   layers:
   - Default
   - TransparentFX
