@@ -15,8 +15,6 @@ using UnityEditor;
 [RequireComponent(typeof(Rigidbody))]
 public class SplineFollowerAudioController : MonoBehaviour
 {
-    // Spline follower section
-
     public enum Mode { Zone, FollowSpline }
 
     private Texture2D speakerIconTexture;
@@ -24,32 +22,21 @@ public class SplineFollowerAudioController : MonoBehaviour
     private string PlayerTag = "Player";
 
     [Header("Spline Settings")]
-    public Mode Behavior = Mode.Zone;
+    public Mode mode = Mode.Zone;
     public SplineContainer PathContainer;
 
     [Tooltip("Index of the spline in the container to follow.")]
     [Min(0)]
     private int SplineIndex = 0;
 
-    [Tooltip("Mirror the Closed flag from the selected spline (recommended).")]
-    private bool UseSplineClosedFlag = true;
-
-    private bool ClosedLoop = true;
-
-    [Min(8)]
-    private int Samples = 512;
-
     [Tooltip("When in Zone mode, match the player's rotation while inside.")]
     private bool MatchPlayerRotationInside = false;
 
     [Min(0.1f)]
     public float DetectionRadius = 15f;
-    
+
     [Tooltip("If true, use only XZ (horizontal) to compute nearest point so jumping doesn't affect attachment.")]
     private bool ProjectDriverHorizontally = true;
-
-    [Tooltip("If your SplineContainer.Evaluate returns local-space positions, keep this true (default). If your version returns world-space, set to false.")]
-    private bool EvaluateReturnsLocal = false;
 
     [Tooltip("Orient the follower along the spline tangent.")]
     private bool OrientToSpline = true;
@@ -85,18 +72,13 @@ public class SplineFollowerAudioController : MonoBehaviour
 
     private float fadeSpeed = 3f;
 
-    // --- Spline follower internals ---
-    const float Epsilon = 1e-6f;
     static readonly Vector3 WorldUp = Vector3.up;
 
-    Vector3[] _pts;
-    int _segCount;
     Vector3 _posVel;
     Quaternion _rotCurrent = Quaternion.identity;
     int _lastProcessedFrame = -1;
     bool _wasAttachedLastFrame = false;
 
-    // --- Audio internals ---
     Rigidbody rb;
     SphereCollider sphere;
     EventInstance audioInst;
@@ -108,25 +90,21 @@ public class SplineFollowerAudioController : MonoBehaviour
     string _lastInsideDigest = "";
     HashSet<string> _featureTagSet = new HashSet<string>();
 
-    // --- Unity lifecycle ---
     void OnValidate()
     {
         if (PathContainer == null)
             PathContainer = GetComponentInParent<SplineContainer>();
+
         SplineIndex = Mathf.Max(0, SplineIndex);
-        Samples = Mathf.Max(8, Samples);
 
-        // Mirror closed flag if requested
-        if (PathContainer != null && SplineIndex >= 0 && SplineIndex < PathContainer.Splines.Count && UseSplineClosedFlag)
-            ClosedLoop = PathContainer.Splines[SplineIndex].Closed;
-
-        // Audio setup
         BuildFeatureTagSet();
 
         if (!sphere) sphere = GetComponent<SphereCollider>();
-        if (sphere) { sphere.isTrigger = true; ApplyRadiusToCollider(); }
-
-        Rebuild();
+        if (sphere)
+        {
+            sphere.isTrigger = true;
+            ApplyRadiusToCollider();
+        }
     }
 
     void Awake()
@@ -159,7 +137,6 @@ public class SplineFollowerAudioController : MonoBehaviour
         if (debugShowContents || logContentsToConsole)
             UpdateInsideCacheAndMaybeLog();
 
-        Rebuild();
         _rotCurrent = transform.rotation;
         _lastProcessedFrame = -1;
         _wasAttachedLastFrame = false;
@@ -167,8 +144,6 @@ public class SplineFollowerAudioController : MonoBehaviour
 
     void OnDisable()
     {
-        _pts = null;
-        _segCount = 0;
         _posVel = Vector3.zero;
         _lastProcessedFrame = -1;
         _wasAttachedLastFrame = false;
@@ -188,11 +163,10 @@ public class SplineFollowerAudioController : MonoBehaviour
 
     void Update()
     {
-        // Spline position update
         if (!Application.isPlaying)
         {
             if (!RunInEditMode) return;
-            Step(0f, editorTick: true);
+            Step(0f);
         }
         else
         {
@@ -226,15 +200,14 @@ public class SplineFollowerAudioController : MonoBehaviour
             TryStepOncePerFrame();
     }
 
-    // --- Spline movement ---
     void TryStepOncePerFrame()
     {
         if (_lastProcessedFrame == Time.frameCount) return;
-        Step(Time.deltaTime, editorTick: false);
+        Step(Time.deltaTime);
         _lastProcessedFrame = Time.frameCount;
     }
 
-    void Step(float dt, bool editorTick)
+    void Step(float dt)
     {
         if (PathContainer == null) return;
 
@@ -244,61 +217,29 @@ public class SplineFollowerAudioController : MonoBehaviour
             if (!IsAlive(Player)) return;
         }
 
-        if (editorTick) Rebuild();
-        if (_pts == null || _segCount <= 0)
-        {
-            Rebuild();
-            if (_pts == null || _segCount <= 0) return;
-        }
+        if (SplineIndex < 0 || SplineIndex >= PathContainer.Splines.Count)
+            return;
 
-        // Mirror closed flag if requested (keeps behavior consistent when editing)
-        if (UseSplineClosedFlag && PathContainer != null && SplineIndex >= 0 && SplineIndex < PathContainer.Splines.Count)
-            ClosedLoop = PathContainer.Splines[SplineIndex].Closed;
-
+        var spline = PathContainer.Splines[SplineIndex];
         Vector3 driverPos = Player.position;
-        int bestSeg = 0; float bestU = 0f; float bestD2 = float.MaxValue;
 
-        for (int i = 0; i < _segCount; i++)
-        {
-            Vector3 a = _pts[i], b = _pts[i + 1];
+        Vector3 localPlayerPos = PathContainer.transform.InverseTransformPoint(driverPos);
+        float3 queryPointLocal = localPlayerPos;
 
-            float u;
-            float d2;
+        if (ProjectDriverHorizontally)
+            queryPointLocal.y = 0f;
 
-            if (ProjectDriverHorizontally)
-            {
-                // Project in XZ only so vertical motion (jumping) doesn't affect attachment
-                Vector2 aXZ = new Vector2(a.x, a.z);
-                Vector2 bXZ = new Vector2(b.x, b.z);
-                Vector2 abXZ = bXZ - aXZ;
-                float denomXZ = Mathf.Max(Epsilon, Vector2.Dot(abXZ, abXZ));
-                Vector2 pMinusA = new Vector2(driverPos.x - a.x, driverPos.z - a.z);
-                u = Mathf.Clamp01(Vector2.Dot(pMinusA, abXZ) / denomXZ);
+        SplineUtility.GetNearestPoint(spline, queryPointLocal, out float3 nearestPointLocal, out float normalizedT);
 
-                Vector2 qXZ = aXZ + u * abXZ;
-                // Distance in XZ only
-                Vector2 driverXZ = new Vector2(driverPos.x, driverPos.z);
-                d2 = (driverXZ - qXZ).sqrMagnitude;
-            }
-            else
-            {
-                Vector3 ab = b - a;
-                float denom = Mathf.Max(Epsilon, ab.sqrMagnitude);
-                u = Mathf.Clamp01(Vector3.Dot(driverPos - a, ab) / denom);
-                Vector3 q = a + u * ab;
-                d2 = (driverPos - q).sqrMagnitude;
-            }
+        Vector3 projPos = PathContainer.transform.TransformPoint((Vector3)nearestPointLocal);
 
-            if (d2 < bestD2) { bestD2 = d2; bestSeg = i; bestU = u; }
-        }
-
-        Vector3 pa = _pts[bestSeg], pb = _pts[bestSeg + 1], projPos = Vector3.Lerp(pa, pb, bestU);
-        Vector3 tan = pb - pa;
-        if (tan.sqrMagnitude <= Epsilon) tan = transform.forward; else tan.Normalize();
+        Vector3 tan = PathContainer.transform.TransformDirection((Vector3)spline.EvaluateTangent(normalizedT)).normalized;
+        if (tan.sqrMagnitude < 0.0001f)
+            tan = transform.forward;
 
         bool attachedToPlayer = false;
 
-        if (Behavior == Mode.Zone)
+        if (mode == Mode.Zone && spline.Closed)
         {
             Vector3 up = (Mathf.Abs(Vector3.Dot(tan, WorldUp)) > 0.95f) ? Vector3.forward : WorldUp;
             Vector3 right = Vector3.Cross(up, tan).normalized;
@@ -309,6 +250,7 @@ public class SplineFollowerAudioController : MonoBehaviour
             {
                 transform.position = driverPos;
                 attachedToPlayer = true;
+
                 if (MatchPlayerRotationInside)
                 {
                     transform.rotation = Player.rotation;
@@ -320,6 +262,7 @@ public class SplineFollowerAudioController : MonoBehaviour
         if (!attachedToPlayer)
         {
             bool snapNow = _wasAttachedLastFrame || PositionSmoothTime <= 0f;
+
             if (snapNow || !(Application.isPlaying && dt > 0f))
             {
                 _posVel = Vector3.zero;
@@ -327,13 +270,21 @@ public class SplineFollowerAudioController : MonoBehaviour
             }
             else
             {
-                transform.position = Vector3.SmoothDamp(transform.position, projPos, ref _posVel, PositionSmoothTime, Mathf.Infinity, dt);
+                transform.position = Vector3.SmoothDamp(
+                    transform.position,
+                    projPos,
+                    ref _posVel,
+                    PositionSmoothTime,
+                    Mathf.Infinity,
+                    dt
+                );
             }
 
             if (OrientToSpline)
             {
                 Vector3 up = (Mathf.Abs(Vector3.Dot(tan, WorldUp)) > 0.95f) ? Vector3.forward : WorldUp;
                 Quaternion targetRot = Quaternion.LookRotation(tan, up);
+
                 if (Application.isPlaying && RotationDamping > 0f && dt > 0f)
                 {
                     float t = 1f - Mathf.Exp(-RotationDamping * dt);
@@ -343,6 +294,7 @@ public class SplineFollowerAudioController : MonoBehaviour
                 {
                     _rotCurrent = targetRot;
                 }
+
                 transform.rotation = _rotCurrent;
             }
         }
@@ -350,41 +302,11 @@ public class SplineFollowerAudioController : MonoBehaviour
         _wasAttachedLastFrame = attachedToPlayer;
     }
 
-    void Rebuild()
-    {
-        if (PathContainer == null || SplineIndex < 0 || SplineIndex >= PathContainer.Splines.Count)
-        {
-            _pts = null; _segCount = 0; return;
-        }
-
-        // Mirror closed flag if requested
-        if (UseSplineClosedFlag)
-            ClosedLoop = PathContainer.Splines[SplineIndex].Closed;
-
-        int n = Mathf.Max(8, Samples);
-        int pointCount = n + (ClosedLoop ? 1 : 0);
-        var pts = new Vector3[pointCount];
-
-        for (int i = 0; i < n; i++)
-        {
-            float t = (float)i / n;
-            if (PathContainer.Evaluate(SplineIndex, t, out float3 pos, out _, out _))
-            {
-                Vector3 p = (Vector3)pos;
-                pts[i] = EvaluateReturnsLocal ? PathContainer.transform.TransformPoint(p) : p;
-            }
-            else
-            {
-                pts[i] = transform.position;
-            }
-        }
-        if (ClosedLoop) pts[n] = pts[0];
-        _pts = pts; _segCount = _pts.Length - 1;
-    }
-
     public void SetRunInEditMode(bool enabled) => RunInEditMode = enabled;
+
     [ContextMenu("Toggle Run In Edit Mode")]
     public void ToggleRunInEditMode() => RunInEditMode = !RunInEditMode;
+
     static bool IsAlive(Object o) => o != null;
 
     void TryAutoAssignPlayerIfMissing()
@@ -398,7 +320,6 @@ public class SplineFollowerAudioController : MonoBehaviour
         if (Camera.main != null) Player = Camera.main.transform;
     }
 
-    // --- Audio: Feature control ---
     void TryStartFeatureEvents(Collider col)
     {
         foreach (var feature in featureAudioEvents)
@@ -415,7 +336,6 @@ public class SplineFollowerAudioController : MonoBehaviour
                 {
                     var inst = RuntimeManager.CreateInstance(feature.featureAudioEvent);
                     inst.set3DAttributes(RuntimeUtils.To3DAttributes(col.gameObject.transform));
-                    //inst.setVolume(feature.maxVolume);
                     inst.start();
                     taggedInstances[feature.tag] = inst;
                 }
@@ -433,7 +353,6 @@ public class SplineFollowerAudioController : MonoBehaviour
         }
     }
 
-    // --- Audio ---
     void CreateAudioInstance()
     {
         if (!audioCreated && !mainAudioEvent.IsNull)
@@ -482,8 +401,10 @@ public class SplineFollowerAudioController : MonoBehaviour
 
         if (targetVol > 0.001f && (state != PLAYBACK_STATE.PLAYING && state != PLAYBACK_STATE.STARTING))
         {
-            inst.start(); return;
+            inst.start();
+            return;
         }
+
         if (targetVol <= 0.001f && currentVol <= 0.001f &&
             (state == PLAYBACK_STATE.PLAYING || state == PLAYBACK_STATE.STARTING))
         {
@@ -508,7 +429,6 @@ public class SplineFollowerAudioController : MonoBehaviour
 
     static bool IsValid(EventInstance inst) => inst.isValid();
 
-    // --- Area utilities ---
     void ApplyRadiusToCollider()
     {
         if (!sphere) sphere = GetComponent<SphereCollider>();
@@ -599,14 +519,15 @@ public class SplineFollowerAudioController : MonoBehaviour
         }
     }
 #endif
+
 #if UNITY_EDITOR
     void OnDrawGizmos()
     {
         Vector3 iconPos = transform.position + Vector3.up * 0.8f;
         if (speakerIconTexture != null)
-            Gizmos.DrawGUITexture(new Rect(iconPos, new Vector2(0.5f,0.5f)), speakerIconTexture);
+            Gizmos.DrawGUITexture(new Rect(iconPos, new Vector2(0.5f, 0.5f)), speakerIconTexture);
         else
-            Gizmos.DrawIcon(iconPos, "AudioSource Gizmo", true); // fallback
+            Gizmos.DrawIcon(iconPos, "AudioSource Gizmo", true);
     }
 #endif
 }
